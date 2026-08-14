@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ModernTech — Attendance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="styles1.css">
+</head>
+<body class="page-attendance">
+
+<a href="#mainContent" class="skip-link">Skip to main content</a>
+
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="sidebar">
+  <i class="ti ti-menu-2" aria-hidden="true"></i>
+</button>
+
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    <svg width="34" height="34" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ModernTech icon" style="flex-shrink:0;">
+      <rect x="0" y="0" width="34" height="34" rx="9" fill="#27187e"/>
+      <path d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z" fill="#ff8600"/>
+    </svg>
+    <div>
+      <div class="brand-name">ModernTech</div>
+      <div class="brand-sub">Workspace overview</div>
+    </div>
+  </div>
+
+  <div class="nav-section-label">Workspace</div>
+  <nav class="primary-nav" aria-label="Primary">
+    <a href="hr-dashboard.html" class="nav-item"><i class="ti ti-layout-grid" aria-hidden="true"></i>Dashboard</a>
+    <a href="hr-employees.html" class="nav-item"><i class="ti ti-users" aria-hidden="true"></i>Employees</a>
+    <a href="Busiswa_Attendance.html" class="nav-item active" aria-current="page"><i class="ti ti-calendar-check" aria-hidden="true"></i>Attendance</a>
+    <a href="Busiswa_Leave.html" class="nav-item"><i class="ti ti-beach" aria-hidden="true"></i>Leave</a>
+    <a href="hr-payroll.html" class="nav-item"><i class="ti ti-cash" aria-hidden="true"></i>Payroll</a>
+    <a href="hr-performance.html" class="nav-item"><i class="ti ti-chart-arrows" aria-hidden="true"></i>Performance</a>
+    <a href="Busiswa_TimeOff.html" class="nav-item"><i class="ti ti-alert-circle" aria-hidden="true"></i>Time off</a>
+    <a href="Busiswa_IssuesReport.html" class="nav-item"><i class="ti ti-alert-circle" aria-hidden="true"></i>Issues Report</a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <button class="user-chip" id="userMenuBtn" aria-haspopup="true" aria-expanded="false">
+      <div class="avatar">BB</div>
+      <div>
+        <div class="name">Busiswa Bala</div>
+        <div class="role">HR Manager</div>
+      </div>
+      <i class="ti ti-chevron-down" aria-hidden="true"></i>
+    </button>
+    <button id="logoutBtn" class="logout-btn">
+        <i class="ti ti-logout"></i>
+        Logout
+    </button>
+  </div>
+</aside>
+
+<main class="main" id="mainContent">
+
+  <div class="topbar">
+    <div>
+      <h1>Attendance</h1>
+      <div class="sub" id="clockDate">Loading date…</div>
+    </div>
+  </div>
+
+  <div class="attendance-grid">
+
+    <div class="panel clock-card">
+      <div id="clockTime" class="clock-time">--:--:--</div>
+      <p id="clockLoc" class="clock-location">Lansdowne, Western Cape</p>
+      <button id="clockBtn" class="primary-btn">Clock out</button>
+      <p class="status-line">
+        <span id="statusDot" class="status-dot status-online"></span>
+        <span id="statusText">Currently working</span>
+      </p>
+    </div>
+
+    <div class="panel stats-card">
+      <div class="stat-block">
+        <p class="stat-label">Today</p>
+        <p id="statToday" class="stat-value">1h 32m</p>
+        <p class="stat-meta">8h target</p>
+      </div>
+      <div class="stat-block">
+        <p class="stat-label">Weekly</p>
+        <p id="statWeekly" class="stat-value">38h 12m</p>
+        <p class="stat-meta">40h target</p>
+      </div>
+      <div class="stat-block">
+        <p class="stat-label">Monthly</p>
+        <p id="statMonthly" class="stat-value">152h 04m</p>
+        <p class="stat-meta">160h target</p>
+      </div>
+    </div>
+
+    <div class="panel timesheet-card">
+      <div class="timesheet-header">
+        <span>Weekly timesheet</span>
+        <span>Jun 23–29, 2025</span>
+      </div>
+      <div class="timesheet-row">
+        <span>Hours</span>
+        <span>8.5 · 7.8 · 9.2 · 8 · 8.8 · 4</span>
+      </div>
+      <div class="timesheet-row">
+        <span>Late</span>
+        <span class="badge badge-warning">Late</span>
+      </div>
+      <div class="timesheet-row">
+        <span>Overtime</span>
+        <span class="badge badge-success">+1h</span>
+      </div>
+    </div>
+
+    <div class="panel analytics-card">
+      <div class="analytics-header">Attendance analytics</div>
+      <div id="donut" class="donut-ring">
+        <div class="donut-hole">
+          <strong id="donutPercent">68%</strong>
+          <small>Present</small>
+        </div>
+      </div>
+      <ul class="analytics-list">
+        <li><span class="legend legend-blue"></span>Present<strong id="presentPct">68%</strong></li>
+        <li><span class="legend legend-orange"></span>Late<strong id="latePct">20%</strong></li>
+        <li><span class="legend legend-grey"></span>Absent<strong id="absentPct">12%</strong></li>
+      </ul>
+      <div class="analytics-meta">
+        <div><span>Avg arrival</span><strong id="avgArrival">09:02 AM</strong></div>
+        <div><span>Attendance rate</span><strong id="attRate">94.3%</strong></div>
+      </div>
+      <div class="analytics-trend">Monthly trend</div>
+    </div>
+
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Recent attendance activity</h2>
+      </div>
+      <a href="#" class="panel-link">View all</a>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Employee</th>
+          <th scope="col">Clock in</th>
+          <th scope="col">Clock out</th>
+          <th scope="col">Hours</th>
+          <th scope="col">Status</th>
+        </tr>
+      </thead>
+      <tbody id="activityRows"></tbody>
+    </table>
+  </div>
+
+</main>
+
+<script src="Busiswa_Attandance_Script.js"></script>
+<script src="Busiswa_employee_data.js"></script>
+
+</body>
+</html>

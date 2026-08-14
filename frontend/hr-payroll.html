@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ModernTech — Payroll Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="styles1.css">
+</head>
+<body class="page-payroll">
+
+  <a href="#mainContent" class="skip-link">Skip to main content</a>
+
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="sidebar">
+    <i class="ti ti-menu-2" aria-hidden="true"></i>
+  </button>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ModernTech icon" style="flex-shrink:0;">
+        <rect x="0" y="0" width="34" height="34" rx="9" fill="#27187e"/>
+        <path d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z" fill="#ff8600"/>
+      </svg>
+      <div>
+        <div class="brand-name">ModernTech</div>
+        <div class="brand-sub">Workspace overview</div>
+      </div>
+    </div>
+
+  <div class="nav-section-label">Workspace</div>
+  <nav class="primary-nav" aria-label="Primary">
+    <a href="hr-dashboard.html" class="nav-item"><i class="ti ti-layout-grid" aria-hidden="true"></i>Dashboard</a>
+    <a href="hr-employees.html" class="nav-item"><i class="ti ti-users" aria-hidden="true"></i>Employees</a>
+    <a href="Busiswa_Attendance.html" class="nav-item"><i class="ti ti-calendar-check" aria-hidden="true"></i>Attendance</a>
+    <a href="Busiswa_Leave.html" class="nav-item"><i class="ti ti-beach" aria-hidden="true"></i>Leave</a>
+    <a href="hr-payroll.html" class="nav-item active" aria-current="page"><i class="ti ti-cash" aria-hidden="true"></i>Payroll</a>
+    <a href="hr-performance.html" class="nav-item"><i class="ti ti-chart-arrows" aria-hidden="true"></i>Performance</a>
+    <a href="Busiswa_TimeOff.html" class="nav-item"><i class="ti ti-chart-arrows" aria-hidden="true"></i>Time off</a>
+    <a href="Busiswa_IssuesReport.html" class="nav-item"><i class="ti ti-chart-arrows" aria-hidden="true"></i>Issues Report</a>
+  </nav>
+
+    <div class="sidebar-footer">
+      <button class="user-chip" id="userMenuBtn" aria-haspopup="true" aria-expanded="false">
+        <div class="avatar">MA</div>
+        <div>
+          <div class="name">Busiswa Bala</div>
+          <div class="role">HR Manager</div>
+        </div>
+      </button>
+      <button id="logoutBtn" class="logout-btn">
+        <i class="ti ti-logout"></i>
+        Logout
+    </button>
+    </div>
+  </aside>
+
+  <main class="main" id="mainContent">
+    <div class="topbar">
+      <div>
+        <h1>Payroll Processing</h1>
+        <div class="date" id="topbarDate">Loading date...</div>
+      </div>
+      <div class="topbar-actions">
+        <div class="search-box">
+          <i class="ti ti-search" aria-hidden="true"></i>
+          <label for="payrollSearch" class="sr-only">Search employee accounts</label>
+          <input type="text" id="payrollSearch" placeholder="Search accounts by name...">
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Active Run Ledger</h2>
+          <div class="sub" id="runCycleLabel">Cycle locks soon</div>
+        </div>
+        <div class="panel-actions">
+          <button class="secondary-btn" id="recalcBtn"><i class="ti ti-calculator"></i> Recalculate</button>
+          <button class="primary-btn" id="processBatchBtn"><i class="ti ti-cash"></i> Process All Payouts</button>
+        </div>
+      </div>
+
+      <div class="payroll-summary-strip">
+        <div class="summary-item">
+          <span class="lbl">Gross Balance Pool</span>
+          <span class="val payroll-val-text" id="grossPool">R0.00</span>
+        </div>
+        <div class="summary-item">
+          <span class="lbl">Total Deductions</span>
+          <span class="val payroll-val-text deduction-color" id="deductPool">-R0.00</span>
+        </div>
+        <div class="summary-item total-net-accent">
+          <span class="lbl">Net Distribution Pool</span>
+          <span class="val payroll-val-text" id="netPool">R0.00</span>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Base Salary</th>
+            <th>Hourly Rate</th>
+            <th>Deductions</th>
+            <th>Net Pay</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="payrollItemsTable">
+          <!-- Rows are rendered dynamically from employeeData in hr-payroll.js -->
+        </tbody>
+      </table>
+
+      <div id="emptyState" class="empty-state" hidden>
+        <i class="ti ti-search-off" aria-hidden="true"></i>
+        <p>No employees match your search.</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Payslip Modal -->
+  <div id="slipModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="slipTargetName">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-brand">
+          <svg width="28" height="28" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ModernTech icon" style="flex-shrink:0;">
+            <rect x="0" y="0" width="34" height="34" rx="9" fill="#27187e"/>
+            <path d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z" fill="#ff8600"/>
+          </svg>
+          <span class="modal-comp-name">ModernTech Ltd.</span>
+        </div>
+        <button id="closeModalBtn" class="modal-close-icon" aria-label="Close payslip">&times;</button>
+      </div>
+
+      <div class="payslip-meta-grid">
+        <div>
+          <div class="slip-meta-label">EMPLOYEE NAME</div>
+          <div class="slip-meta-val" id="slipTargetName">---</div>
+        </div>
+        <div>
+          <div class="slip-meta-label">DESIGNATION</div>
+          <div class="slip-meta-val" id="slipTargetRole">---</div>
+        </div>
+        <div>
+          <div class="slip-meta-label">PAY PERIOD</div>
+          <div class="slip-meta-val" id="slipTargetPayPeriod">---</div>
+        </div>
+        <div>
+          <div class="slip-meta-label">PAYMENT STATUS</div>
+          <div class="slip-meta-val" id="slipTargetStatus">---</div>
+        </div>
+      </div>
+
+      <div class="slip-breakdown-table">
+        <div class="slip-table-header">
+          <span>Description</span>
+          <span class="text-right">Amount</span>
+        </div>
+        <div class="slip-table-row">
+          <span>Base Gross Salary</span>
+          <span class="text-right" id="slipTargetBase">R0.00</span>
+        </div>
+        <div class="slip-table-row">
+          <span class="rate-color">Hourly Rate</span>
+          <span class="text-right rate-color" id="slipTargetRate">R0.00/hr</span>
+        </div>
+        <div class="slip-table-row">
+          <span class="deduct-color">Deductions (Leave)</span>
+          <span class="text-right deduct-color" id="slipTargetDeduct">-R0.00</span>
+        </div>
+        <div class="slip-total-row">
+          <span>Net Take-Home Pay</span>
+          <span class="text-right" id="slipTargetNet">R0.00</span>
+        </div>
+      </div>
+
+      <div class="modal-footer-actions">
+        <button class="secondary-btn" onclick="window.print()"><i class="ti ti-printer"></i> Print Statement</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal for batch disbursal -->
+  <div id="confirmModal" class="modal-overlay" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-card confirm-card">
+      <h3 id="confirmTitle">Confirm Payout</h3>
+      <p id="confirmBody" class="confirm-body">
+        You're about to release payment to all eligible employees. This cannot be undone.
+      </p>
+      <div class="modal-footer-actions confirm-actions">
+        <button class="secondary-btn" id="cancelConfirmBtn">Cancel</button>
+        <button class="primary-btn" id="confirmDisburseBtn"><i class="ti ti-cash"></i> Yes, Process Payouts</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="hr-employee-data.js"></script>
+  <script src="hr-storage.js"></script>
+  <script src="hr-payroll.js"></script>
+
+</body>
+</html>

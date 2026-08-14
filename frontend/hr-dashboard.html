@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ModernTech — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="styles1.css">
+</head>
+<body class="page-dashboard">
+
+<a href="#mainContent" class="skip-link">Skip to main content</a>
+
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="sidebar">
+  <i class="ti ti-menu-2" aria-hidden="true"></i>
+</button>
+
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    <svg width="34" height="34" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ModernTech icon" style="flex-shrink:0;">
+      <rect x="0" y="0" width="34" height="34" rx="9" fill="#27187e"/>
+      <path d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z" fill="#ff8600"/>
+    </svg>
+    <div>
+      <div class="brand-name">ModernTech</div>
+      <div class="brand-sub">Workspace overview</div>
+    </div>
+  </div>
+
+  <div class="nav-section-label">Workspace</div>
+  <nav class="primary-nav" aria-label="Primary">
+    <a href="hr-dashboard.html" class="nav-item active" aria-current="page"><i class="ti ti-layout-grid" aria-hidden="true"></i>Dashboard</a>
+    <a href="hr-employees.html" class="nav-item"><i class="ti ti-users" aria-hidden="true"></i>Employees</a>
+    <a href="Busiswa_Attendance.html" class="nav-item"><i class="ti ti-calendar-check" aria-hidden="true"></i>Attendance</a>
+    <a href="Busiswa_Leave.html" class="nav-item"><i class="ti ti-beach" aria-hidden="true"></i>Leave</a>
+    <a href="hr-payroll.html" class="nav-item"><i class="ti ti-cash" aria-hidden="true"></i>Payroll</a>
+    <a href="hr-performance.html" class="nav-item"><i class="ti ti-chart-arrows" aria-hidden="true"></i>Performance</a>
+    <a href="Busiswa_TimeOff.html" class="nav-item"><i class="ti ti-chart-arrows" aria-hidden="true"></i>Time off</a>
+    <a href="Busiswa_IssuesReport.html" class="nav-item"><i class="ti ti-chart-arrows" aria-hidden="true"></i>Issues Report</a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <button class="user-chip" id="userMenuBtn" aria-haspopup="true" aria-expanded="false">
+      <div class="avatar">MA</div>
+      <div>
+        <div class="name">Busiswa Bala</div>
+        <div class="role">HR Manager</div>
+      </div>
+      <i class="ti ti-chevron-down" aria-hidden="true"></i>
+    </button>
+    <button id="logoutBtn" class="logout-btn">
+        <i class="ti ti-logout"></i>
+        Logout
+    </button>
+  </div>
+</aside>
+
+<main class="main" id="mainContent">
+
+  <div class="topbar">
+    <div>
+      <h1 id="greetingText">Good morning, Busiswa</h1>
+      <div class="date" id="dateText">Loading date…</div>
+    </div>
+    <div class="topbar-actions">
+      <div class="search-box">
+        <i class="ti ti-search" aria-hidden="true"></i>
+        <label for="dashboardSearch" class="sr-only">Search employees, requests...</label>
+        <input type="text" id="dashboardSearch" placeholder="Search employees, requests...">
+      </div>
+      <div class="notif-wrap">
+        <button class="icon-btn" id="notifBtn" aria-label="View notifications" aria-haspopup="true" aria-expanded="false">
+          <i class="ti ti-bell" aria-hidden="true"></i><span class="dot" id="notifDot" aria-hidden="true"></span>
+        </button>
+        <div class="notif-panel" id="notifPanel" hidden>
+          <div class="notif-panel-head">
+            <span>Notifications</span>
+            <button class="notif-mark-read" id="notifMarkAllBtn">Mark all read</button>
+          </div>
+          <ul class="notif-list" id="notifList">
+            <li class="notif-item unread">
+              <i class="ti ti-beach" aria-hidden="true"></i>
+              <div><p>Riko Larsen requested annual leave (5-9 Jul)</p><span>10 min ago</span></div>
+            </li>
+            <li class="notif-item unread">
+              <i class="ti ti-user-plus" aria-hidden="true"></i>
+              <div><p>Amara Khan completed onboarding paperwork</p><span>1 hr ago</span></div>
+            </li>
+            <li class="notif-item">
+              <i class="ti ti-cash" aria-hidden="true"></i>
+              <div><p>July payroll run locks in 3 days</p><span>Yesterday</span></div>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <button class="primary-btn" id="addEmployeeBtn"><i class="ti ti-plus" aria-hidden="true"></i>Add employee</button>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon indigo"><i class="ti ti-users" aria-hidden="true"></i></div>
+      </div>
+      <div class="stat-value" id="totalEmployeesVal">0</div>
+      <div class="stat-label">Total employees</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon orange"><i class="ti ti-user-plus" aria-hidden="true"></i></div>
+      </div>
+      <div class="stat-value" id="newHiresVal">0</div>
+      <div class="stat-label">Onboarding now</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon periwinkle"><i class="ti ti-beach" aria-hidden="true"></i></div>
+        <div class="stat-trend flat" id="leavePendingTrend"><i class="ti ti-clock" aria-hidden="true"></i><span id="leavePendingTrendText">0 pending</span></div>
+      </div>
+      <div class="stat-value" id="onLeaveVal">0</div>
+      <div class="stat-label">On leave (approved)</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon grey"><i class="ti ti-briefcase" aria-hidden="true"></i></div>
+      </div>
+      <div class="stat-value">8</div>
+      <div class="stat-label">Open positions</div>
+      <div class="stat-label" style="margin-top:2px;font-size:11px;">(demo data — no recruitment file provided)</div>
+    </div>
+  </div>
+
+  <div class="content-grid">
+
+    <div class="col">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Attendance snapshot</h2>
+            <div class="sub" id="attendanceDateSub">Loading…</div>
+          </div>
+          <a href="hr-attendance.html" class="panel-link">View report</a>
+        </div>
+        <div class="attendance-body">
+          <div class="donut-wrap">
+            <svg width="150" height="150" viewBox="0 0 150 150" role="img" id="attendanceDonut" aria-label="Attendance breakdown">
+              <circle cx="75" cy="75" r="58" fill="none" stroke="#f1f2f6" stroke-width="16"/>
+              <circle id="donutPresent" cx="75" cy="75" r="58" fill="none" stroke="#27187e" stroke-width="16"
+                stroke-dasharray="0 364.4" stroke-dashoffset="0" stroke-linecap="round"
+                transform="rotate(-90 75 75)"/>
+              <circle id="donutAbsent" cx="75" cy="75" r="58" fill="none" stroke="#ff8600" stroke-width="16"
+                stroke-dasharray="0 364.4" stroke-dashoffset="0" stroke-linecap="round"
+                transform="rotate(-90 75 75)"/>
+            </svg>
+            <div class="donut-center">
+              <div class="n" id="donutPct">–</div>
+              <div class="l">PRESENT</div>
+            </div>
+          </div>
+          <div class="legend">
+            <div class="legend-row">
+              <div class="legend-dot" style="background:#27187e;"></div>
+              <div class="legend-name">Present</div>
+              <div class="legend-val" id="legendPresentVal">0</div>
+            </div>
+            <div class="legend-row">
+              <div class="legend-dot" style="background:#ff8600;"></div>
+              <div class="legend-name">Absent</div>
+              <div class="legend-val" id="legendAbsentVal">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Recently added employees</h2>
+            <div class="sub" id="recentEmpSub">Loading…</div>
+          </div>
+          <a href="hr-employees.html" class="panel-link">View all</a>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Employee</th>
+              <th scope="col">Department</th>
+              <th scope="col">Start date</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody id="recentEmployeesTbody"></tbody>
+        </table>
+        <div class="empty-inline" id="employeeEmptyState" hidden>
+          <i class="ti ti-search-off" aria-hidden="true"></i>
+          <p>No employees match your search.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Leave requests</h2>
+            <div class="sub" id="leaveRequestsSub">Loading…</div>
+          </div>
+          <a href="hr-leave.html" class="panel-link">Manage</a>
+        </div>
+
+        <div class="leave-list" id="leaveList"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Recruitment pipeline</h2>
+            <div class="sub">Demo data — no recruitment file provided</div>
+          </div>
+          <a href="hr-recruitment.html" class="panel-link">Open board</a>
+        </div>
+
+        <div class="funnel-row">
+          <div class="funnel-top"><span class="stage">Applied</span><span class="count">184</span></div>
+          <div class="funnel-track"><div class="funnel-fill" style="width:100%;"></div></div>
+        </div>
+        <div class="funnel-row">
+          <div class="funnel-top"><span class="stage">Screened</span><span class="count">76</span></div>
+          <div class="funnel-track"><div class="funnel-fill" style="width:41%;"></div></div>
+        </div>
+        <div class="funnel-row">
+          <div class="funnel-top"><span class="stage">Interviewing</span><span class="count">28</span></div>
+          <div class="funnel-track"><div class="funnel-fill orange" style="width:15%;"></div></div>
+        </div>
+        <div class="funnel-row">
+          <div class="funnel-top"><span class="stage">Offer sent</span><span class="count">9</span></div>
+          <div class="funnel-track"><div class="funnel-fill indigo" style="width:5%;"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<!-- Add Employee Modal -->
+<div id="addEmployeeModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="addEmployeeTitle" hidden>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="addEmployeeTitle">Add employee</h3>
+      <button id="closeAddEmployeeBtn" class="modal-close-icon" aria-label="Close">&times;</button>
+    </div>
+    <form id="addEmployeeForm" novalidate>
+      <div class="form-row">
+        <label for="empNameInput">Full name</label>
+        <input type="text" id="empNameInput" name="empName" required autocomplete="off">
+      </div>
+      <div class="form-row">
+        <label for="empRoleInput">Role / title</label>
+        <input type="text" id="empRoleInput" name="empRole" required autocomplete="off">
+      </div>
+      <div class="form-row">
+        <label for="empDeptInput">Department</label>
+        <select id="empDeptInput" name="empDept" required>
+          <option value="" disabled selected>Select department</option>
+          <option value="Development">Development</option>
+          <option value="Design">Design</option>
+          <option value="Sales">Sales</option>
+          <option value="Marketing">Marketing</option>
+          <option value="HR">HR</option>
+          <option value="QA">QA</option>
+          <option value="Finance">Finance</option>
+          <option value="IT">IT</option>
+          <option value="Support">Support</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="empSalaryInput">Salary (annual)</label>
+        <input type="number" id="empSalaryInput" name="empSalary" min="0" step="0.01" required>
+      </div>
+      <div class="form-row">
+        <label for="empStartInput">Start date</label>
+        <input type="date" id="empStartInput" name="empStart" required>
+      </div>
+      <p class="form-error" id="addEmployeeError" hidden>Please fill in all fields before adding this employee.</p>
+      <div class="modal-footer-actions">
+        <button type="button" class="secondary-btn" id="cancelAddEmployeeBtn">Cancel</button>
+        <button type="submit" class="primary-btn"><i class="ti ti-plus" aria-hidden="true"></i> Add employee</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="hr-employee-data.js"></script>
+<script src="hr-storage.js"></script>
+<script src="hr-dashboard.js"></script>
+
+</body>
+</html>

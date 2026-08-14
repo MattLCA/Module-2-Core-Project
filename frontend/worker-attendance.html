@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance | ModernTech</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<a href="#mainContent" class="skip-link">Skip to main content</a>
+
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation menu" aria-expanded="false"
+    aria-controls="sidebar">
+    <i class="ti ti-menu-2" aria-hidden="true"></i>
+  </button>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" role="img"
+        aria-label="ModernTech icon" style="flex-shrink:0;">
+        <rect x="0" y="0" width="34" height="34" rx="9" fill="#27187e" />
+        <path d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25" fill="none" stroke="#ffffff" stroke-width="3.2"
+          stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z" fill="#ff8600" />
+      </svg>
+      <div>
+        <div class="brand-name">ModernTech</div>
+        <div class="brand-sub">Workspace overview</div>
+      </div>
+    </div>
+
+    <div class="nav-section-label">Workspace</div>
+    <nav class="primary-nav" aria-label="Primary">
+      <a href="worker-dashboard.html" class="nav-item" aria-current="page"><i class="ti ti-layout-grid"
+          aria-hidden="true"></i>Dashboard</a>
+      <a href="worker-attendance.html" class="nav-item active"><i class="ti ti-calendar-check"
+          aria-hidden="true"></i>Attendance</a>
+      <a href="worker-leave.html" class="nav-item"><i class="ti ti-beach" aria-hidden="true"></i>Leave</a>
+      <a href="worker-payslip.html" class="nav-item"><i class="ti ti-file-dollar" aria-hidden="true"></i>Payslips</a>
+      <a href="worker-profile.html" class="nav-item"><i class="ti ti-user-circle" aria-hidden="true"></i>My Profile</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="user-chip" id="userMenuBtn" aria-haspopup="true" aria-expanded="false">
+        <div class="avatar">SN</div>
+        <div>
+          <div class="name">Sibongile Nkosi</div>
+          <div class="role">EMP-001</div>
+        </div>
+        <i class="ti ti-chevron-down" aria-hidden="true"></i>
+      </button>
+
+      <button id="logoutBtn" class="logout-btn">
+        <i class="ti ti-logout"></i>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+<main class="main" id="mainContent">
+
+<section class="page-hero">
+  <div><h1>Attendance</h1><p>Clock in, clock out, record breaks and keep a professional attendance log.</p></div>
+  <div class="hero-actions">
+    <button class="btn" data-attendance="Clock In"><i class="ti ti-login-2"></i>Clock In</button>
+    <button class="btn secondary" data-attendance="Break"><i class="ti ti-coffee"></i>Break</button>
+    <button class="btn secondary" data-attendance="Return"><i class="ti ti-player-play"></i>Return</button>
+    <button class="btn secondary" data-attendance="Clock Out"><i class="ti ti-logout-2"></i>Clock Out</button>
+  </div>
+</section>
+<section class="mini-grid">
+  <article class="stat highlight"><span>Today Status</span><strong id="attendanceStatus">Not clocked in</strong></article>
+  <article class="stat"><span>This Month</span><strong id="attendanceCount">0 logs</strong></article>
+  <article class="stat"><span>Last Action</span><strong id="lastAttendanceAction">None</strong></article>
+</section>
+<br>
+<section class="panel">
+  <div class="panel-top"><h2>Attendance History</h2><button class="btn secondary" id="clearAttendanceBtn" type="button">Clear History</button></div>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Time</th><th>Action</th><th>Status</th></tr></thead><tbody id="attendanceTable"></tbody></table></div>
+</section>
+
+</main>
+<script src="javascript/script.js"></script>
+<script src="javascript/logout.js"></script>
+</body>
+</html>
