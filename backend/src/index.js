@@ -5,6 +5,9 @@ import helmet from 'helmet';
 
 import authRoutes from './routes/authRoutes.js';
 import employeeRoutes from './routes/employeeRoutes.js';
+import payrollRoutes from './routes/payrollRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
+import performanceRoutes from './routes/performanceRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -17,8 +20,11 @@ app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
-// Mount attendanceRoutes / leaveRoutes / payrollRoutes here as your
-// teammates build out their controllers, following the same pattern.
+app.use('/api/payroll', payrollRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/performance', performanceRoutes);
+// Mount attendanceRoutes / leaveRoutes here as your teammates build out
+// their controllers, following the same pattern.
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 
