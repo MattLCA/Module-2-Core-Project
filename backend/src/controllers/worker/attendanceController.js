@@ -19,7 +19,7 @@ export const getClockStatus = async (req, res) => {
         const activeRecord = await getActiveAttendance(employeeId);
 
         if (!activeRecord) {
-            return res.json({
+            return res.status(200).json({
                 isClockedIn: false,
                 state: 'CLOCKED_OUT',
                 activeRecord: null
@@ -32,7 +32,7 @@ export const getClockStatus = async (req, res) => {
             state = 'ON_BREAK';
         }
 
-        res.json({
+        return res.status(200).json({
             isClockedIn: true,
             state,
             activeRecord
@@ -41,7 +41,7 @@ export const getClockStatus = async (req, res) => {
     } catch (error) {
         console.error('getClockStatus error:', error);
 
-        res.status(500).json({
+        return res.status(500).json({
             error: 'Failed to retrieve clock status.'
         });
     }
@@ -66,14 +66,14 @@ export const clockIn = async (req, res) => {
 
         await createClockIn(employeeId);
 
-        res.status(201).json({
+        return res.status(201).json({
             message: 'Clocked in successfully.'
         });
 
     } catch (error) {
         console.error('clockIn error:', error);
 
-        res.status(500).json({
+        return res.status(500).json({
             error: 'Failed to clock in.'
         });
     }
@@ -108,16 +108,24 @@ export const startBreak = async (req, res) => {
             });
         }
 
-        await updateBreakStart(activeRecord.attendanceId);
+        const result = await updateBreakStart(
+            activeRecord.attendanceId
+        );
 
-        res.json({
+        if (result.affectedRows === 0) {
+            return res.status(400).json({
+                message: 'Unable to start break.'
+            });
+        }
+
+        return res.status(200).json({
             message: 'Break started successfully.'
         });
 
     } catch (error) {
         console.error('startBreak error:', error);
 
-        res.status(500).json({
+        return res.status(500).json({
             error: 'Failed to start break.'
         });
     }
@@ -152,16 +160,24 @@ export const endBreak = async (req, res) => {
             });
         }
 
-        await updateBreakEnd(activeRecord.attendanceId);
+        const result = await updateBreakEnd(
+            activeRecord.attendanceId
+        );
 
-        res.json({
+        if (result.affectedRows === 0) {
+            return res.status(400).json({
+                message: 'Unable to end break.'
+            });
+        }
+
+        return res.status(200).json({
             message: 'Break ended successfully.'
         });
 
     } catch (error) {
         console.error('endBreak error:', error);
 
-        res.status(500).json({
+        return res.status(500).json({
             error: 'Failed to end break.'
         });
     }
@@ -196,16 +212,24 @@ export const clockOut = async (req, res) => {
             });
         }
 
-        await updateClockOut(activeRecord.attendanceId);
+        const result = await updateClockOut(
+            activeRecord.attendanceId
+        );
 
-        res.json({
+        if (result.affectedRows === 0) {
+            return res.status(400).json({
+                message: 'Unable to clock out.'
+            });
+        }
+
+        return res.status(200).json({
             message: 'Clocked out successfully.'
         });
 
     } catch (error) {
         console.error('clockOut error:', error);
 
-        res.status(500).json({
+        return res.status(500).json({
             error: 'Failed to clock out.'
         });
     }
@@ -220,14 +244,17 @@ export const getAttendanceHistory = async (req, res) => {
     try {
         const employeeId = req.user.employeeId;
 
-        const history = await getHistoryByEmployeeId(employeeId);
+        const history =
+            await getHistoryByEmployeeId(employeeId);
 
-        res.json(history);
+        return res.status(200).json({
+            data: history
+        });
 
     } catch (error) {
         console.error('getAttendanceHistory error:', error);
 
-        res.status(500).json({
+        return res.status(500).json({
             error: 'Failed to retrieve attendance history.'
         });
     }

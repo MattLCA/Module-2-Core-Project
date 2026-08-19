@@ -1,37 +1,47 @@
 import express from 'express';
 
-import {
-    getClockStatus,
-    clockIn,
-    startBreak,
-    endBreak,
-    clockOut,
-    getAttendanceHistory
-} from '../../controllers/worker/attendanceController.js';
-
-import { authenticate } from '../../middleware/auth.js';
+import profileRoutes from './profileRoutes.js';
+import attendanceRoutes from './attendanceRoutes.js';
+import leaveRoutes from './leaveRoutes.js';
+import payslipRoutes from './payslipRoutes.js';
+import notificationRoutes from './notificationRoutes.js';
 
 const router = express.Router();
 
-// Apply JWT authentication to all worker attendance routes
-router.use(authenticate);
 
-// Get current clock status
-router.get('/clock-status', getClockStatus);
+// ============================================================
+// WORKER PROFILE
+// ============================================================
 
-// Clock in
-router.post('/clock-in', clockIn);
+router.use('/profile', profileRoutes);
 
-// Start break
-router.put('/break/start', startBreak);
 
-// End break
-router.put('/break/end', endBreak);
+// ============================================================
+// WORKER ATTENDANCE
+// ============================================================
 
-// Clock out
-router.put('/clock-out', clockOut);
+router.use('/attendance', attendanceRoutes);
 
-// Get attendance history
-router.get('/attendance/history', getAttendanceHistory);
+
+// ============================================================
+// WORKER LEAVE
+// ============================================================
+
+router.use('/leave', leaveRoutes);
+
+
+// ============================================================
+// WORKER PAYSLIPS
+// ============================================================
+
+router.use('/payslips', payslipRoutes);
+
+
+// ============================================================
+// WORKER NOTIFICATIONS
+// ============================================================
+
+router.use('/notifications', notificationRoutes);
+
 
 export default router;

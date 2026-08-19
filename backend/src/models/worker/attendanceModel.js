@@ -4,6 +4,7 @@ import pool from '../../config/db.js';
 // ============================================================
 // 1. GET TODAY'S ACTIVE ATTENDANCE SESSION
 // ============================================================
+
 export const getActiveAttendance = async (employeeId) => {
     const [rows] = await pool.query(
         `
@@ -34,23 +35,24 @@ export const getActiveAttendance = async (employeeId) => {
 // ============================================================
 // 2. CREATE CLOCK-IN ENTRY
 // ============================================================
+
 export const createClockIn = async (employeeId) => {
     const [result] = await pool.query(
         `
         INSERT INTO attendance
-            (
-                employee_id,
-                attendance_date,
-                clock_in,
-                attendance_status
-            )
+        (
+            employee_id,
+            attendance_date,
+            clock_in,
+            attendance_status
+        )
         VALUES
-            (
-                ?,
-                CURRENT_DATE(),
-                NOW(),
-                'Present'
-            )
+        (
+            ?,
+            CURRENT_DATE(),
+            NOW(),
+            'Present'
+        )
         `,
         [employeeId]
     );
@@ -62,14 +64,16 @@ export const createClockIn = async (employeeId) => {
 // ============================================================
 // 3. START BREAK
 // ============================================================
+
 export const updateBreakStart = async (attendanceId) => {
     const [result] = await pool.query(
         `
         UPDATE attendance
         SET
-            break_start = NOW(),
-            attendance_status = 'On Break'
+            break_start = NOW()
         WHERE attendance_id = ?
+          AND clock_out IS NULL
+          AND break_start IS NULL
         `,
         [attendanceId]
     );
@@ -81,14 +85,17 @@ export const updateBreakStart = async (attendanceId) => {
 // ============================================================
 // 4. END BREAK
 // ============================================================
+
 export const updateBreakEnd = async (attendanceId) => {
     const [result] = await pool.query(
         `
         UPDATE attendance
         SET
-            break_end = NOW(),
-            attendance_status = 'Present'
+            break_end = NOW()
         WHERE attendance_id = ?
+          AND clock_out IS NULL
+          AND break_start IS NOT NULL
+          AND break_end IS NULL
         `,
         [attendanceId]
     );
@@ -100,6 +107,7 @@ export const updateBreakEnd = async (attendanceId) => {
 // ============================================================
 // 5. CLOCK OUT
 // ============================================================
+
 export const updateClockOut = async (attendanceId) => {
     const [result] = await pool.query(
         `
@@ -108,6 +116,7 @@ export const updateClockOut = async (attendanceId) => {
             clock_out = NOW(),
             attendance_status = 'Present'
         WHERE attendance_id = ?
+          AND clock_out IS NULL
         `,
         [attendanceId]
     );
@@ -119,6 +128,7 @@ export const updateClockOut = async (attendanceId) => {
 // ============================================================
 // 6. GET PERSONAL ATTENDANCE HISTORY
 // ============================================================
+
 export const getHistoryByEmployeeId = async (employeeId) => {
     const [rows] = await pool.query(
         `

@@ -10,6 +10,11 @@ import dashboardRoutes from './routes/dashboardRoutes.js';
 import performanceRoutes from './routes/performanceRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
+
+import notificationRoutes from './routes/worker/notificationRoutes.js';
+import dashboardWorkerRoutes from './routes/worker/dashboardRoutes.js';
+import workerRoutes from './routes/worker/workerRoutes.js';
+
 const app = express();
 
 app.use(helmet());
@@ -23,7 +28,12 @@ app.use('/api/employees', employeeRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/performance', performanceRoutes);
+
 // Mount attendanceRoutes / leaveRoutes here as your teammates build out
+app.use('/api/worker', workerRoutes);
+app.use('/api/worker/dashboard', dashboardWorkerRoutes);
+app.use('/api/worker/notifications', notificationRoutes);
+
 // their controllers, following the same pattern.
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
