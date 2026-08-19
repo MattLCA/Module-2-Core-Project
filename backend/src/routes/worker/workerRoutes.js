@@ -9,7 +9,7 @@ import {
     getAttendanceHistory
 } from '../../controllers/worker/attendanceController.js';
 
-import authenticateToken from '../../middleware/authMiddleware.js';
+import authenticateToken from '../../middleware/auth.js';
 
 const router = express.Router();
 
