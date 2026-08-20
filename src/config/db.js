@@ -1,18 +1,16 @@
-import mysql from "mysql2";
+import mysql from "mysql2/promise";
 
-export const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "Busiswa25#Bala",
-  database: "moderntech_db",
-  port: 3307,
+// Initialize a unified database connection pool utilizing your custom port configuration
+const db = mysql.createPool({
+  host: process.env.DB_HOST || "localhost",
+  user: process.env.DB_USER || "root",
+// Ensure this specific line inside your db.js configuration object is set up safely:
+password: process.env.DB_PASSWORD !== undefined ? process.env.DB_PASSWORD : '',// Pulls your password safely from your hidden .env file
+  database: process.env.DB_NAME || "moderntech_db",
+  port: parseInt(process.env.DB_PORT) || 3307, // Preserves your specialized 3307 connection port
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
 });
 
-db.connect((err) => {
-  if (err) {
-    console.error("MySQL connection failed:", err);
-    return;
-  }
-
-  console.log("MySQL connected successfully!");
-});
+export default db;

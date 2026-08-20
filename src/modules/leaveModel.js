@@ -2,95 +2,76 @@ import db from "../config/db.js";
 
 class LeaveModel {
   /**
-   * Retreives all matching leave requests, with optional status filter constraints.
-   * @param {string} [status] - Optional leave status to filter by (Pending, Approved, Denied).
-   * @returns {Promise<Array>} Map grid rows list.
+   * Pulls matching rows from the employee_leave_requests database view.
    */
   static async findAll(status = null) {
     let query = `
       SELECT 
-        l.requestId,
-        l.employeeId,
-        e.employeeFullName,
-        e.departmentName,
-        l.leaveType,
-        l.startDate,
-        l.endDate,
-        l.duration,
-        l.reason,
-        l.leaveStatus,
-        l.submittedDate
-      FROM leave_request l
-      JOIN employee_info e ON l.employeeId = e.employeeId
+        leave_request_id AS requestId,
+        employee_id AS employeeId,
+        name AS employeeFullName,
+        leave_type_name AS leaveType,
+        start_date AS startDate,
+        end_date AS endDate,
+        total_days AS duration,
+        reason,
+        status AS leaveStatus,
+        submitted_date AS submittedDate
+      FROM employee_leave_requests
     `;
     const params = [];
     if (status) {
-      query += ` WHERE l.leaveStatus = ?`;
+      query += ` WHERE status = ?`;
       params.push(status);
     }
-    query += ` ORDER BY l.submittedDate DESC`;
+    query += ` ORDER BY submitted_date DESC`;
 
     const [rows] = await db.execute(query, params);
     return rows;
   }
 
   /**
-   * Checks for structural row verification existence.
-   * @param {number} id - Leave entry request key ID.
-   * @returns {Promise<Object|null>} Row contents or null.
+   * Confirms request record validation before passing data variables.
    */
   static async findById(id) {
     const [rows] = await db.execute(
-      "SELECT * FROM leave_request WHERE requestId = ?",
+      "SELECT * FROM leave_requests WHERE leave_request_id = ?",
       [id],
     );
     return rows.length > 0 ? rows[0] : null;
   }
 
   /**
-   * Creates a brand new pending leave entry ledger item.
-   * @param {Object} data - Structured entry fields object payload.
-   * @returns {Promise<Object>} Insert payload operation summary.
+   * Appends an employee time off request entry safely using a parameterized query.
    */
   static async create(data) {
-    const {
-      employeeId,
-      departmentId,
-      managerId,
-      leaveType,
-      startDate,
-      endDate,
-      duration,
-      reason,
-    } = data;
+    const { employeeId, leaveTypeId, startDate, endDate, totalDays, reason } =
+      data;
     const query = `
-      INSERT INTO leave_request (employeeId, departmentId, managerId, leaveType, startDate, endDate, duration, reason, submittedDate, leaveStatus)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'Pending')
+      INSERT INTO leave_requests (employee_id, leave_type_id, start_date, end_date, total_days, reason, status, submitted_date)
+      VALUES (?, ?, ?, ?, ?, ?, 'Pending', CURRENT_DATE)
     `;
     const [result] = await db.execute(query, [
       employeeId,
-      departmentId,
-      managerId,
-      leaveType,
+      leaveTypeId,
       startDate,
       endDate,
-      duration,
+      totalDays,
       reason || "",
     ]);
     return result;
   }
 
   /**
-   * Overwrites checking constraints validation states.
-   * @param {number} id - Target request element key lookup identifier.
-   * @param {string} status - Target operational parameter verification code configuration.
-   * @returns {Promise<Object>} Update metrics properties execution grid mapping output.
+   * Updates an application status state matching an enum constraint configuration block.
    */
-  static async updateStatus(id, status) {
-    const [result] = await db.execute(
-      "UPDATE leave_request SET leaveStatus = ? WHERE requestId = ?",
-      [status, id],
-    );
+  static async updateStatus(id, status, reviewerId) {
+    const query = `
+      UPDATE leave_requests 
+      SET status = ?, reviewed_by = ? 
+      WHERE leave_request_id = ?
+    `;
+    const [result] = await db.execute(query, [status, reviewerId, id]);
     return result;
   }
 }

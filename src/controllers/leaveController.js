@@ -17,24 +17,8 @@ export const getLeaveRequests = async (req, res) => {
 
 export const submitLeaveRequest = async (req, res) => {
   try {
-    const {
-      employeeId,
-      departmentId,
-      managerId,
-      leaveType,
-      startDate,
-      endDate,
-      duration,
-    } = req.body;
-    if (
-      !employeeId ||
-      !departmentId ||
-      !managerId ||
-      !leaveType ||
-      !startDate ||
-      !endDate ||
-      !duration
-    ) {
+    const { employeeId, leaveTypeId, startDate, endDate, totalDays } = req.body;
+    if (!employeeId || !leaveTypeId || !startDate || !endDate || !totalDays) {
       return res
         .status(400)
         .json({ message: "Missing required leave fields." });
@@ -58,13 +42,13 @@ export const submitLeaveRequest = async (req, res) => {
 export const processLeaveDecision = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status } = req.body; // Expects 'Approved' or 'Rejected' (matching your new enum lookups)
 
-    if (!["Approved", "Denied", "Pending"].includes(status)) {
+    if (!["Approved", "Rejected", "Pending"].includes(status)) {
       return res
         .status(400)
         .json({
-          message: "Status must be 'Approved', 'Denied', or 'Pending'.",
+          message: "Status must be 'Approved', 'Rejected', or 'Pending'.",
         });
     }
 
@@ -73,7 +57,10 @@ export const processLeaveDecision = async (req, res) => {
       return res.status(404).json({ message: "Leave request not found." });
     }
 
-    await LeaveModel.updateStatus(id, status);
+    // Pass the reviewer ID from the decrypted JWT payload token
+    const reviewerId = req.user?.id || null;
+
+    await LeaveModel.updateStatus(id, status, reviewerId);
     return res
       .status(200)
       .json({ message: `Leave request ${status.toLowerCase()} successfully.` });

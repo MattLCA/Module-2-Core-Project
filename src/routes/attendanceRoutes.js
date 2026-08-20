@@ -1,5 +1,4 @@
 
-
 import express from 'express';
 import { getDailyAttendance, verifyAttendance } from '../controllers/attendanceController.js';
 import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';

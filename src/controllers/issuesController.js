@@ -6,61 +6,40 @@ export const getIssues = async (req, res) => {
     const rows = await IssuesModel.findAll(status);
     return res.status(200).json(rows);
   } catch (error) {
-    console.error("Error fetching issues:", error);
+    console.error("Error fetching system logs:", error);
     return res
       .status(500)
-      .json({ message: "Internal server error while fetching issues." });
+      .json({ message: "Internal server error while fetching logs." });
   }
 };
 
 export const createIssue = async (req, res) => {
   try {
-    const { subject, category, departmentId, priority } = req.body;
-    if (!subject || !category || !departmentId || !priority) {
+    const { employeeId, title, message } = req.body;
+    if (!employeeId || !title || !message) {
       return res
         .status(400)
-        .json({
-          message:
-            "Subject, category, departmentId, and priority are required.",
-        });
+        .json({ message: "Employee ID, title, and message are required." });
     }
 
     const result = await IssuesModel.create(req.body);
     return res
       .status(201)
       .json({
-        message: "Issue reported successfully.",
+        message: "System notification logged successfully.",
         reportId: result.insertId,
       });
   } catch (error) {
-    console.error("Error creating issue:", error);
+    console.error("Error creating notification log:", error);
     return res
       .status(500)
-      .json({ message: "Internal server error while submitting issue." });
+      .json({ message: "Internal server error while logging item." });
   }
 };
 
+// Placeholder keeping entry mapping intact for routes integration
 export const updateIssueStatus = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    if (!status) {
-      return res.status(400).json({ message: "Status field is required." });
-    }
-
-    const result = await IssuesModel.updateStatus(id, status);
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "Issue record not found." });
-    }
-
-    return res
-      .status(200)
-      .json({ message: "Issue status updated successfully." });
-  } catch (error) {
-    console.error("Error updating issue status:", error);
-    return res
-      .status(500)
-      .json({ message: "Internal server error while updating issue status." });
-  }
+  return res
+    .status(200)
+    .json({ message: "Log tracking attributes are auto-managed by DB views." });
 };

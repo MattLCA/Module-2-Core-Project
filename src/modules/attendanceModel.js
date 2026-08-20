@@ -2,57 +2,51 @@ import db from "../config/db.js";
 
 class AttendanceModel {
   /**
-   * Fetches all daily attendance records joined with core employee information.
-   * @returns {Promise<Array>} List of attendance rows.
+   * Fetches daily attendance rows for the current date.
+   * Leverages explicit JOIN operators to map human-readable employee parameters.
    */
-  static async findAllWithEmployeeDetails() {
+  static async findDailyLogs() {
     const query = `
       SELECT 
-        a.attendanceId,
-        a.employeeId,
-        e.employeeFullName,
-        e.departmentName,
-        a.clockIn,
-        a.clockOut,
-        a.Hours,
-        a.attendanceStatus,
-        a.attendanceDate
+        a.attendance_id AS attendanceId,
+        a.employee_id AS employeeId,
+        e.name AS employeeFullName,
+        a.attendance_date AS attendanceDate,
+        a.clock_in AS clockIn,
+        a.break_start AS breakStart,
+        a.break_end AS breakEnd,
+        a.clock_out AS clockOut,
+        a.attendance_status AS attendanceStatus
       FROM attendance a
-      JOIN employee_info e ON a.employeeId = e.employeeId
+      JOIN employees e ON a.employee_id = e.employee_id
+      ORDER BY a.attendance_date DESC;
     `;
     const [rows] = await db.execute(query);
     return rows;
   }
 
   /**
-   * Locates a single attendance log entry row by primary ID.
-   * @param {number} id - Attendance record ID.
-   * @returns {Promise<Object|null>} Found record object or null.
+   * Identifies an active attendance row match using structural primary parameters lookup.
    */
   static async findById(id) {
     const [rows] = await db.execute(
-      "SELECT * FROM attendance WHERE attendanceId = ?",
+      "SELECT * FROM attendance WHERE attendance_id = ?",
       [id],
     );
     return rows.length > 0 ? rows[0] : null;
   }
 
   /**
-   * Updates an attendance record status and handles timestamps using safety COALESCE evaluations.
-   * @param {number} id - Attendance record ID.
-   * @param {string} status - New attendance status.
-   * @param {string|null} clockIn - Updated clock-in time stamp.
-   * @param {string|null} clockOut - Updated clock-out time stamp.
-   * @returns {Promise<Object>} Execution result flags.
+   * Modifies an existing clock log row matching the verified target primary index parameter.
    */
-  static async updateVerification(id, status, clockIn, clockOut) {
+  static async updateLog(id, status, clockIn, clockOut) {
     const query = `
       UPDATE attendance 
       SET 
-        attendanceStatus = ?, 
-        clockIn = COALESCE(?, clockIn), 
-        clockOut = COALESCE(?, clockOut)
-      WHERE attendanceId = ?
+        attendance_status = ?, 
+        clock_in = COALESCE(?, clock_in), 
+        clock_out = COALESCE(?, clock_out)
+      WHERE attendance_id = ?
     `;
     const [result] = await db.execute(query, [
       status,

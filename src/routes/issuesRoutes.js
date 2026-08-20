@@ -8,15 +8,20 @@ import {
   authenticateToken,
   authorizeRoles,
 } from "../middleware/authMiddleware.js";
+import {
+  validateIssueCreation,
+  validateIssueStatusUpdate,
+} from "../middleware/validationMiddleware.js";
 
 const router = express.Router();
 
-router.get("/", authenticateToken, authorizeRoles("HR", "Admin"), getIssues);
-router.post("/", authenticateToken, createIssue);
+router.get("/", authenticateToken, authorizeRoles("HR", "hr"), getIssues);
+router.post("/", authenticateToken, validateIssueCreation, createIssue);
 router.put(
   "/:id/status",
   authenticateToken,
-  authorizeRoles("HR", "Admin"),
+  authorizeRoles("HR", "hr"),
+  validateIssueStatusUpdate,
   updateIssueStatus,
 );
 

@@ -6,7 +6,7 @@
 // =========================================================================
 
 import express from "express";
-import db from "./src/config/db.js";
+import db  from "./src/config/db.js";
 
 // Route Imports - Explicitly including extensions to satisfy ES Module specs
 import attendanceRoutes from "./src/routes/attendanceRoutes.js";
@@ -57,7 +57,7 @@ app.listen(PORT, async () => {
     );
   } catch (dbError) {
     console.error(
-      "🚨 CRITICAL ERROR: Database verification mapping failed:",
+      " CRITICAL ERROR: Database verification mapping failed:",
       dbError.message,
     );
   }
