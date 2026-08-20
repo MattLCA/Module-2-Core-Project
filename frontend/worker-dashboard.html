@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,655 +12,258 @@
 
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@600;700&display=swap"
-    rel="stylesheet"
-  >
+    rel="stylesheet">
 
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"
-  >
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<a href="#mainContent" class="skip-link">
-  Skip to main content
-</a>
+  <a href="#mainContent" class="skip-link">
+    Skip to main content
+  </a>
+
+  <!-- ============================================================
+     SIDEBAR TOGGLE
+============================================================ -->
+
+  <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Toggle navigation menu"
+    aria-expanded="false" aria-controls="sidebar">
+    <i class="ti ti-menu-2" aria-hidden="true"></i>
+  </button>
 
 
-<!-- =========================================================
-     MOBILE SIDEBAR TOGGLE
-========================================================= -->
-
-<button
-  class="sidebar-toggle"
-  id="sidebarToggle"
-  aria-label="Toggle navigation menu"
-  aria-expanded="false"
-  aria-controls="sidebar"
->
-  <i class="ti ti-menu-2" aria-hidden="true"></i>
-</button>
-
-
-<!-- =========================================================
+  <!-- ============================================================
      SIDEBAR
-========================================================= -->
+============================================================ -->
 
-<aside class="sidebar" id="sidebar">
+  <aside class="sidebar" id="sidebar">
 
-  <!-- BRAND -->
+    <div class="brand">
 
-  <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" role="img"
+        aria-label="ModernTech icon" style="flex-shrink:0;">
+        <rect x="0" y="0" width="34" height="34" rx="9" fill="#27187e" />
 
-    <svg
-      width="34"
-      height="34"
-      viewBox="0 0 34 34"
-      xmlns="http://www.w3.org/2000/svg"
-      role="img"
-      aria-label="ModernTech icon"
-      style="flex-shrink:0;"
-    >
-      <rect
-        x="0"
-        y="0"
-        width="34"
-        height="34"
-        rx="9"
-        fill="#27187e"
-      />
+        <path d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25" fill="none" stroke="#ffffff" stroke-width="3.2"
+          stroke-linecap="round" stroke-linejoin="round" />
 
-      <path
-        d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25"
-        fill="none"
-        stroke="#ffffff"
-        stroke-width="3.2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-
-      <path
-        d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z"
-        fill="#ff8600"
-      />
-    </svg>
-
-    <div>
-      <div class="brand-name">
-        ModernTech
-      </div>
-
-      <div class="brand-sub">
-        Workspace overview
-      </div>
-    </div>
-
-  </div>
-
-
-  <!-- NAVIGATION -->
-
-  <div class="nav-section-label">
-    Workspace
-  </div>
-
-  <nav
-    class="primary-nav"
-    aria-label="Primary"
-  >
-
-    <a
-      href="worker-dashboard.html"
-      class="nav-item active"
-      aria-current="page"
-    >
-      <i
-        class="ti ti-layout-grid"
-        aria-hidden="true"
-      ></i>
-
-      Dashboard
-    </a>
-
-
-    <a
-      href="worker-attendance.html"
-      class="nav-item"
-    >
-      <i
-        class="ti ti-calendar-check"
-        aria-hidden="true"
-      ></i>
-
-      Attendance
-    </a>
-
-
-    <a
-      href="worker-leave.html"
-      class="nav-item"
-    >
-      <i
-        class="ti ti-beach"
-        aria-hidden="true"
-      ></i>
-
-      Leave
-    </a>
-
-
-    <a
-      href="worker-payslip.html"
-      class="nav-item"
-    >
-      <i
-        class="ti ti-file-dollar"
-        aria-hidden="true"
-      ></i>
-
-      Payslips
-    </a>
-
-
-    <a
-      href="worker-profile.html"
-      class="nav-item"
-    >
-      <i
-        class="ti ti-user-circle"
-        aria-hidden="true"
-      ></i>
-
-      My Profile
-    </a>
-
-  </nav>
-
-
-  <!-- =======================================================
-       SIDEBAR FOOTER
-  ======================================================== -->
-
-  <div class="sidebar-footer">
-
-    <button
-      class="user-chip"
-      id="userMenuBtn"
-      aria-haspopup="true"
-      aria-expanded="false"
-    >
-
-      <div
-        class="avatar"
-        id="sidebarAvatar"
-      >
-        --
-      </div>
-
+        <path d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z" fill="#ff8600" />
+      </svg>
 
       <div>
-
-        <div
-          class="name"
-          id="sidebarWorkerName"
-        >
-          Loading...
-        </div>
-
-
-        <div
-          class="role"
-          id="sidebarEmployeeCode"
-        >
-          Loading...
-        </div>
-
+        <div class="brand-name">ModernTech</div>
+        <div class="brand-sub">Workspace overview</div>
       </div>
-
-
-      <i
-        class="ti ti-chevron-down"
-        aria-hidden="true"
-      ></i>
-
-    </button>
-
-
-    <button
-      id="logoutBtn"
-      class="logout-btn"
-      type="button"
-    >
-
-      <i
-        class="ti ti-logout"
-        aria-hidden="true"
-      ></i>
-
-      Logout
-
-    </button>
-
-  </div>
-
-</aside>
-
-
-
-<!-- =========================================================
-     MAIN CONTENT
-========================================================= -->
-
-<main
-  class="main"
-  id="mainContent"
->
-
-
-  <!-- =======================================================
-       PAGE HERO
-  ======================================================== -->
-
-  <section class="page-hero">
-
-    <div>
-
-      <h1>
-        Worker Dashboard
-      </h1>
-
-
-      <p>
-        Welcome back,
-        <strong id="welcomeName">
-          Loading...
-        </strong>.
-
-        Manage your payslips, attendance,
-        leave requests and profile.
-      </p>
 
     </div>
 
 
-    <div class="hero-actions">
+    <div class="nav-section-label">
+      Workspace
+    </div>
 
-      <button
-        class="btn"
-        id="quickClockBtn"
-        type="button"
-      >
 
-        <i
-          class="ti ti-clock-check"
-          aria-hidden="true"
-        ></i>
+    <nav class="primary-nav" aria-label="Primary">
 
-        Clock In
+      <a href="worker-dashboard.html" class="nav-item">
+        <i class="ti ti-layout-grid" aria-hidden="true"></i>
+        Dashboard
+      </a>
+
+      <a href="worker-attendance.html" class="nav-item">
+        <i class="ti ti-calendar-check" aria-hidden="true"></i>
+        Attendance
+      </a>
+
+      <a href="worker-leave.html" class="nav-item">
+        <i class="ti ti-beach" aria-hidden="true"></i>
+        Leave
+      </a>
+
+      <a href="worker-payslip.html" class="nav-item">
+        <i class="ti ti-file-dollar" aria-hidden="true"></i>
+        Payslips
+      </a>
+
+      <!-- PERMANENT NOTIFICATIONS LINK -->
+      <a href="worker-notifications.html" class="nav-item">
+        <i class="ti ti-bell" aria-hidden="true"></i>
+        Notifications
+      </a>
+
+      <a href="worker-profile.html" class="nav-item">
+        <i class="ti ti-user-circle" aria-hidden="true"></i>
+        My Profile
+      </a>
+
+    </nav>
+
+
+    <div class="sidebar-footer">
+
+      <button class="user-chip" id="userMenuBtn" type="button" aria-haspopup="true" aria-expanded="false">
+
+        <div class="avatar" id="sidebarAvatar" aria-hidden="true">
+          --
+        </div>
+
+        <div>
+          <div class="name" id="sidebarWorkerName">
+            Loading...
+          </div>
+
+          <div class="role" id="sidebarEmployeeCode">
+            --
+          </div>
+        </div>
+
+        <i class="ti ti-chevron-down" aria-hidden="true"></i>
 
       </button>
 
 
-      <a
-        href="worker-profile.html"
-        class="btn secondary"
-      >
-
-        <i
-          class="ti ti-user-edit"
-          aria-hidden="true"
-        ></i>
-
-        Update Profile
-
-      </a>
+      <button id="logoutBtn" class="logout-btn" type="button">
+        <i class="ti ti-logout" aria-hidden="true"></i>
+        Logout
+      </button>
 
     </div>
 
-  </section>
+  </aside>
 
 
+  <!-- ============================================================
+     MAIN
+============================================================ -->
 
-  <!-- =======================================================
-       DASHBOARD STATISTICS
-  ======================================================== -->
+  <main class="main" id="mainContent">
 
-  <section class="mini-grid">
+    <section class="page-hero">
 
+      <div>
 
-    <!-- TODAY STATUS -->
+        <h1>
+          Welcome back,
+          <span id="welcomeName">Worker</span>
+        </h1>
 
-    <article class="stat">
+        <p>
+          Here's your workspace overview.
+        </p>
 
-      <span>
-        Today Status
-      </span>
+      </div>
 
-      <strong id="todayStatus">
-        Loading...
-      </strong>
+      <div class="hero-actions">
 
-    </article>
+        <button class="btn" id="quickClockBtn" type="button">
+          <i class="ti ti-login-2"></i>
+          Clock In
+        </button>
 
+      </div>
 
-    <!-- LEAVE BALANCE -->
-
-    <article class="stat">
-
-      <span>
-        Leave Balance
-      </span>
-
-      <strong id="leaveBalanceDash">
-        Loading...
-      </strong>
-
-    </article>
+    </section>
 
 
-    <!-- NET PAY -->
+    <section class="mini-grid">
 
-    <article class="stat highlight">
+      <article class="stat highlight">
 
-      <span>
-        Latest Net Pay
-      </span>
+        <span>
+          Today's Status
+        </span>
 
-      <strong id="netPayDash">
-        Loading...
-      </strong>
+        <strong id="todayStatus">
+          Not clocked in
+        </strong>
 
-    </article>
-
-
-    <!-- NEXT PAYDAY -->
-
-    <article class="stat">
-
-      <span>
-        Next Payday
-      </span>
-
-      <strong id="nextPaydayDash">
-        Loading...
-      </strong>
-
-    </article>
-
-  </section>
+      </article>
 
 
-  <br>
+      <article class="stat">
+
+        <span>
+          Leave Balance
+        </span>
+
+        <strong id="leaveBalanceDash">
+          0 days
+        </strong>
+
+      </article>
 
 
+      <article class="stat">
 
-  <!-- =======================================================
-       DASHBOARD QUICK LINKS
-  ======================================================== -->
+        <span>
+          Net Pay
+        </span>
 
-  <section class="dashboard-grid">
+        <strong id="netPayDash">
+          R0.00
+        </strong>
+
+      </article>
+
+    </section>
 
 
-    <!-- PAYSLIPS -->
+    <section class="panel">
 
-    <a
-      href="worker-payslip.html"
-      class="dash-card"
-    >
+      <div class="panel-top">
 
-      <div class="icon">
-
-        <i
-          class="ti ti-file-dollar"
-          aria-hidden="true"
-        ></i>
+        <h2>
+          Recent Activity
+        </h2>
 
       </div>
 
 
-      <h3>
-        Payslips
-      </h3>
+      <div class="table-wrap">
 
+        <table>
 
-      <p>
-        View your salary breakdown, deductions,
-        benefits and printable payslip.
-      </p>
+          <thead>
 
+            <tr>
+              <th>Date</th>
+              <th>Activity</th>
+              <th>Status</th>
+            </tr>
 
-      <span>
-        Open Payslips
+          </thead>
 
-        <i
-          class="ti ti-arrow-right"
-          aria-hidden="true"
-        ></i>
+          <tbody id="dashboardActivity">
 
-      </span>
+            <tr>
+              <td colspan="3">
+                No activity yet.
+              </td>
+            </tr>
 
-    </a>
+          </tbody>
 
-
-
-    <!-- ATTENDANCE -->
-
-    <a
-      href="worker-attendance.html"
-      class="dash-card"
-    >
-
-      <div class="icon">
-
-        <i
-          class="ti ti-clock"
-          aria-hidden="true"
-        ></i>
+        </table>
 
       </div>
 
+    </section>
 
-      <h3>
-        Attendance
-      </h3>
+  </main>
 
 
-      <p>
-        Clock in, clock out, track breaks
-        and view saved attendance history.
-      </p>
-
-
-      <span>
-        Open Attendance
-
-        <i
-          class="ti ti-arrow-right"
-          aria-hidden="true"
-        ></i>
-
-      </span>
-
-    </a>
-
-
-
-    <!-- LEAVE -->
-
-    <a
-      href="worker-leave.html"
-      class="dash-card"
-    >
-
-      <div class="icon">
-
-        <i
-          class="ti ti-beach"
-          aria-hidden="true"
-        ></i>
-
-      </div>
-
-
-      <h3>
-        Leave Requests
-      </h3>
-
-
-      <p>
-        Submit annual, sick, family or
-        personal leave and track approval status.
-      </p>
-
-
-      <span>
-        Open Leave
-
-        <i
-          class="ti ti-arrow-right"
-          aria-hidden="true"
-        ></i>
-
-      </span>
-
-    </a>
-
-
-
-    <!-- PROFILE -->
-
-    <a
-      href="worker-profile.html"
-      class="dash-card"
-    >
-
-      <div class="icon">
-
-        <i
-          class="ti ti-user"
-          aria-hidden="true"
-        ></i>
-
-      </div>
-
-
-      <h3>
-        Profile
-      </h3>
-
-
-      <p>
-        Update your personal details and
-        save changes directly to your account.
-      </p>
-
-
-      <span>
-        Open Profile
-
-        <i
-          class="ti ti-arrow-right"
-          aria-hidden="true"
-        ></i>
-
-      </span>
-
-    </a>
-
-  </section>
-
-
-  <br>
-
-
-
-  <!-- =======================================================
-       RECENT ACTIVITY
-  ======================================================== -->
-
-  <section class="panel">
-
-    <div class="panel-top">
-
-      <h2>
-        Recent Activity
-      </h2>
-
-
-      <a
-        class="btn secondary"
-        href="worker-notifications.html"
-      >
-        View All
-      </a>
-
-    </div>
-
-
-    <div class="table-wrap">
-
-      <table>
-
-        <thead>
-
-          <tr>
-
-            <th>
-              Date
-            </th>
-
-            <th>
-              Activity
-            </th>
-
-            <th>
-              Status
-            </th>
-
-          </tr>
-
-        </thead>
-
-
-        <tbody id="dashboardActivity">
-
-          <tr>
-
-            <td colspan="3">
-              Loading recent activity...
-            </td>
-
-          </tr>
-
-        </tbody>
-
-      </table>
-
-    </div>
-
-  </section>
-
-</main>
-
-
-
-<!-- =========================================================
+  <!-- ============================================================
      JAVASCRIPT
-     
-     IMPORTANT:
-     worker_api.js MUST LOAD BEFORE worker-dashboard.js
-========================================================= -->
+============================================================ -->
 
-<script src="./js/worker_api.js"></script>
-
-<script src="javascript/script.js"></script>
-
-<script src="javascript/logout.js"></script>
-
-<script src="javascript/worker-dashboard.js"></script>
+  <script src="./javascript/script.js"></script>
+  <script src="./js/worker_api.js"></script>
+  <script src="./javascript/worker-dashboard.js"></script>
+  <script src="./javascript/logout.js"></script>
 
 </body>
+
 </html>
