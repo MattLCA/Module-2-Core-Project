@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ModernTech — Leave Requests</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="styles1.css">
+</head>
+<body class="page-leave">
+
+<a href="#mainContent" class="skip-link">Skip to main content</a>
+
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="sidebar">
+  <i class="ti ti-menu-2" aria-hidden="true"></i>
+</button>
+
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    <svg width="34" height="34" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ModernTech icon" style="flex-shrink:0;">
+      <rect x="0" y="0" width="34" height="34" rx="9" fill="#27187e"/>
+      <path d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z" fill="#ff8600"/>
+    </svg>
+    <div>
+      <div class="brand-name">ModernTech</div>
+      <div class="brand-sub">Workspace overview</div>
+    </div>
+  </div>
+
+  <div class="nav-section-label">Workspace</div>
+  <nav class="primary-nav" aria-label="Primary">
+    <a href="hr-dashboard.html" class="nav-item"><i class="ti ti-layout-grid" aria-hidden="true"></i>Dashboard</a>
+    <a href="hr-employees.html" class="nav-item"><i class="ti ti-users" aria-hidden="true"></i>Employees</a>
+    <a href="Busiswa_Attendance.html" class="nav-item"><i class="ti ti-calendar-check" aria-hidden="true"></i>Attendance</a>
+    <a href="Busiswa_Leave.html" class="nav-item active" aria-current="page"><i class="ti ti-beach" aria-hidden="true"></i>Leave</a>
+    <a href="hr-payroll.html" class="nav-item"><i class="ti ti-cash" aria-hidden="true"></i>Payroll</a>
+    <a href="hr-performance.html" class="nav-item"><i class="ti ti-chart-arrows" aria-hidden="true"></i>Performance</a>
+    <a href="Busiswa_TimeOff.html" class="nav-item"><i class="ti ti-alert-circle" aria-hidden="true"></i>Time off</a>
+    <a href="Busiswa_IssuesReport.html" class="nav-item"><i class="ti ti-alert-circle" aria-hidden="true"></i>Issues Report</a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <button class="user-chip" id="userMenuBtn" aria-haspopup="true" aria-expanded="false">
+      <div class="avatar">BB</div>
+      <div>
+        <div class="name">Busiswa Bala</div>
+        <div class="role">HR Manager</div>
+      </div>
+      <i class="ti ti-chevron-down" aria-hidden="true"></i>
+    </button>
+    <button id="logoutBtn" class="logout-btn">
+        <i class="ti ti-logout"></i>
+        Logout
+    </button>
+  </div>
+</aside>
+
+<main class="main" id="mainContent">
+
+  <div class="topbar">
+    <div>
+      <h1>Leave Requests</h1>
+      <div class="sub">Review and action employee leave requests across all departments.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div><h2>Leave requests</h2></div>
+    </div>
+    <div class="leave-filters">
+      <input id="leaveSearch" type="text" placeholder="Search by name, ID or department...">
+      <select id="leaveDepartment">
+        <option value="All Departments">All Departments</option>
+        <option value="Development">Development</option>
+        <option value="HR">HR</option>
+        <option value="QA">QA</option>
+        <option value="Sales">Sales</option>
+        <option value="Marketing">Marketing</option>
+        <option value="Design">Design</option>
+        <option value="IT">IT</option>
+        <option value="Finance">Finance</option>
+        <option value="Support">Support</option>
+      </select>
+      <select id="leaveType">
+        <option value="All Types">All Types</option>
+        <option value="Sick Leave">Sick Leave</option>
+        <option value="Vacation">Vacation</option>
+        <option value="Personal">Personal</option>
+        <option value="Medical Appointment">Medical Appointment</option>
+        <option value="Bereavement">Bereavement</option>
+        <option value="Childcare">Childcare</option>
+        <option value="Family Responsibility">Family Responsibility</option>
+      </select>
+      <div class="filter-count"><span id="leaveCount">0</span> requests</div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:16px;">
+    <div class="panel-head">
+      <div><h2>All requests</h2></div>
+    </div>
+    <div class="leave-table-container">
+      <table class="leave-data-table">
+        <colgroup>
+          <col style="width:200px">
+          <col style="width:70px">
+          <col style="width:130px">
+          <col style="width:190px">
+          <col style="width:110px">
+          <col style="width:110px">
+          <col style="width:90px">
+          <col style="width:220px">
+          <col style="width:110px">
+          <col style="width:130px">
+          <col style="width:150px">
+          <col style="width:210px">
+        </colgroup>
+        <thead>
+          <tr>
+            <th scope="col">Employee</th>
+            <th scope="col">Emp ID</th>
+            <th scope="col">Department</th>
+            <th scope="col">Leave type</th>
+            <th scope="col">Start date</th>
+            <th scope="col">End date</th>
+            <th scope="col">Duration</th>
+            <th scope="col">Reason</th>
+            <th scope="col">Submitted</th>
+            <th scope="col">Manager</th>
+            <th scope="col">Status</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="leaveRows"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<div class="modal-overlay hidden" id="leaveModalOverlay">
+  <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-header">
+      <div>
+        <h2 id="modalTitle">Confirm action</h2>
+        <p id="modalSubtitle">Please confirm your choice for this leave request.</p>
+      </div>
+      <button class="modal-close" id="modalCloseBtn" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="modal-content">
+      <div class="modal-request-details" id="modalRequestDetails"></div>
+      <label class="modal-textarea-label" id="modalTextareaLabel" for="modalReasonTextarea">Reason for decline</label>
+      <textarea id="modalReasonTextarea" class="modal-textarea" placeholder="Enter decline reason..." rows="5"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-button secondary" id="modalCancelBtn">Cancel</button>
+      <button class="modal-button primary" id="modalConfirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="Busiswa_employee_data.js"></script>
+<script src="Busiswa_Leave_Script.js"></script>
+
+</body>
+</html>

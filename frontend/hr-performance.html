@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ModernTech — Performance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="styles1.css">
+</head>
+<body class="page-performance">
+
+<a href="#mainContent" class="skip-link">Skip to main content</a>
+
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="sidebar">
+  <i class="ti ti-menu-2" aria-hidden="true"></i>
+</button>
+
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    <svg width="34" height="34" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ModernTech icon" style="flex-shrink:0;">
+      <rect x="0" y="0" width="34" height="34" rx="9" fill="#27187e"/>
+      <path d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z" fill="#ff8600"/>
+    </svg>
+    <div>
+      <div class="brand-name">ModernTech</div>
+      <div class="brand-sub">Workspace overview</div>
+    </div>
+  </div>
+
+  <div class="nav-section-label">Workspace</div>
+  <nav class="primary-nav" aria-label="Primary">
+    <a href="hr-dashboard.html" class="nav-item" aria-current="page"><i class="ti ti-layout-grid" aria-hidden="true"></i>Dashboard</a>
+    <a href="hr-employees.html" class="nav-item"><i class="ti ti-users" aria-hidden="true"></i>Employees</a>
+    <a href="Busiswa_Attendance.html" class="nav-item"><i class="ti ti-calendar-check" aria-hidden="true"></i>Attendance</a>
+    <a href="Busiswa_Leave.html" class="nav-item"><i class="ti ti-beach" aria-hidden="true"></i>Leave</a>
+    <a href="hr-payroll.html" class="nav-item"><i class="ti ti-cash" aria-hidden="true"></i>Payroll</a>
+    <a href="hr-performance.html" class="nav-item active" aria-current="page"><i class="ti ti-chart-arrows" aria-hidden="true"></i>Performance</a>
+    <a href="Busiswa_TimeOff.html" class="nav-item"><i class="ti ti-chart-arrows" aria-hidden="true"></i>Time off</a>
+    <a href="Busiswa_IssuesReport.html" class="nav-item"><i class="ti ti-chart-arrows" aria-hidden="true"></i>Issues Report</a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <button class="user-chip" id="userMenuBtn" aria-haspopup="true" aria-expanded="false">
+      <div class="avatar">MA</div>
+      <div>
+        <div class="name">Busiswa Bala</div>
+        <div class="role">HR Manager</div>
+      </div>
+      <i class="ti ti-chevron-down" aria-hidden="true"></i>
+    </button>
+    <button id="logoutBtn" class="logout-btn">
+        <i class="ti ti-logout"></i>
+        Logout
+    </button>
+  </div>
+</aside>
+
+<main class="main" id="mainContent">
+
+  <div class="topbar">
+    <div>
+      <h1>Performance</h1>
+      <div class="date" id="dateText">Loading date…</div>
+    </div>
+    <div class="topbar-actions">
+      <div class="search-box">
+        <i class="ti ti-search" aria-hidden="true"></i>
+        <label for="performanceSearch" class="sr-only">Search team members</label>
+        <input type="text" id="performanceSearch" placeholder="Search team members...">
+      </div>
+      <div class="notif-wrap">
+        <button class="icon-btn" id="notifBtn" aria-label="View notifications" aria-haspopup="true" aria-expanded="false">
+          <i class="ti ti-bell" aria-hidden="true"></i><span class="dot" id="notifDot" aria-hidden="true"></span>
+        </button>
+        <div class="notif-panel" id="notifPanel" hidden>
+          <div class="notif-panel-head">
+            <span>Notifications</span>
+            <button class="notif-mark-read" id="notifMarkAllBtn">Mark all read</button>
+          </div>
+          <ul class="notif-list" id="notifList">
+            <li class="notif-item unread">
+              <i class="ti ti-alert-circle" aria-hidden="true"></i>
+              <div><p>Some reviews are still outstanding this cycle</p><span>Just now</span></div>
+            </li>
+            <li class="notif-item">
+              <i class="ti ti-calendar-event" aria-hidden="true"></i>
+              <div><p>Review cycle dates are demo placeholders</p><span>—</span></div>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <button class="primary-btn" id="scheduleOneOnOneBtn"><i class="ti ti-calendar-plus" aria-hidden="true"></i>Schedule 1:1</button>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon indigo"><i class="ti ti-star" aria-hidden="true"></i></div>
+      </div>
+      <div class="stat-value" id="avgRatingVal">—</div>
+      <div class="stat-label">Average rating this cycle</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon orange"><i class="ti ti-clipboard-check" aria-hidden="true"></i></div>
+      </div>
+      <div class="stat-value"><span id="reviewsCompletedVal">0</span>/<span id="reviewsTotalVal">0</span></div>
+      <div class="stat-label">Reviews completed</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon periwinkle"><i class="ti ti-target-arrow" aria-hidden="true"></i></div>
+      </div>
+      <div class="stat-value">68%</div>
+      <div class="stat-label">Goals on track</div>
+      <div class="stat-label" style="margin-top:2px;font-size:11px;">(demo data — no goals file provided)</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon grey"><i class="ti ti-clock-exclamation" aria-hidden="true"></i></div>
+      </div>
+      <div class="stat-value" id="overdueReviewsVal">0</div>
+      <div class="stat-label">Reviews overdue</div>
+    </div>
+  </div>
+
+  <div class="content-grid">
+
+    <div class="col">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Review cycle progress</h2>
+            <div class="sub" id="reviewCycleSub">Demo data — no review-cycle file provided</div>
+          </div>
+          <a href="#teamPerformancePanel" class="panel-link">View team</a>
+        </div>
+
+        <div class="funnel-row">
+          <div class="funnel-top"><span class="stage">Self-review submitted</span><span class="count">92%</span></div>
+          <div class="funnel-track"><div class="funnel-fill" style="width:92%;"></div></div>
+        </div>
+        <div class="funnel-row">
+          <div class="funnel-top"><span class="stage">Manager review submitted</span><span class="count">68%</span></div>
+          <div class="funnel-track"><div class="funnel-fill" style="width:68%;"></div></div>
+        </div>
+        <div class="funnel-row">
+          <div class="funnel-top"><span class="stage">Calibration complete</span><span class="count">40%</span></div>
+          <div class="funnel-track"><div class="funnel-fill orange" style="width:40%;"></div></div>
+        </div>
+        <div class="funnel-row">
+          <div class="funnel-top"><span class="stage">Finalized & shared</span><span class="count">22%</span></div>
+          <div class="funnel-track"><div class="funnel-fill indigo" style="width:22%;"></div></div>
+        </div>
+      </div>
+
+      <div class="panel" id="teamPerformancePanel">
+        <div class="panel-head">
+          <div>
+            <h2>Team performance</h2>
+            <div class="sub" id="teamPerformanceSub">Loading…</div>
+          </div>
+          <a href="hr-employees.html" class="panel-link">View all employees</a>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Employee</th>
+              <th scope="col">Rating</th>
+              <th scope="col">Goal progress</th>
+              <th scope="col">Last review</th>
+              <th scope="col">Status</th>
+              <th scope="col">Action</th>
+            </tr>
+          </thead>
+          <tbody id="performanceTbody"></tbody>
+        </table>
+        <div class="empty-inline" id="performanceEmptyState" hidden>
+          <i class="ti ti-search-off" aria-hidden="true"></i>
+          <p>No team members match your search.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Upcoming 1:1s</h2>
+            <div class="sub" id="oneOnOneSub">0 scheduled this week</div>
+          </div>
+          <a href="#" class="panel-link">Open calendar</a>
+        </div>
+
+        <div class="one-on-one-list" id="oneOnOneList"></div>
+        <p class="empty-inline" id="oneOnOneEmptyState" hidden>
+          <i class="ti ti-calendar-check" aria-hidden="true"></i>
+          <span>All caught up — no 1:1s left this week.</span>
+        </p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Goals &amp; OKRs</h2>
+            <div class="sub">Demo data — no goals file provided</div>
+          </div>
+          <a href="#" class="panel-link">Open board</a>
+        </div>
+
+        <div class="goal-item">
+          <div class="goal-item-top">
+            <span class="goal-title">Grow enterprise ARR by 20%</span>
+            <span class="goal-status on-track">On track</span>
+          </div>
+          <div class="goal-item-meta">Example owner — replace with a real goal</div>
+          <div class="goal-progress"><div class="goal-progress-track"><div class="goal-progress-fill" style="width:62%;"></div></div><span class="goal-progress-label">62%</span></div>
+        </div>
+
+        <div class="goal-item">
+          <div class="goal-item-top">
+            <span class="goal-title">Ship redesigned onboarding flow</span>
+            <span class="goal-status on-track">On track</span>
+          </div>
+          <div class="goal-item-meta">Example owner — replace with a real goal</div>
+          <div class="goal-progress"><div class="goal-progress-track"><div class="goal-progress-fill" style="width:88%;"></div></div><span class="goal-progress-label">88%</span></div>
+        </div>
+
+        <div class="goal-item">
+          <div class="goal-item-top">
+            <span class="goal-title">Reduce support ticket backlog</span>
+            <span class="goal-status at-risk">At risk</span>
+          </div>
+          <div class="goal-item-meta">Example owner — replace with a real goal</div>
+          <div class="goal-progress"><div class="goal-progress-track"><div class="goal-progress-fill at-risk" style="width:35%;"></div></div><span class="goal-progress-label">35%</span></div>
+        </div>
+
+        <div class="goal-item">
+          <div class="goal-item-top">
+            <span class="goal-title">Hire 3 senior engineers</span>
+            <span class="goal-status behind">Behind</span>
+          </div>
+          <div class="goal-item-meta">Example owner — replace with a real goal</div>
+          <div class="goal-progress"><div class="goal-progress-track"><div class="goal-progress-fill behind" style="width:20%;"></div></div><span class="goal-progress-label">20%</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<!-- Start / view review modal -->
+<div id="reviewModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reviewModalTitle" hidden>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="reviewModalTitle">Start review</h3>
+      <button id="closeReviewModalBtn" class="modal-close-icon" aria-label="Close">&times;</button>
+    </div>
+    <form id="reviewForm" novalidate>
+      <div class="form-row">
+        <span class="form-static-label">Team member</span>
+        <p class="form-static-value" id="reviewEmployeeName">—</p>
+      </div>
+      <div class="form-row">
+        <label for="reviewRatingInput">Overall rating</label>
+        <select id="reviewRatingInput" name="reviewRating" required>
+          <option value="" disabled selected>Select a rating</option>
+          <option value="5.0">5.0 — Outstanding</option>
+          <option value="4.5">4.5 — Exceeds expectations</option>
+          <option value="4.0">4.0 — Strong</option>
+          <option value="3.5">3.5 — Meets expectations</option>
+          <option value="3.0">3.0 — Developing</option>
+          <option value="2.0">2.0 — Needs improvement</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="reviewNotesInput">Notes</label>
+        <textarea id="reviewNotesInput" name="reviewNotes" rows="4" placeholder="Key strengths, growth areas, next steps..."></textarea>
+      </div>
+      <p class="form-error" id="reviewFormError" hidden>Please select a rating before submitting.</p>
+      <div class="modal-footer-actions">
+        <button type="button" class="secondary-btn" id="cancelReviewBtn">Cancel</button>
+        <button type="submit" class="primary-btn"><i class="ti ti-check" aria-hidden="true"></i> Submit review</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Schedule 1:1 modal -->
+<div id="scheduleModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="scheduleModalTitle" hidden>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="scheduleModalTitle">Schedule 1:1</h3>
+      <button id="closeScheduleModalBtn" class="modal-close-icon" aria-label="Close">&times;</button>
+    </div>
+    <form id="scheduleForm" novalidate>
+      <div class="form-row">
+        <label for="scheduleNameInput">Team member</label>
+        <input type="text" id="scheduleNameInput" name="scheduleName" required autocomplete="off">
+      </div>
+      <div class="form-row">
+        <label for="scheduleDateInput">Date</label>
+        <input type="date" id="scheduleDateInput" name="scheduleDate" required>
+      </div>
+      <div class="form-row">
+        <label for="scheduleTimeInput">Time</label>
+        <input type="time" id="scheduleTimeInput" name="scheduleTime" required>
+      </div>
+      <p class="form-error" id="scheduleFormError" hidden>Please fill in all fields to schedule this 1:1.</p>
+      <div class="modal-footer-actions">
+        <button type="button" class="secondary-btn" id="cancelScheduleBtn">Cancel</button>
+        <button type="submit" class="primary-btn"><i class="ti ti-calendar-plus" aria-hidden="true"></i> Schedule</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- View review modal (read-only) -->
+<div id="viewReviewModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="viewReviewTitle" hidden>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="viewReviewTitle">Review summary</h3>
+      <button id="closeViewReviewBtn" class="modal-close-icon" aria-label="Close">&times;</button>
+    </div>
+    <div class="form-row">
+      <span class="form-static-label">Team member</span>
+      <p class="form-static-value" id="viewReviewName">—</p>
+    </div>
+    <div class="form-row">
+      <span class="form-static-label">Rating</span>
+      <p class="form-static-value" id="viewReviewRating">—</p>
+    </div>
+    <div class="form-row">
+      <span class="form-static-label">Last review date</span>
+      <p class="form-static-value" id="viewReviewDate">—</p>
+    </div>
+    <div class="form-row">
+      <span class="form-static-label">Notes</span>
+      <p class="form-static-value" id="viewReviewNotes">No notes recorded for this review yet.</p>
+    </div>
+    <div class="modal-footer-actions">
+      <button type="button" class="secondary-btn" id="closeViewReviewFooterBtn">Close</button>
+      <button type="button" class="primary-btn" id="editReviewBtn"><i class="ti ti-edit" aria-hidden="true"></i> Edit review</button>
+    </div>
+  </div>
+</div>
+
+<script src="hr-employee-data.js"></script>
+<script src="hr-performance.js"></script>
+
+</body>
+</html>

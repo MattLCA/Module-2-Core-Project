@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ModernTech — Issues Reporting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="styles1.css">
+</head>
+<body class="page-issues">
+
+<a href="#mainContent" class="skip-link">Skip to main content</a>
+
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="sidebar">
+  <i class="ti ti-menu-2" aria-hidden="true"></i>
+</button>
+
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    <svg width="34" height="34" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ModernTech icon" style="flex-shrink:0;">
+      <rect x="0" y="0" width="34" height="34" rx="9" fill="#27187e"/>
+      <path d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z" fill="#ff8600"/>
+    </svg>
+    <div>
+      <div class="brand-name">ModernTech</div>
+      <div class="brand-sub">Workspace overview</div>
+    </div>
+  </div>
+
+  <div class="nav-section-label">Workspace</div>
+  <nav class="primary-nav" aria-label="Primary">
+    <a href="hr-dashboard.html" class="nav-item"><i class="ti ti-layout-grid" aria-hidden="true"></i>Dashboard</a>
+    <a href="hr-employees.html" class="nav-item"><i class="ti ti-users" aria-hidden="true"></i>Employees</a>
+    <a href="Busiswa_Attendance.html" class="nav-item"><i class="ti ti-calendar-check" aria-hidden="true"></i>Attendance</a>
+    <a href="Busiswa_Leave.html" class="nav-item"><i class="ti ti-beach" aria-hidden="true"></i>Leave</a>
+    <a href="hr-payroll.html" class="nav-item"><i class="ti ti-cash" aria-hidden="true"></i>Payroll</a>
+    <a href="hr-performance.html" class="nav-item"><i class="ti ti-chart-arrows" aria-hidden="true"></i>Performance</a>
+    <a href="Busiswa_TimeOff.html" class="nav-item"><i class="ti ti-alert-circle" aria-hidden="true"></i>Time off</a>
+    <a href="Busiswa_IssuesReport.html" class="nav-item active" aria-current="page"><i class="ti ti-alert-circle" aria-hidden="true"></i>Issues Report</a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <button class="user-chip" id="userMenuBtn" aria-haspopup="true" aria-expanded="false">
+      <div class="avatar">BB</div>
+      <div>
+        <div class="name">Busiswa Bala</div>
+        <div class="role">HR Manager</div>
+      </div>
+      <i class="ti ti-chevron-down" aria-hidden="true"></i>
+    </button>
+    <button id="logoutBtn" class="logout-btn">
+        <i class="ti ti-logout"></i>
+        Logout
+    </button>
+  </div>
+</aside>
+
+<main class="main" id="mainContent">
+
+  <div class="topbar">
+    <div>
+      <h1>Issues Reporting</h1>
+      <div class="sub">Submit anonymous workplace concerns and monitor progress.</div>
+    </div>
+  </div>
+
+  <div class="content-grid">
+
+    <div class="col">
+      <div class="panel">
+        <div class="panel-head">
+          <div><h2>Submit a report</h2></div>
+        </div>
+        <form id="issueReportForm" class="report-form">
+          <div class="form-row">
+            <label for="issueCategory">Category</label>
+            <select id="issueCategory" required>
+              <option value="Workplace Safety">Workplace Safety</option>
+              <option value="Harassment">Harassment</option>
+              <option value="Policy Violation">Policy Violation</option>
+              <option value="Compensation">Compensation</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="issuePriority">Priority</label>
+            <select id="issuePriority" required>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Critical">Critical</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="issueDepartment">Department</label>
+            <select id="issueDepartment" required>
+              <option value="Engineering">Engineering</option>
+              <option value="People Operations">People Operations</option>
+              <option value="Operations">Operations</option>
+              <option value="Customer Success">Customer Success</option>
+              <option value="Sales">Sales</option>
+              <option value="IT">Information Technology</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Finance">Finance</option>
+              <option value="HR">Human Resources</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="issueSubject">Subject</label>
+            <input id="issueSubject" type="text" placeholder="Brief subject line..." required>
+          </div>
+          <div class="form-row">
+            <label for="issueDescription">Description</label>
+            <textarea id="issueDescription" placeholder="Describe the issue in detail..." rows="4" required></textarea>
+          </div>
+          <label class="checkbox-field">
+            <input id="submitAnonymous" type="checkbox" checked>
+            <span>Submit anonymously</span>
+          </label>
+          <button type="submit" class="primary-btn"><i class="ti ti-send" aria-hidden="true"></i>Submit report</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <p class="info-note">Your identity is protected. Anonymous reports cannot be traced back to you.</p>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="panel">
+        <div class="panel-head">
+          <div><h2>Reports overview</h2></div>
+        </div>
+        <div class="overview-grid">
+          <div class="overview-summary">
+            <span>Submitted</span>
+            <strong id="submittedCount">0</strong>
+          </div>
+          <div class="overview-summary">
+            <span>Under review</span>
+            <strong id="reviewCount">0</strong>
+          </div>
+          <div class="overview-summary">
+            <span>In progress</span>
+            <strong id="inProgressSummary">0</strong>
+          </div>
+          <div class="overview-summary">
+            <span>Resolved</span>
+            <strong id="resolvedSummary">0</strong>
+          </div>
+        </div>
+
+        <div class="donut-outer">
+          <div class="donut-ring" id="donutChart">
+            <div class="donut-hole">
+              <strong id="donutTotal">0</strong>
+              <small>Total</small>
+            </div>
+          </div>
+          <ul class="donut-legend">
+            <li><span class="legend-dot legend-resolved"></span>Resolved<strong id="legendResolved">0</strong></li>
+            <li><span class="legend-dot legend-progress"></span>In progress<strong id="legendProgress">0</strong></li>
+            <li><span class="legend-dot legend-review"></span>Under review<strong id="legendReview">0</strong></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="panel" style="margin-top:16px;">
+    <div class="panel-head">
+      <div><h2>All reports</h2></div>
+    </div>
+    <div class="reports-table-container">
+      <table class="reports-table">
+        <thead>
+          <tr>
+            <th scope="col">Report ID</th>
+            <th scope="col">Subject</th>
+            <th scope="col">Category</th>
+            <th scope="col">Department</th>
+            <th scope="col">Priority</th>
+            <th scope="col">Status</th>
+            <th scope="col">Date</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="reportsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:16px;">
+    <div class="panel-head">
+      <div><h2>Recent activity timeline</h2></div>
+    </div>
+    <div id="timelineList" class="timeline-list"></div>
+  </div>
+
+</main>
+
+<script src="Busiswa_IssueReport_Script.js"></script>
+
+</body>
+</html>
