@@ -13,6 +13,11 @@
  * status 'Approved' (not scoped to whether that leave is happening right
  * now). Kept this way to match hr-dashboard.js exactly; worth revisiting
  * with your team if you want "currently on leave" instead.
+ *
+ * NOTE on schema: position and department are now normalized into their
+ * own tables (positions, departments), referenced via position_id /
+ * department_id — getRecentEmployees joins against them to recover the
+ * readable names it needs.
  */
 import pool from '../config/db.js';
 
@@ -71,8 +76,14 @@ async function getAttendanceSnapshot() {
 
 async function getRecentEmployees(limit = 5) {
   const [employees] = await pool.query(
-    `SELECT employee_id, name, position, department, employment_history
-     FROM employees WHERE is_active = 1`
+    `SELECT e.employee_id, e.name,
+            p.position_name AS position,
+            d.department_name AS department,
+            e.employment_history
+     FROM employees e
+     JOIN positions p ON e.position_id = p.position_id
+     JOIN departments d ON e.department_id = d.department_id
+     WHERE e.is_active = 1`
   );
   const approvedLeaveIds = await getApprovedLeaveEmployeeIds();
 
@@ -129,4 +140,4 @@ async function getSummary() {
   };
 }
 
-export { getSummary };
+export { getSummary }; 

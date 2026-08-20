@@ -2,11 +2,15 @@
  * Payroll data-access layer. All queries are parameterized (`?`) —
  * never string-concatenate user input into SQL.
  *
- * Matches the actual `payroll` table in moderntech_hr.sql:
+ * Updated for the normalized (3NF) schema. `employees` no longer has
+ * inline `department`/`position` columns, so the joins below go through
+ * `departments`/`positions` directly rather than the `employee_payslips`
+ * view — the view doesn't carry department/position/base_salary, which
+ * the payroll controller needs in its response.
+ *
+ * Matches the actual `payroll` table (unchanged by the normalization):
  *   payroll_id, employee_id, pay_period, hours_worked,
  *   leave_deductions, final_salary, created_at
- * (no bonuses/status/paid_at columns — those were an earlier, incorrect
- * assumption before the real schema was available.)
  */
 import pool from '../config/db.js';
 
@@ -21,6 +25,12 @@ function computeFinalSalary({ baseSalary, hoursWorked, leaveDeductions }) {
   const gross = hourlyRate * Number(hoursWorked);
   return Math.round((gross - Number(leaveDeductions)) * 100) / 100;
 }
+
+const EMPLOYEE_JOIN = `
+  JOIN employees e ON e.employee_id = p.employee_id
+  JOIN departments d ON d.department_id = e.department_id
+  JOIN positions pos ON pos.position_id = e.position_id
+`;
 
 async function findAll({ payPeriod, employeeId } = {}) {
   const conditions = [];
@@ -38,9 +48,10 @@ async function findAll({ payPeriod, employeeId } = {}) {
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const [rows] = await pool.query(
-    `SELECT p.*, e.name AS employee_name, e.department, e.position, e.base_salary
+    `SELECT p.*, e.name AS employee_name, d.department_name AS department,
+            pos.position_name AS position, e.base_salary
      FROM payroll p
-     JOIN employees e ON e.employee_id = p.employee_id
+     ${EMPLOYEE_JOIN}
      ${where}
      ORDER BY p.pay_period DESC, e.name`,
     params
@@ -50,9 +61,10 @@ async function findAll({ payPeriod, employeeId } = {}) {
 
 async function findById(payrollId) {
   const [rows] = await pool.query(
-    `SELECT p.*, e.name AS employee_name, e.department, e.position, e.base_salary
+    `SELECT p.*, e.name AS employee_name, d.department_name AS department,
+            pos.position_name AS position, e.base_salary
      FROM payroll p
-     JOIN employees e ON e.employee_id = p.employee_id
+     ${EMPLOYEE_JOIN}
      WHERE p.payroll_id = ?`,
     [payrollId]
   );
