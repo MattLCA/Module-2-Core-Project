@@ -2,15 +2,15 @@
  * Payroll data-access layer. All queries are parameterized (`?`) —
  * never string-concatenate user input into SQL.
  *
- * Updated for the normalized (3NF) schema. `employees` no longer has
- * inline `department`/`position` columns, so the joins below go through
- * `departments`/`positions` directly rather than the `employee_payslips`
- * view — the view doesn't carry department/position/base_salary, which
- * the payroll controller needs in its response.
+ * payroll table: payroll_id, employee_id, pay_period, hours_worked,
+ *   leave_deductions, final_salary, created_at (unchanged by the schema
+ *   migration).
  *
- * Matches the actual `payroll` table (unchanged by the normalization):
- *   payroll_id, employee_id, pay_period, hours_worked,
- *   leave_deductions, final_salary, created_at
+ * Schema note: department and position are normalized into their own
+ * tables now (departments, positions), referenced from employees via
+ * department_id / position_id. findAll/findById join against them and
+ * alias the name columns back to `department`/`position` so callers see
+ * the same flat shape as before.
  */
 import pool from '../config/db.js';
 
@@ -20,17 +20,22 @@ import pool from '../config/db.js';
 // hourly rate — adjust if your team's payroll spec says otherwise.
 const STANDARD_MONTHLY_HOURS = 160;
 
+const PAYROLL_SELECT = `
+  SELECT p.*, e.name AS employee_name,
+         d.department_name AS department,
+         pos.position_name AS position,
+         e.base_salary
+  FROM payroll p
+  JOIN employees e ON e.employee_id = p.employee_id
+  JOIN departments d ON e.department_id = d.department_id
+  JOIN positions pos ON e.position_id = pos.position_id
+`;
+
 function computeFinalSalary({ baseSalary, hoursWorked, leaveDeductions }) {
   const hourlyRate = Number(baseSalary) / STANDARD_MONTHLY_HOURS;
   const gross = hourlyRate * Number(hoursWorked);
   return Math.round((gross - Number(leaveDeductions)) * 100) / 100;
 }
-
-const EMPLOYEE_JOIN = `
-  JOIN employees e ON e.employee_id = p.employee_id
-  JOIN departments d ON d.department_id = e.department_id
-  JOIN positions pos ON pos.position_id = e.position_id
-`;
 
 async function findAll({ payPeriod, employeeId } = {}) {
   const conditions = [];
@@ -48,12 +53,7 @@ async function findAll({ payPeriod, employeeId } = {}) {
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const [rows] = await pool.query(
-    `SELECT p.*, e.name AS employee_name, d.department_name AS department,
-            pos.position_name AS position, e.base_salary
-     FROM payroll p
-     ${EMPLOYEE_JOIN}
-     ${where}
-     ORDER BY p.pay_period DESC, e.name`,
+    `${PAYROLL_SELECT} ${where} ORDER BY p.pay_period DESC, e.name`,
     params
   );
   return rows;
@@ -61,11 +61,7 @@ async function findAll({ payPeriod, employeeId } = {}) {
 
 async function findById(payrollId) {
   const [rows] = await pool.query(
-    `SELECT p.*, e.name AS employee_name, d.department_name AS department,
-            pos.position_name AS position, e.base_salary
-     FROM payroll p
-     ${EMPLOYEE_JOIN}
-     WHERE p.payroll_id = ?`,
+    `${PAYROLL_SELECT} WHERE p.payroll_id = ?`,
     [payrollId]
   );
   return rows[0] || null;
