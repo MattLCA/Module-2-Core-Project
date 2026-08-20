@@ -12,33 +12,28 @@
     Support: '#f4a261'
   };
 
-  // Build the working "employees" array from the real data loaded via hr-employee-data.js.
-  // Maps field names (department -> dept, position -> role, contact -> email) and
-  // derives fields the real data doesn't have (start date, status) from what's available.
+  // Maps a raw employee record from GET /api/employees into the shape
+  // this page renders. Note: the list endpoint doesn't currently include
+  // leave status, so every fetched employee shows as "Active" here —
+  // "onboarding"/"leave" badges would need either a richer endpoint or a
+  // second call to leave data, which isn't wired up yet.
   function mapEmployee(e){
-    var yearMatch = (e.employmentHistory || '').match(/\d{4}/);
-    var hasApprovedLeave = (e.leaveRequests || []).some(function(lr){
-      return lr.status === 'Approved';
-    });
+    var yearMatch = (e.employment_history || '').match(/\d{4}/);
 
     return {
-      employeeId: e.employeeId,
+      employeeId: e.employee_id,
+      employeeCode: e.employee_code,
       name: e.name,
-      email: e.contact,
+      email: e.email || e.contact || '',
       dept: e.department,
       role: e.position,
       start: yearMatch ? yearMatch[0] + '-01-01' : '2020-01-01',
-      status: hasApprovedLeave ? 'leave' : 'active',
-      salary: e.payroll ? e.payroll.finalSalary : e.baseSalary,
-      attendance: e.attendance || [],
-      leaveRequests: e.leaveRequests || []
+      status: 'active',
+      salary: e.base_salary
     };
   }
 
-  // Overrides (added/removed/edited) persisted in localStorage via HRStorage
-  var employees = (typeof HRStorage !== 'undefined')
-    ? HRStorage.buildEmployees(employeeData.employees, mapEmployee)
-    : employeeData.employees.map(mapEmployee);
+  var employees = [];
 
   var state = { search:'', dept:'All', sortDir:'asc', page:1, pageSize:8 };
 
@@ -159,6 +154,22 @@
     }
   }
 
+  // ================= Load real data from the backend =================
+
+  function loadEmployees(){
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Loading employees\u2026</td></tr>';
+
+    apiFetch('/employees')
+      .then(function(result){
+        employees = (result.data || []).map(mapEmployee);
+        render();
+      })
+      .catch(function(err){
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Couldn\u2019t load employees: ' + err.message + '</td></tr>';
+        showToast('Failed to load employees from the server');
+      });
+  }
+
   searchInput.addEventListener('input', function(){
     state.search = searchInput.value;
     state.page = 1;
@@ -218,14 +229,20 @@
       closeAllDropdowns();
       if (!employee) return;
       if (action === 'view') showToast('Viewing ' + employee.name + '\u2019s profile');
-      if (action === 'edit') showToast('Editing ' + employee.name);
+      if (action === 'edit') showToast('Editing ' + employee.name + ' isn\u2019t wired up to the backend yet');
       if (action === 'remove'){
-        // Persist the removal so it survives a refresh and applies on every page
-        if (typeof HRStorage !== 'undefined') HRStorage.removeEmployee(HRStorage.idOf(employee));
-        var realIdx = employees.indexOf(employee);
-        if (realIdx > -1) employees.splice(realIdx, 1);
-        showToast(employee.name + ' removed from directory');
-        render();
+        if (!confirm('Remove ' + employee.name + ' from the directory? This can be undone by an admin later (soft delete).')) return;
+
+        apiFetch('/employees/' + employee.employeeId, { method: 'DELETE' })
+          .then(function(){
+            var realIdx = employees.indexOf(employee);
+            if (realIdx > -1) employees.splice(realIdx, 1);
+            showToast(employee.name + ' removed from directory');
+            render();
+          })
+          .catch(function(err){
+            showToast('Failed to remove ' + employee.name + ': ' + err.message);
+          });
       }
     }
   });
@@ -253,6 +270,14 @@
     if (e.target === modalOverlay) closeModal();
   });
 
+  // NOTE: "Add employee" is not yet wired to the real API. The backend's
+  // POST /api/employees currently requires an already-hashed password
+  // (passwordHash) from the caller — there's no server-side hashing for
+  // employee creation like there is for login. Hashing in the browser
+  // isn't safe practice, so this needs a backend change (accept a plain
+  // `password` field and hash it server-side) before this form can call
+  // the real endpoint. Until then, submitting here only updates the
+  // in-memory list for this page load and does not persist.
   addEmployeeForm.addEventListener('submit', function(e){
     e.preventDefault();
     var name = document.getElementById('fieldName').value.trim();
@@ -263,57 +288,21 @@
     if (!name || !email || !role) return;
 
     var today = new Date().toISOString().slice(0, 10);
-    var newEmployeeData = {
-
-        employeeId: "EMP" + Date.now(),
-
-        name: name,
-
-        contact: email,
-
-        email: email,
-
-        department: dept,
-
-        dept: dept,
-
-        position: role,
-
-        role: role,
-
-        start: today,
-
-        status: "onboarding",
-
-        baseSalary: salary,
-
-        salary: salary,
-
-        payroll: {
-            hoursWorked: 160,
-            leaveDeductions: 0,
-            finalSalary: salary
-        },
-
-        attendance: [],
-
-        leaveRequests: [],
-
-        employmentHistory: today
-
-    };
-
-    // Persist to localStorage so it survives a refresh and shows up on every page
-    var newEmployee = (typeof HRStorage !== 'undefined')
-      ? HRStorage.addEmployee(newEmployeeData)
-      : newEmployeeData;
-
-    employees.unshift(newEmployee);
+    employees.unshift({
+      employeeId: 'TEMP' + Date.now(),
+      name: name,
+      email: email,
+      dept: dept,
+      role: role,
+      start: today,
+      status: 'onboarding',
+      salary: salary
+    });
 
     closeModal();
     state.page = 1;
     render();
-    showToast(name + ' added to the directory');
+    showToast(name + ' added locally \u2014 not yet saved to the server (see note in hr-employees.js)');
   });
 
   var toastEl = document.getElementById('toast');
@@ -415,7 +404,7 @@
     }
   });
 
-  render();
+  loadEmployees();
 })();
 
 const logoutBtn = document.getElementById("logoutBtn");
@@ -431,6 +420,7 @@ if(logoutBtn){
         if(confirmLogout){
 
             localStorage.removeItem("loggedInUser");
+            localStorage.removeItem("authToken");
 
             window.location.href = "index.html";
 

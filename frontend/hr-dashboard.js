@@ -55,10 +55,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const now = new Date();
     const hour = now.getHours();
     const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-    if (greetingText) greetingText.textContent = `${greeting}, Jordan`;
+    const firstName = loggedInUser?.name ? loggedInUser.name.split(' ')[0] : 'there';
+    if (greetingText) greetingText.textContent = `${greeting}, ${firstName}`;
 
     const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     if (dateText) dateText.textContent = `${dateStr} · Here's how the team is doing today`;
+  })();
+
+  /* ================= Logged-in user chip ================= */
+
+  (function setUserChip() {
+    const nameEl = document.getElementById('userNameDisplay');
+    const roleEl = document.getElementById('userRoleDisplay');
+    const avatarEl = document.getElementById('userAvatarInitials');
+
+    if (loggedInUser?.name) {
+      if (nameEl) nameEl.textContent = loggedInUser.name;
+      if (avatarEl) {
+        avatarEl.textContent = loggedInUser.name
+          .trim()
+          .split(/\s+/)
+          .slice(0, 2)
+          .map(w => w[0]?.toUpperCase() || '')
+          .join('');
+      }
+    }
+
+    if (roleEl) {
+      roleEl.textContent = loggedInUser?.role === 'hr' ? 'HR Manager' : 'Employee';
+    }
   })();
 
   /* ================= Build employees from real data (+ localStorage overrides) ================= */

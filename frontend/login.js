@@ -16,32 +16,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const roleInputs = document.querySelectorAll('input[name="role"]');
 
 
-    // Demo HR users
-    const users = [
-
-        {
-            email: "busiswa@moderntech.com",
-            password: "admin123",
-            role: "HR Manager",
-            name: "Busiswa Bala"
-        },
-
-        {
-            employeeId: "EMP001",
-            password: "employee123",
-            role: "Employee",
-            name: "Sarah Williams"
-        },
-
-        {
-            employeeId: "EMP002",
-            password: "employee456",
-            role: "Employee",
-            name: "John Smith"
-        }
-
-    ];
-
     roleInputs.forEach(role => {
 
         role.addEventListener("change", () => {
@@ -76,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-    loginForm.addEventListener("submit", (e)=>{
+    loginForm.addEventListener("submit", async (e)=>{
 
 
         e.preventDefault();
@@ -90,76 +64,50 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const password = passwordInput.value.trim();
 
-        let user;
+        // Frontend uses "HR Manager"/"Employee" labels, backend expects "hr"/"worker"
+        const apiRole = selectedRole === "HR Manager" ? "hr" : "worker";
 
-        if(selectedRole === "HR Manager"){
+        try {
 
-            user = users.find(account =>
+            const result = await apiFetch("/auth/login", {
+                method: "POST",
+                body: JSON.stringify({
+                    role: apiRole,
+                    identifier: identifier,
+                    password: password
+                })
+            });
 
-                account.email === identifier &&
-                account.password === password &&
-                account.role === "HR Manager"
+            const { token, employee } = result.data;
 
-            );
-
-        }
-
-        else{
-
-            user = users.find(account =>
-
-                account.employeeId === identifier &&
-                account.password === password &&
-                account.role === "Employee"
-
-            );
-
-        }
-
-
-
-        if(user){
-
-
-            // Save logged-in user
-
-            localStorage.setItem(
-                "loggedInUser",
-                JSON.stringify(user)
-            );
-
+            // Save token and employee info
+            localStorage.setItem("authToken", token);
+            localStorage.setItem("loggedInUser", JSON.stringify(employee));
 
             showMessage(
                 "Login successful! Redirecting...",
                 "success"
             );
 
-
             setTimeout(()=>{
 
-
-                if(user.role === "HR Manager"){
+                if(employee.role === "hr"){
 
                     window.location.href = "hr-dashboard.html";
 
                 }
 
-
-                else if(user.role === "Employee"){
+                else if(employee.role === "worker"){
 
                     window.location.href = "worker-dashboard.html";
 
                 }
 
-
             },1000);
-
-
 
         }
 
-        else{
-
+        catch (err) {
 
             showMessage(
                 "Incorrect Employee ID/Email or password.",
