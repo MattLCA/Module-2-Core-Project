@@ -1,350 +1,1077 @@
-console.log("Leave JS connected.");
+// ============================================================
+// ModernTech Worker Leave
+// ============================================================
+// Worker leave page only.
+//
+// Backend/API integration is intentionally postponed while
+// backend naming is being finalized.
+//
+// For now, leave requests are stored in localStorage so the
+// page remains functional.
+//
+// Later this file can use functions from worker_api.js for:
+//
+// GET  leave requests
+// POST leave request
+// ============================================================
+
+console.log("Worker Leave JS connected.");
+
+
+// ============================================================
+// PAGE INITIALIZATION
+// ============================================================
 
 document.addEventListener("DOMContentLoaded", () => {
 
-    /*=====================================================
-      VARIABLES
-    =====================================================*/
+    initializeLeaveTabs();
+    initializeLeavePage();
 
-    const tabs = document.querySelectorAll(".leave-tab");
-    const contents = document.querySelectorAll(".leave-content");
+});
 
-    const form = document.getElementById("leaveForm");
-    const modal = document.getElementById("leaveModal");
-    const closeModalBtn = document.getElementById("closeModal");
 
-    const tableBody = document.getElementById("leaveTable");
-    const clearLeaveBtn = document.getElementById("clearLeaveBtn");
+// ============================================================
+// PAGE VARIABLES
+// ============================================================
 
-    let history = [];
-    let leaveEntitlements = { annual: 0, sick: 0, family: 0, study: 0 };
+let leaveHistory = [];
 
-    // Maps the leave type string used in the form/table to its balance category key.
-    const typeToCategory = {
-        "Annual Leave": "annual",
-        "Sick Leave": "sick",
-        "Family Responsibility": "family",
-        "Study Leave": "study",
-        "Personal": "personal",
-        "Vacation": "vacation",
-        "Medical Appointment": "medical",
-        "Bereavement": "bereavement",
-        "Childcare": "childcare"
-    };
+let leaveEntitlements = {
+    annual: 14,
+    sick: 10,
+    family: 3,
+    study: 5,
+    personal: 0,
+    vacation: 0,
+    medical: 0,
+    bereavement: 0,
+    childcare: 0
+};
 
-    /*=====================================================
-      BALANCE DISPLAY
-    =====================================================*/
 
-    function updateBalanceDisplay() {
-        const balanceText = document.getElementById("leaveBalanceText");
-        const pendingText = document.getElementById("leavePendingText");
+// ============================================================
+// LEAVE TYPE → BALANCE CATEGORY
+// ============================================================
 
-        // Rejected requests don't count against the balance.
-        const activeRequests = history.filter(r => r.status !== "Rejected");
+const typeToCategory = {
 
-        /*
-          PER-CATEGORY BALANCES (computed first)
-        */
-        const categoryIds = {
-            annual: "annualLeave",
-            sick: "sickLeave",
-            family: "familyLeave",
-            study: "studyLeave",
-            personal: "personalLeave",
-            vacation: "vacationLeave",
-            medical: "medicalLeave",
-            bereavement: "bereavementLeave",
-            childcare: "childcareLeave"
-        };
+    "Annual Leave": "annual",
 
-        let aggregateRemaining = 0;
-        let unmatchedDaysUsed = 0;
+    "Sick Leave": "sick",
 
-        Object.keys(categoryIds).forEach((category) => {
-            const usedInCategory = activeRequests
-                .filter(r => typeToCategory[(r.type || "").trim()] === category)
-                .reduce((total, r) => total + Number(r.days || 0), 0);
+    "Family Responsibility": "family",
 
-            const remainingInCategory = Math.max(0, leaveEntitlements[category] - usedInCategory);
-            aggregateRemaining += remainingInCategory;
+    "Study Leave": "study",
 
-            const el = document.getElementById(categoryIds[category]);
-            if (el) {
-                el.textContent = remainingInCategory + " Days";
-            }
-        });
+    "Personal": "personal",
 
-        // Flag any request whose type doesn't match a known category, so
-        // bad data is visible instead of silently throwing the totals off.
-        activeRequests.forEach((r) => {
-            if (!typeToCategory[(r.type || "").trim()]) {
-                unmatchedDaysUsed += Number(r.days || 0);
-                console.warn("Leave request has an unrecognized type and was excluded from category balances:", r);
-            }
-        });
+    "Vacation": "vacation",
 
-        /*
-          AGGREGATE (derived from the per-category numbers above, so it
-          can never disagree with them)
-        */
-        if (balanceText) {
-            balanceText.textContent = aggregateRemaining + " days";
+    "Medical Appointment": "medical",
+
+    "Bereavement": "bereavement",
+
+    "Childcare": "childcare"
+
+};
+
+
+// ============================================================
+// INITIALIZE LEAVE PAGE
+// ============================================================
+
+function initializeLeavePage() {
+
+    const form =
+        document.getElementById("leaveForm");
+
+    const clearButton =
+        document.getElementById("clearLeaveBtn");
+
+    const closeModalButton =
+        document.getElementById("closeModal");
+
+
+    // --------------------------------------------------------
+    // LOAD SAVED LEAVE DATA
+    // --------------------------------------------------------
+
+    const savedHistory =
+        localStorage.getItem("employeeLeaveHistory");
+
+    if (savedHistory) {
+
+        try {
+
+            leaveHistory =
+                JSON.parse(savedHistory);
+
+        } catch (error) {
+
+            console.error(
+                "Could not parse saved leave history.",
+                error
+            );
+
+            leaveHistory = [];
         }
 
-        if (pendingText) {
-            pendingText.textContent = history.filter(r => r.status === "Pending").length;
-        }
+    } else {
+
+        leaveHistory = [];
+
     }
 
-    /*=====================================================
-      TABS
-    =====================================================*/
+
+    // --------------------------------------------------------
+    // FORM SUBMIT
+    // --------------------------------------------------------
+
+    if (form) {
+
+        form.addEventListener(
+            "submit",
+            handleLeaveSubmit
+        );
+
+    }
+
+
+    // --------------------------------------------------------
+    // CLEAR HISTORY
+    // --------------------------------------------------------
+
+    if (clearButton) {
+
+        clearButton.addEventListener(
+            "click",
+            clearLeaveHistory
+        );
+
+    }
+
+
+    // --------------------------------------------------------
+    // CLOSE MODAL
+    // --------------------------------------------------------
+
+    if (closeModalButton) {
+
+        closeModalButton.addEventListener(
+            "click",
+            closeLeaveModal
+        );
+
+    }
+
+
+    // --------------------------------------------------------
+    // FILTERS
+    // --------------------------------------------------------
+
+    initializeLeaveFilters();
+
+
+    // --------------------------------------------------------
+    // INITIAL RENDER
+    // --------------------------------------------------------
+
+    updateBalanceDisplay();
+    renderLeaveTable(leaveHistory);
+
+}
+
+
+// ============================================================
+// LEAVE TABS
+// ============================================================
+
+function initializeLeaveTabs() {
+
+    const tabs =
+        document.querySelectorAll(".leave-tab");
+
+    const contents =
+        document.querySelectorAll(".leave-content");
+
 
     tabs.forEach((tab) => {
+
         tab.addEventListener("click", () => {
-            tabs.forEach((t) => t.classList.remove("active"));
-            contents.forEach((content) => content.classList.remove("active"));
+
+            const target =
+                tab.dataset.tab;
+
+
+            tabs.forEach((button) => {
+
+                button.classList.remove("active");
+
+            });
+
+
+            contents.forEach((content) => {
+
+                content.classList.remove("active");
+
+            });
+
 
             tab.classList.add("active");
 
-            const target = tab.dataset.tab;
-            const targetContent = document.getElementById(target);
+
+            const targetContent =
+                document.getElementById(target);
+
             if (targetContent) {
+
                 targetContent.classList.add("active");
+
             }
+
         });
+
     });
 
-    /*=====================================================
-      LOAD JSON DATA
-    =====================================================*/
+}
 
-    fetch("data/leave_data.json")
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error("Could not load leave data.");
+
+// ============================================================
+// BALANCE DISPLAY
+// ============================================================
+
+function updateBalanceDisplay() {
+
+    const balanceText =
+        document.getElementById(
+            "leaveBalanceText"
+        );
+
+    const pendingText =
+        document.getElementById(
+            "leavePendingText"
+        );
+
+
+    // Rejected requests do not count against balance.
+
+    const activeRequests =
+        leaveHistory.filter(
+            (request) =>
+                request.status !== "Rejected"
+        );
+
+
+    const categoryIds = {
+
+        annual: "annualLeave",
+
+        sick: "sickLeave",
+
+        family: "familyLeave",
+
+        study: "studyLeave",
+
+        personal: "personalLeave",
+
+        vacation: "vacationLeave",
+
+        medical: "medicalLeave",
+
+        bereavement: "bereavementLeave",
+
+        childcare: "childcareLeave"
+
+    };
+
+
+    let aggregateRemaining = 0;
+
+
+    Object.keys(categoryIds).forEach(
+        (category) => {
+
+            const used =
+                activeRequests
+
+                    .filter((request) => {
+
+                        const requestType =
+                            (request.type || "")
+                                .trim();
+
+                        return (
+                            typeToCategory[
+                                requestType
+                            ] === category
+                        );
+
+                    })
+
+                    .reduce(
+                        (total, request) =>
+                            total +
+                            Number(
+                                request.days || 0
+                            ),
+                        0
+                    );
+
+
+            const entitlement =
+                Number(
+                    leaveEntitlements[
+                        category
+                    ] || 0
+                );
+
+
+            const remaining =
+                Math.max(
+                    0,
+                    entitlement - used
+                );
+
+
+            aggregateRemaining +=
+                remaining;
+
+
+            const element =
+                document.getElementById(
+                    categoryIds[category]
+                );
+
+
+            if (element) {
+
+                element.textContent =
+                    `${remaining} Days`;
+
             }
-            return response.json();
-        })
-        .then((data) => {
-            const employee = data.employeeLeave;
 
-            /*
-              LEAVE BALANCE
-            */
-            leaveEntitlements = {
-                annual: employee.leaveBalance.annual,
-                sick: employee.leaveBalance.sick,
-                family: employee.leaveBalance.family,
-                study: employee.leaveBalance.study,
-                personal: employee.leaveBalance.personal || 0,
-                vacation: employee.leaveBalance.vacation || 0,
-                medical: employee.leaveBalance.medical || 0,
-                bereavement: employee.leaveBalance.bereavement || 0,
-                childcare: employee.leaveBalance.childcare || 0
-            };
-
-            /*
-              LEAVE HISTORY
-            */
-            history = employee.leaveHistory;
-
-            const savedHistory = localStorage.getItem("employeeLeaveHistory");
-            if (savedHistory) {
-                history = JSON.parse(savedHistory);
-            }
-
-            updateBalanceDisplay();
-            renderTable(history);
-        })
-        .catch((error) => {
-            console.error(error);
-        });
-
-    /*=====================================================
-      RENDER HISTORY TABLE
-    =====================================================*/
-
-    function renderTable(records) {
-        if (!tableBody) return;
-
-        tableBody.innerHTML = "";
-
-        if (!records.length) {
-            tableBody.innerHTML = `<tr><td colspan="5">No matching leave records.</td></tr>`;
-            return;
         }
+    );
 
-        records.forEach((record) => {
-            let statusClass = "";
 
-            if (record.status === "Approved") {
-                statusClass = "leave-approved";
-            } else if (record.status === "Pending") {
-                statusClass = "leave-pending";
-            } else {
-                statusClass = "leave-rejected";
-            }
+    if (balanceText) {
 
-            tableBody.innerHTML += `
-                <tr>
-                    <td>${record.type}</td>
-                    <td>${record.startDate}</td>
-                    <td>${record.endDate || "-"}</td>
-                    <td>${record.days}</td>
-                    <td>
-                        <span class="leave-status ${statusClass}">
-                            ${record.status}
-                        </span>
-                    </td>
-                </tr>
-            `;
-        });
+        balanceText.textContent =
+            `${aggregateRemaining} days`;
+
     }
 
-    /*=====================================================
-      FILTERS
-    =====================================================*/
 
-    const filterType = document.getElementById("filterType");
-    const filterStatus = document.getElementById("filterStatus");
-    const fromDate = document.getElementById("fromDate");
-    const toDate = document.getElementById("toDate");
-    const clearFilters = document.getElementById("clearFilters");
+    if (pendingText) {
 
-    if (filterType) filterType.addEventListener("change", filterTable);
-    if (filterStatus) filterStatus.addEventListener("change", filterTable);
-    if (fromDate) fromDate.addEventListener("change", filterTable);
-    if (toDate) toDate.addEventListener("change", filterTable);
+        pendingText.textContent =
+            leaveHistory.filter(
+                (request) =>
+                    request.status === "Pending"
+            ).length;
+
+    }
+
+}
+
+
+// ============================================================
+// RENDER TABLE
+// ============================================================
+
+function renderLeaveTable(records) {
+
+    const tableBody =
+        document.getElementById(
+            "leaveTable"
+        );
+
+
+    if (!tableBody) {
+        return;
+    }
+
+
+    if (!records.length) {
+
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5">
+                    No matching leave records.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    tableBody.innerHTML = "";
+
+
+    records.forEach((record) => {
+
+        let statusClass =
+            "leave-rejected";
+
+
+        if (record.status === "Approved") {
+
+            statusClass =
+                "leave-approved";
+
+        } else if (
+            record.status === "Pending"
+        ) {
+
+            statusClass =
+                "leave-pending";
+
+        }
+
+
+        const startDate =
+            record.startDate ??
+            record.start ??
+            "-";
+
+
+        const endDate =
+            record.endDate ??
+            record.end ??
+            "-";
+
+
+        tableBody.innerHTML += `
+            <tr>
+
+                <td>
+                    ${escapeHTML(record.type)}
+                </td>
+
+                <td>
+                    ${escapeHTML(startDate)}
+                </td>
+
+                <td>
+                    ${escapeHTML(endDate)}
+                </td>
+
+                <td>
+                    ${Number(record.days || 0)}
+                </td>
+
+                <td>
+                    <span class="leave-status ${statusClass}">
+                        ${escapeHTML(record.status)}
+                    </span>
+                </td>
+
+            </tr>
+        `;
+
+    });
+
+}
+
+
+// ============================================================
+// FILTERS
+// ============================================================
+
+function initializeLeaveFilters() {
+
+    const filterType =
+        document.getElementById(
+            "filterType"
+        );
+
+    const filterStatus =
+        document.getElementById(
+            "filterStatus"
+        );
+
+    const fromDate =
+        document.getElementById(
+            "fromDate"
+        );
+
+    const toDate =
+        document.getElementById(
+            "toDate"
+        );
+
+    const clearFilters =
+        document.getElementById(
+            "clearFilters"
+        );
+
+
+    if (filterType) {
+
+        filterType.addEventListener(
+            "change",
+            filterLeaveTable
+        );
+
+    }
+
+
+    if (filterStatus) {
+
+        filterStatus.addEventListener(
+            "change",
+            filterLeaveTable
+        );
+
+    }
+
+
+    if (fromDate) {
+
+        fromDate.addEventListener(
+            "change",
+            filterLeaveTable
+        );
+
+    }
+
+
+    if (toDate) {
+
+        toDate.addEventListener(
+            "change",
+            filterLeaveTable
+        );
+
+    }
+
 
     if (clearFilters) {
-        clearFilters.addEventListener("click", () => {
-            if (filterType) filterType.value = "All";
-            if (filterStatus) filterStatus.value = "All";
-            if (fromDate) fromDate.value = "";
-            if (toDate) toDate.value = "";
 
-            renderTable(history);
-        });
+        clearFilters.addEventListener(
+            "click",
+            () => {
+
+                if (filterType) {
+                    filterType.value = "All";
+                }
+
+                if (filterStatus) {
+                    filterStatus.value = "All";
+                }
+
+                if (fromDate) {
+                    fromDate.value = "";
+                }
+
+                if (toDate) {
+                    toDate.value = "";
+                }
+
+                renderLeaveTable(
+                    leaveHistory
+                );
+
+            }
+        );
+
     }
 
-    function filterTable() {
-        let filtered = [...history];
+}
 
-        const type = filterType ? filterType.value : "All";
-        const status = filterStatus ? filterStatus.value : "All";
-        const from = fromDate ? fromDate.value : "";
-        const to = toDate ? toDate.value : "";
 
-        if (type !== "All") {
-            filtered = filtered.filter((item) => item.type === type);
-        }
+// ============================================================
+// FILTER LEAVE TABLE
+// ============================================================
 
-        if (status !== "All") {
-            filtered = filtered.filter((item) => item.status === status);
-        }
+function filterLeaveTable() {
 
-        if (from !== "") {
-            filtered = filtered.filter((item) => item.startDate >= from);
-        }
+    let filtered =
+        [...leaveHistory];
 
-        if (to !== "") {
-            filtered = filtered.filter((item) => item.startDate <= to);
-        }
 
-        renderTable(filtered);
+    const filterType =
+        document.getElementById(
+            "filterType"
+        );
+
+    const filterStatus =
+        document.getElementById(
+            "filterStatus"
+        );
+
+    const fromDate =
+        document.getElementById(
+            "fromDate"
+        );
+
+    const toDate =
+        document.getElementById(
+            "toDate"
+        );
+
+
+    const type =
+        filterType
+            ? filterType.value
+            : "All";
+
+
+    const status =
+        filterStatus
+            ? filterStatus.value
+            : "All";
+
+
+    const from =
+        fromDate
+            ? fromDate.value
+            : "";
+
+
+    const to =
+        toDate
+            ? toDate.value
+            : "";
+
+
+    if (type !== "All") {
+
+        filtered =
+            filtered.filter(
+                (item) =>
+                    item.type === type
+            );
+
     }
 
-    /*=====================================================
-      FORM SUBMIT
-    =====================================================*/
+
+    if (status !== "All") {
+
+        filtered =
+            filtered.filter(
+                (item) =>
+                    item.status === status
+            );
+
+    }
+
+
+    if (from) {
+
+        filtered =
+            filtered.filter(
+                (item) =>
+                    getStartDate(item) >= from
+            );
+
+    }
+
+
+    if (to) {
+
+        filtered =
+            filtered.filter(
+                (item) =>
+                    getStartDate(item) <= to
+            );
+
+    }
+
+
+    renderLeaveTable(filtered);
+
+}
+
+
+// ============================================================
+// HANDLE LEAVE SUBMISSION
+// ============================================================
+
+function handleLeaveSubmit(event) {
+
+    event.preventDefault();
+
+
+    const leaveType =
+        document.getElementById(
+            "leaveType"
+        );
+
+
+    const leaveDays =
+        document.getElementById(
+            "leaveDays"
+        );
+
+
+    const startDate =
+        document.getElementById(
+            "startDate"
+        );
+
+
+    const endDate =
+        document.getElementById(
+            "endDate"
+        );
+
+
+    const leaveReason =
+        document.getElementById(
+            "leaveReason"
+        );
+
+
+    const request = {
+
+        type:
+            leaveType
+                ? leaveType.value
+                : "",
+
+        days:
+            leaveDays
+                ? Number(leaveDays.value)
+                : 0,
+
+        startDate:
+            startDate
+                ? startDate.value
+                : "",
+
+        endDate:
+            endDate
+                ? endDate.value
+                : "",
+
+        reason:
+            leaveReason
+                ? leaveReason.value.trim()
+                : "",
+
+        status:
+            "Pending",
+
+        createdAt:
+            new Date().toISOString()
+
+    };
+
+
+    // --------------------------------------------------------
+    // VALIDATION
+    // --------------------------------------------------------
+
+    if (!request.type) {
+
+        alert("Please select a leave type.");
+
+        return;
+
+    }
+
+
+    if (request.days <= 0) {
+
+        alert("Please enter a valid number of leave days.");
+
+        return;
+
+    }
+
+
+    if (!request.startDate) {
+
+        alert("Please select a start date.");
+
+        return;
+
+    }
+
+
+    // --------------------------------------------------------
+    // ADD REQUEST
+    // --------------------------------------------------------
+
+    leaveHistory.unshift(request);
+
+
+    saveLeaveHistory();
+
+
+    // --------------------------------------------------------
+    // UPDATE MODAL
+    // --------------------------------------------------------
+
+    updateLeaveSummary(request);
+
+
+    // --------------------------------------------------------
+    // UPDATE PAGE
+    // --------------------------------------------------------
+
+    renderLeaveTable(
+        leaveHistory
+    );
+
+    updateBalanceDisplay();
+
+
+    // --------------------------------------------------------
+    // SHOW MODAL
+    // --------------------------------------------------------
+
+    const modal =
+        document.getElementById(
+            "leaveModal"
+        );
+
+
+    if (modal) {
+
+        modal.classList.add("show");
+
+    }
+
+}
+
+
+// ============================================================
+// UPDATE MODAL SUMMARY
+// ============================================================
+
+function updateLeaveSummary(request) {
+
+    setLeaveText(
+        "summaryType",
+        request.type
+    );
+
+    setLeaveText(
+        "summaryDays",
+        `${request.days} Days`
+    );
+
+    setLeaveText(
+        "summaryStart",
+        request.startDate
+    );
+
+    setLeaveText(
+        "summaryEnd",
+        request.endDate || "-"
+    );
+
+    setLeaveText(
+        "summaryReason",
+        request.reason || "-"
+    );
+
+}
+
+
+// ============================================================
+// CLEAR LEAVE HISTORY
+// ============================================================
+
+function clearLeaveHistory() {
+
+    const confirmed =
+        window.confirm(
+            "Are you sure you want to clear your leave history?"
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    leaveHistory = [];
+
+
+    saveLeaveHistory();
+
+
+    renderLeaveTable(
+        leaveHistory
+    );
+
+
+    updateBalanceDisplay();
+
+}
+
+
+// ============================================================
+// CLOSE LEAVE MODAL
+// ============================================================
+
+function closeLeaveModal() {
+
+    const modal =
+        document.getElementById(
+            "leaveModal"
+        );
+
+
+    const form =
+        document.getElementById(
+            "leaveForm"
+        );
+
+
+    if (modal) {
+
+        modal.classList.remove("show");
+
+    }
+
 
     if (form) {
-        form.addEventListener("submit", (e) => {
-            e.preventDefault();
 
-            const request = {
-                type: document.getElementById("leaveType").value,
-                days: Number(document.getElementById("leaveDays").value),
-                startDate: document.getElementById("startDate").value,
-                endDate: document.getElementById("endDate").value,
-                reason: document.getElementById("leaveReason").value,
-                status: "Pending"
-            };
+        form.reset();
 
-            /*
-              UPDATE MODAL WITH FORM DATA
-            */
-            const summaryType = document.getElementById("summaryType");
-            const summaryDays = document.getElementById("summaryDays");
-            const summaryStart = document.getElementById("summaryStart");
-            const summaryEnd = document.getElementById("summaryEnd");
-            const summaryReason = document.getElementById("summaryReason");
-
-            if (summaryType) summaryType.textContent = request.type;
-            if (summaryDays) summaryDays.textContent = request.days + " Days";
-            if (summaryStart) summaryStart.textContent = request.startDate;
-            if (summaryEnd) summaryEnd.textContent = request.endDate;
-            if (summaryReason) summaryReason.textContent = request.reason;
-
-            /*
-              ADD REQUEST TO HISTORY TABLE
-            */
-            history.unshift(request);
-            localStorage.setItem("employeeLeaveHistory", JSON.stringify(history));
-            renderTable(history);
-            updateBalanceDisplay();
-
-            /*
-              SHOW MODAL
-            */
-            if (modal) {
-                modal.classList.add("show");
-            }
-        });
     }
 
-    /*=====================================================
-      CLEAR REQUESTS
-    =====================================================*/
 
-    if (clearLeaveBtn) {
-        clearLeaveBtn.addEventListener("click", () => {
-            history = [];
-            // Persist an empty array rather than removing the key entirely —
-            // removing it would make the next page load fall back to the
-            // seed data in leave_data.json (including its pre-approved demo
-            // records), making it look like leave was auto-added/approved.
-            localStorage.setItem("employeeLeaveHistory", JSON.stringify([]));
-            renderTable(history);
-            updateBalanceDisplay();
-        });
+    // Reset to history tab
+
+    const tabs =
+        document.querySelectorAll(
+            ".leave-tab"
+        );
+
+
+    const contents =
+        document.querySelectorAll(
+            ".leave-content"
+        );
+
+
+    tabs.forEach((tab) => {
+
+        tab.classList.remove("active");
+
+    });
+
+
+    contents.forEach((content) => {
+
+        content.classList.remove("active");
+
+    });
+
+
+    const historyTab =
+        document.querySelector(
+            '[data-tab="history"]'
+        );
+
+
+    const historyPanel =
+        document.getElementById(
+            "history"
+        );
+
+
+    if (historyTab) {
+
+        historyTab.classList.add(
+            "active"
+        );
+
     }
 
-    /*=====================================================
-      CLOSE MODAL
-    =====================================================*/
 
-    if (closeModalBtn) {
-        closeModalBtn.addEventListener("click", () => {
-            if (modal) {
-                modal.classList.remove("show");
-            }
+    if (historyPanel) {
 
-            if (form) {
-                form.reset();
-            }
+        historyPanel.classList.add(
+            "active"
+        );
 
-            tabs.forEach((tab) => tab.classList.remove("active"));
-            contents.forEach((content) => content.classList.remove("active"));
-
-            const historyTab = document.querySelector('[data-tab="history"]');
-            if (historyTab) historyTab.classList.add("active");
-
-            const historyPanel = document.getElementById("history");
-            if (historyPanel) historyPanel.classList.add("active");
-        });
     }
 
-});
+}
+
+
+// ============================================================
+// SAVE LEAVE HISTORY
+// ============================================================
+
+function saveLeaveHistory() {
+
+    localStorage.setItem(
+        "employeeLeaveHistory",
+        JSON.stringify(leaveHistory)
+    );
+
+}
+
+
+// ============================================================
+// GET START DATE
+// ============================================================
+
+function getStartDate(record) {
+
+    return (
+        record.startDate ??
+        record.start ??
+        ""
+    );
+
+}
+
+
+// ============================================================
+// SAFE TEXT OUTPUT
+// ============================================================
+
+function setLeaveText(
+    elementId,
+    value
+) {
+
+    const element =
+        document.getElementById(
+            elementId
+        );
+
+
+    if (!element) {
+        return;
+    }
+
+
+    element.textContent =
+        value ??
+        "Not available";
+
+}
+
+
+// ============================================================
+// ESCAPE HTML
+// ============================================================
+
+function escapeHTML(value) {
+
+    if (
+        value === undefined ||
+        value === null
+    ) {
+        return "";
+    }
+
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+}

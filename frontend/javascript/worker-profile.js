@@ -1,14 +1,17 @@
 // ============================================================
 // ModernTech Worker Profile
-// API-ready version
+// ============================================================
+// Worker profile page only.
 //
-// NOTE:
-// Backend endpoint testing is intentionally postponed.
-// The API function is called only when the backend naming
-// changes are finalized.
+// Backend/API integration is intentionally postponed while
+// backend naming is being finalized.
+//
+// When the backend is ready, this file can call:
+// getWorkerProfile()
+// from worker_api.js.
 // ============================================================
 
-console.log("Worker Profile JS connected");
+console.log("Worker Profile JS connected.");
 
 
 // ============================================================
@@ -16,11 +19,8 @@ console.log("Worker Profile JS connected");
 // ============================================================
 
 document.addEventListener("DOMContentLoaded", () => {
-
     initializeProfileTabs();
-
     initializeProfilePage();
-
 });
 
 
@@ -31,20 +31,16 @@ document.addEventListener("DOMContentLoaded", () => {
 async function initializeProfilePage() {
 
     /*
-     * Authentication/API loading is intentionally prepared
-     * but not forced while the backend naming is changing.
+     * Backend integration is intentionally NOT being called yet.
      *
-     * Once the backend is finalized, this function will call:
+     * Once your teammate finishes the backend naming, this can
+     * become something like:
      *
-     * getWorkerProfile()
-     *
-     * from worker_api.js.
+     * const employee = await getWorkerProfile();
+     * updateWorkerProfile(employee);
      */
 
-    console.log(
-        "Worker profile page initialized."
-    );
-
+    console.log("Worker profile page initialized.");
 }
 
 
@@ -54,98 +50,51 @@ async function initializeProfilePage() {
 
 function initializeProfileTabs() {
 
-    const tabs =
-        document.querySelectorAll(
-            ".emp-profile-tab"
-        );
+    const tabs = document.querySelectorAll(".emp-profile-tab");
+    const contents = document.querySelectorAll(".emp-profile-content");
 
-    const contents =
-        document.querySelectorAll(
-            ".emp-profile-content"
-        );
+    if (!tabs.length) {
+        return;
+    }
 
+    tabs.forEach((tab) => {
 
-    tabs.forEach(tab => {
+        tab.addEventListener("click", () => {
 
-        tab.addEventListener(
-            "click",
-            () => {
+            const target = tab.dataset.tab;
 
-                const target =
-                    tab.dataset.tab;
+            // Remove active state from all tabs
+            tabs.forEach((button) => {
+                button.classList.remove("active");
+            });
 
+            // Hide all content
+            contents.forEach((content) => {
+                content.classList.remove("active");
+            });
 
-                // Remove active state
-                // from all tabs
+            // Activate clicked tab
+            tab.classList.add("active");
 
-                tabs.forEach(button => {
+            // Show matching content
+            const targetContent = document.getElementById(target);
 
-                    button.classList.remove(
-                        "active"
-                    );
-
-                });
-
-
-                // Hide all content
-
-                contents.forEach(content => {
-
-                    content.classList.remove(
-                        "active"
-                    );
-
-                });
-
-
-                // Activate clicked tab
-
-                tab.classList.add(
-                    "active"
-                );
-
-
-                // Activate matching content
-
-                const targetContent =
-                    document.getElementById(
-                        target
-                    );
-
-
-                if (targetContent) {
-
-                    targetContent.classList.add(
-                        "active"
-                    );
-
-                }
-
+            if (targetContent) {
+                targetContent.classList.add("active");
             }
-        );
-
+        });
     });
-
 }
 
 
 // ============================================================
 // UPDATE PROFILE
-//
-// This function is ready for the final backend response.
-//
-// We are deliberately keeping the field mapping flexible
-// until your teammate finishes the backend naming.
 // ============================================================
 
 function updateWorkerProfile(employee) {
 
     if (!employee) {
-
-        console.warn(
-            "No employee profile data supplied."
-        );
-
+        console.warn("No employee profile data supplied.");
         return;
     }
 
@@ -156,9 +105,10 @@ function updateWorkerProfile(employee) {
 
     setText(
         "empName",
-        employee.name
+        employee.name ??
+        employee.full_name ??
+        employee.fullName
     );
-
 
     setText(
         "empID",
@@ -168,22 +118,23 @@ function updateWorkerProfile(employee) {
         employee.employeeId
     );
 
-
     setText(
         "empDepartment",
-        employee.department
+        employee.department ??
+        employee.department_name
     );
-
 
     setText(
         "empPosition",
-        employee.position
+        employee.position ??
+        employee.position_name ??
+        employee.job_title
     );
-
 
     setText(
         "empEmail",
         employee.email ??
+        employee.email_address ??
         employee.contact
     );
 
@@ -192,17 +143,24 @@ function updateWorkerProfile(employee) {
     // EMPLOYMENT STATUS
     // --------------------------------------------------------
 
-    const status =
+    let status = "Full Time";
+
+    if (
         employee.is_active === false ||
         employee.isActive === false
-            ? "Inactive"
-            : "Full Time";
+    ) {
+        status = "Inactive";
+    }
 
+    if (employee.employment_status) {
+        status = employee.employment_status;
+    }
 
-    setText(
-        "empStatus",
-        status
-    );
+    if (employee.employmentStatus) {
+        status = employee.employmentStatus;
+    }
+
+    setText("empStatus", status);
 
 
     // --------------------------------------------------------
@@ -214,61 +172,49 @@ function updateWorkerProfile(employee) {
         employee.baseSalary ??
         employee.salary;
 
-
     if (
         salary !== undefined &&
         salary !== null
     ) {
-
         setText(
             "empSalary",
             formatCurrency(salary)
         );
-
     }
 
 
     // --------------------------------------------------------
-    // SALARY INFORMATION
+    // SALARY DETAILS
     // --------------------------------------------------------
 
-    if (employee.salary_type) {
+    setText(
+        "empSalaryType",
+        employee.salary_type ??
+        employee.salaryType ??
+        "Monthly"
+    );
 
+    setText(
+        "empPaymentMethod",
+        employee.payment_method ??
+        employee.paymentMethod ??
+        "Bank Transfer"
+    );
+
+
+    // --------------------------------------------------------
+    // NEXT PAYDAY
+    // --------------------------------------------------------
+
+    if (
+        employee.next_payday ||
+        employee.nextPayday
+    ) {
         setText(
-            "empSalaryType",
-            employee.salary_type
+            "empNextPayday",
+            employee.next_payday ??
+            employee.nextPayday
         );
-
-    }
-
-
-    if (employee.salaryType) {
-
-        setText(
-            "empSalaryType",
-            employee.salaryType
-        );
-
-    }
-
-
-    if (employee.payment_method) {
-
-        setText(
-            "empPaymentMethod",
-            employee.payment_method
-        );
-
-    }
-
-
-    if (employee.paymentMethod) {
-
-        setText(
-            "empPaymentMethod",
-            employee.paymentMethod
-        );
-
     }
 
 
@@ -279,19 +225,21 @@ function updateWorkerProfile(employee) {
     setText(
         "empHistory",
         employee.employment_history ??
-        employee.employmentHistory
+        employee.employmentHistory ??
+        "Current employment at ModernTech Solutions"
     );
-
 
     setText(
         "empDepartmentHistory",
-        employee.department
+        employee.department ??
+        employee.department_name
     );
-
 
     setText(
         "empPositionHistory",
-        employee.position
+        employee.position ??
+        employee.position_name ??
+        employee.job_title
     );
 
 
@@ -299,10 +247,7 @@ function updateWorkerProfile(employee) {
     // SIDEBAR
     // --------------------------------------------------------
 
-    updateProfileSidebar(
-        employee
-    );
-
+    updateProfileSidebar(employee);
 }
 
 
@@ -316,16 +261,10 @@ function updateProfileSidebar(employee) {
         return;
     }
 
-
-    // Name
-
-    setText(
-        "sidebarWorkerName",
-        employee.name
-    );
-
-
-    // Employee code
+    const name =
+        employee.name ??
+        employee.full_name ??
+        employee.fullName;
 
     const employeeCode =
         employee.employee_code ??
@@ -334,32 +273,28 @@ function updateProfileSidebar(employee) {
         employee.employeeId;
 
 
-    setText(
-        "sidebarEmployeeCode",
-        employeeCode
-    );
+    // --------------------------------------------------------
+    // SUPPORT CURRENT + NEW SIDEBAR IDs
+    // --------------------------------------------------------
+
+    setText("sidebarWorkerName", name);
+    setText("sidebarName", name);
+
+    setText("sidebarEmployeeCode", employeeCode);
+    setText("sidebarRole", employeeCode);
 
 
-    // Avatar
+    // --------------------------------------------------------
+    // AVATAR
+    // --------------------------------------------------------
 
     const avatar =
-        document.getElementById(
-            "sidebarAvatar"
-        );
+        document.getElementById("sidebarAvatar") ||
+        document.getElementById("sidebarInitials");
 
-
-    if (
-        avatar &&
-        employee.name
-    ) {
-
-        avatar.textContent =
-            getInitials(
-                employee.name
-            );
-
+    if (avatar && name) {
+        avatar.textContent = getInitials(name);
     }
-
 }
 
 
@@ -367,38 +302,25 @@ function updateProfileSidebar(employee) {
 // SET TEXT SAFELY
 // ============================================================
 
-function setText(
-    elementId,
-    value
-) {
+function setText(elementId, value) {
 
     const element =
-        document.getElementById(
-            elementId
-        );
-
+        document.getElementById(elementId);
 
     if (!element) {
         return;
     }
-
 
     if (
         value === undefined ||
         value === null ||
         value === ""
     ) {
-
-        element.textContent =
-            "Not available";
-
+        element.textContent = "Not available";
         return;
     }
 
-
-    element.textContent =
-        value;
-
+    element.textContent = value;
 }
 
 
@@ -408,28 +330,17 @@ function setText(
 
 function formatCurrency(amount) {
 
-    const number =
-        Number(amount);
+    const number = Number(amount);
 
-
-    if (
-        Number.isNaN(number)
-    ) {
-
+    if (Number.isNaN(number)) {
         return amount;
-
     }
 
-
-    return new Intl.NumberFormat(
-        "en-ZA",
-        {
-            style: "currency",
-            currency: "ZAR",
-            minimumFractionDigits: 2
-        }
-    ).format(number);
-
+    return new Intl.NumberFormat("en-ZA", {
+        style: "currency",
+        currency: "ZAR",
+        minimumFractionDigits: 2
+    }).format(number);
 }
 
 
@@ -443,16 +354,11 @@ function getInitials(name) {
         return "--";
     }
 
-
     return name
         .trim()
         .split(/\s+/)
-        .map(
-            part =>
-                part.charAt(0)
-        )
+        .map((part) => part.charAt(0))
         .join("")
         .substring(0, 2)
         .toUpperCase();
-
 }
