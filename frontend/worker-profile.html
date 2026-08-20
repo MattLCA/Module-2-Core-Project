@@ -16,177 +16,438 @@
         rel="stylesheet">
 
     <!-- Tabler Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 
-    <!-- Font Awesome (used for the profile tab/section icons) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <!-- Font Awesome -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
-    <!-- Main Stylesheet -->
-     <link rel="stylesheet" href="Css/worker-profile.css">
+    <!-- Styles -->
+    <link rel="stylesheet" href="Css/worker-profile.css">
     <link rel="stylesheet" href="style.css">
 
 </head>
 
+
 <body>
-    <body class="page-leave">
-    <a href="#mainContent" class="skip-link">Skip to main content</a>
-    
-    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation menu" aria-expanded="false"
+
+    <a href="#mainContent" class="skip-link">
+        Skip to main content
+    </a>
+
+
+    <!-- =====================================================
+         SIDEBAR TOGGLE
+    ====================================================== -->
+
+    <button
+        class="sidebar-toggle"
+        id="sidebarToggle"
+        aria-label="Toggle navigation menu"
+        aria-expanded="false"
         aria-controls="sidebar">
-        <i class="ti ti-menu-2" aria-hidden="true"></i>
+
+        <i
+            class="ti ti-menu-2"
+            aria-hidden="true">
+        </i>
+
     </button>
-    
+
+
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
+
     <aside class="sidebar" id="sidebar">
+
+        <!-- BRAND -->
+
         <div class="brand">
-            <svg width="34" height="34" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" role="img"
-                aria-label="ModernTech icon" style="flex-shrink:0;">
-                <rect x="0" y="0" width="34" height="34" rx="9" fill="#27187e" />
-                <path d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25" fill="none" stroke="#ffffff" stroke-width="3.2"
-                    stroke-linecap="round" stroke-linejoin="round" />
-                <path d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z" fill="#ff8600" />
+
+            <svg
+                width="34"
+                height="34"
+                viewBox="0 0 34 34"
+                xmlns="http://www.w3.org/2000/svg"
+                role="img"
+                aria-label="ModernTech icon"
+                style="flex-shrink:0;">
+
+                <rect
+                    x="0"
+                    y="0"
+                    width="34"
+                    height="34"
+                    rx="9"
+                    fill="#27187e" />
+
+                <path
+                    d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25"
+                    fill="none"
+                    stroke="#ffffff"
+                    stroke-width="3.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round" />
+
+                <path
+                    d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z"
+                    fill="#ff8600" />
+
             </svg>
+
+
             <div>
-                <div class="brand-name">ModernTech</div>
-                <div class="brand-sub">Workspace overview</div>
-            </div>
-        </div>
-    
-        <div class="nav-section-label">Workspace</div>
-        <nav class="primary-nav" aria-label="Primary">
-            <a href="worker-dashboard.html" class="nav-item" aria-current="page"><i class="ti ti-layout-grid"
-                    aria-hidden="true"></i>Dashboard</a>
-            <a href="worker-attendance.html" class="nav-item"><i class="ti ti-calendar-check"
-                    aria-hidden="true"></i>Attendance</a>
-            <a href="worker-leave.html" class="nav-item"><i class="ti ti-beach" aria-hidden="true"></i>Leave</a>
-            <a href="worker-payslip.html" class="nav-item"><i class="ti ti-file-dollar" aria-hidden="true"></i>Payslips</a>
-            <a href="worker-profile.html" class="nav-item active"><i class="ti ti-user-circle" aria-hidden="true"></i>My
-                Profile</a>
-        </nav>
-    
-        <div class="sidebar-footer">
-            <button class="user-chip" id="userMenuBtn" aria-haspopup="true" aria-expanded="false">
-                <div class="avatar">SN</div>
-                <div>
-                    <div class="name">Sibongile Nkosi</div>
-                    <div class="role">EMP-001</div>
+
+                <div class="brand-name">
+                    ModernTech
                 </div>
-                <i class="ti ti-chevron-down" aria-hidden="true"></i>
-            </button>
-    
-            <button id="logoutBtn" class="logout-btn">
-                <i class="ti ti-logout"></i>
-                Logout
-            </button>
+
+                <div class="brand-sub">
+                    Workspace overview
+                </div>
+
+            </div>
+
         </div>
+
+
+        <!-- NAVIGATION -->
+
+        <div class="nav-section-label">
+            Workspace
+        </div>
+
+
+        <nav
+            class="primary-nav"
+            aria-label="Primary">
+
+            <a
+                href="worker-dashboard.html"
+                class="nav-item">
+
+                <i
+                    class="ti ti-layout-grid"
+                    aria-hidden="true">
+                </i>
+
+                Dashboard
+
+            </a>
+
+
+            <a
+                href="worker-attendance.html"
+                class="nav-item">
+
+                <i
+                    class="ti ti-calendar-check"
+                    aria-hidden="true">
+                </i>
+
+                Attendance
+
+            </a>
+
+
+            <a
+                href="worker-leave.html"
+                class="nav-item">
+
+                <i
+                    class="ti ti-beach"
+                    aria-hidden="true">
+                </i>
+
+                Leave
+
+            </a>
+
+
+            <a
+                href="worker-payslip.html"
+                class="nav-item">
+
+                <i
+                    class="ti ti-file-dollar"
+                    aria-hidden="true">
+                </i>
+
+                Payslips
+
+            </a>
+
+
+            <a
+                href="worker-profile.html"
+                class="nav-item active"
+                aria-current="page">
+
+                <i
+                    class="ti ti-user-circle"
+                    aria-hidden="true">
+                </i>
+
+                My Profile
+
+            </a>
+
+        </nav>
+
+
+        <!-- =================================================
+             SIDEBAR USER
+        ================================================== -->
+
+        <div class="sidebar-footer">
+
+            <button
+                class="user-chip"
+                id="userMenuBtn"
+                aria-haspopup="true"
+                aria-expanded="false">
+
+                <div
+                    class="avatar"
+                    id="sidebarAvatar">
+                    --
+                </div>
+
+
+                <div>
+
+                    <div
+                        class="name"
+                        id="sidebarWorkerName">
+                        Loading...
+                    </div>
+
+
+                    <div
+                        class="role"
+                        id="sidebarEmployeeCode">
+                        Loading...
+                    </div>
+
+                </div>
+
+
+                <i
+                    class="ti ti-chevron-down"
+                    aria-hidden="true">
+                </i>
+
+            </button>
+
+
+            <button
+                id="logoutBtn"
+                class="logout-btn"
+                type="button">
+
+                <i
+                    class="ti ti-logout"
+                    aria-hidden="true">
+                </i>
+
+                Logout
+
+            </button>
+
+        </div>
+
     </aside>
 
 
 
-    <main class="main" id="mainContent">
+    <!-- =====================================================
+         MAIN CONTENT
+    ====================================================== -->
+
+    <main
+        class="main"
+        id="mainContent">
+
 
         <section class="emp-profile-page">
+
+
+            <!-- PAGE HEADER -->
 
             <div class="page-hero">
 
                 <div>
 
-                    <h1>Profile</h1>
+                    <h1>
+                        Profile
+                    </h1>
 
-                    <p>View your personal and employment information.</p>
+                    <p>
+                        View your personal and employment information.
+                    </p>
 
                 </div>
 
             </div>
 
+
+
+            <!-- =================================================
+                 PROFILE TABS
+            ================================================== -->
+
             <div class="emp-profile-tabs">
 
-                <button class="emp-profile-tab active" data-tab="personal">
+                <button
+                    class="emp-profile-tab active"
+                    data-tab="personal"
+                    type="button">
+
                     Personal Information
+
                 </button>
 
-                <button class="emp-profile-tab" data-tab="salary">
-                  
+
+                <button
+                    class="emp-profile-tab"
+                    data-tab="salary"
+                    type="button">
+
                     Salary Details
 
                 </button>
 
-                <button class="emp-profile-tab" data-tab="history">
- 
+
+                <button
+                    class="emp-profile-tab"
+                    data-tab="history"
+                    type="button">
+
                     Work History
 
                 </button>
 
             </div>
 
+
+
+            <!-- =================================================
+                 PROFILE CARD
+            ================================================== -->
+
             <div class="emp-profile-card">
 
-                <div id="personal" class="emp-profile-content active">
+
+                <!-- =================================================
+                     PERSONAL INFORMATION
+                ================================================== -->
+
+                <div
+                    id="personal"
+                    class="emp-profile-content active">
+
 
                     <div class="emp-profile-title">
 
                         <div>
 
                             <h2>
-
                                 Personal Information
-
                             </h2>
 
-                            <p>Your personal and employment details.</p>
+                            <p>
+                                Your personal and employment details.
+                            </p>
 
                         </div>
 
                     </div>
 
+
+
                     <div class="emp-profile-grid">
 
+
                         <div class="emp-profile-item">
 
-                            <span>Name</span>
+                            <span>
+                                Name
+                            </span>
 
-                            <strong id="empName"></strong>
+                            <strong id="empName">
+                                Loading...
+                            </strong>
 
                         </div>
 
+
                         <div class="emp-profile-item">
 
-                            <span>Employee ID</span>
+                            <span>
+                                Employee ID
+                            </span>
 
-                            <strong id="empID"></strong>
+                            <strong id="empID">
+                                Loading...
+                            </strong>
 
                         </div>
 
+
                         <div class="emp-profile-item">
 
-                            <span>Department</span>
+                            <span>
+                                Department
+                            </span>
 
-                            <strong id="empDepartment"></strong>
+                            <strong id="empDepartment">
+                                Loading...
+                            </strong>
 
                         </div>
 
+
                         <div class="emp-profile-item">
 
-                            <span>Position</span>
+                            <span>
+                                Position
+                            </span>
 
-                            <strong id="empPosition"></strong>
+                            <strong id="empPosition">
+                                Loading...
+                            </strong>
 
                         </div>
 
+
                         <div class="emp-profile-item">
 
-                            <span>Email</span>
+                            <span>
+                                Email
+                            </span>
 
-                            <strong id="empEmail"></strong>
+                            <strong id="empEmail">
+                                Loading...
+                            </strong>
 
                         </div>
 
+
                         <div class="emp-profile-item">
 
-                            <span>Employment Status</span>
+                            <span>
+                                Employment Status
+                            </span>
 
-                            <strong class="emp-profile-status">
+                            <strong
+                                class="emp-profile-status"
+                                id="empStatus">
 
-                                Full Time
+                                Loading...
 
                             </strong>
 
@@ -196,7 +457,16 @@
 
                 </div>
 
-                <div id="salary" class="emp-profile-content">
+
+
+                <!-- =================================================
+                     SALARY
+                ================================================== -->
+
+                <div
+                    id="salary"
+                    class="emp-profile-content">
+
 
                     <div class="emp-profile-title">
 
@@ -204,57 +474,81 @@
 
                             <h2>
                                 Salary Details
-
                             </h2>
 
-                            <p>Your salary information.</p>
+                            <p>
+                                Your salary information.
+                            </p>
 
                         </div>
 
                     </div>
 
+
+
                     <div class="emp-profile-grid">
 
+
                         <div class="emp-profile-item">
 
-                            <span>Basic Salary</span>
+                            <span>
+                                Basic Salary
+                            </span>
 
-                            <strong id="empSalary"></strong>
+                            <strong id="empSalary">
+                                Loading...
+                            </strong>
 
                         </div>
 
+
                         <div class="emp-profile-item">
 
-                            <span>Salary Type</span>
+                            <span>
+                                Salary Type
+                            </span>
 
-                            <strong>Monthly</strong>
+                            <strong id="empSalaryType">
+                                Monthly
+                            </strong>
 
                         </div>
 
+
                         <div class="emp-profile-item">
 
-                            <span>Payment Method</span>
+                            <span>
+                                Payment Method
+                            </span>
 
-                            <strong>Bank Transfer</strong>
+                            <strong id="empPaymentMethod">
+                                Bank Transfer
+                            </strong>
 
                         </div>
 
+
                         <div class="emp-profile-item">
 
-                            <span>Next Payday</span>
+                            <span>
+                                Next Payday
+                            </span>
 
-                            <strong>30 July 2026</strong>
+                            <strong id="empNextPayday">
+                                Loading...
+                            </strong>
 
                         </div>
 
+
                         <div class="emp-profile-item">
 
-                            <span>Payslips</span>
+                            <span>
+                                Payslips
+                            </span>
 
                             <strong>
-
                                 Available Online
-
                             </strong>
 
                         </div>
@@ -263,7 +557,16 @@
 
                 </div>
 
-                <div id="history" class="emp-profile-content">
+
+
+                <!-- =================================================
+                     WORK HISTORY
+                ================================================== -->
+
+                <div
+                    id="history"
+                    class="emp-profile-content">
+
 
                     <div class="emp-profile-title">
 
@@ -271,30 +574,20 @@
 
                             <h2>
                                 Work History
-
                             </h2>
 
-                            <p>Your employment journey at ModernTech.</p>
+                            <p>
+                                Your employment journey at ModernTech.
+                            </p>
 
                         </div>
 
                     </div>
+
+
 
                     <div class="emp-profile-timeline">
 
-                        <div class="emp-profile-timeline-item">
-
-                            <div class="emp-profile-timeline-dot"></div>
-
-                            <div>
-
-                                <h4>Current Employment</h4>
-
-                                <p id="empHistory"></p>
-
-                            </div>
-
-                        </div>
 
                         <div class="emp-profile-timeline-item">
 
@@ -302,33 +595,84 @@
 
                             <div>
 
-                                <h4>Current Department</h4>
+                                <h4>
+                                    Current Employment
+                                </h4>
 
-                                <p id="empDepartmentHistory"></p>
+                                <p id="empHistory">
+                                    Loading...
+                                </p>
 
                             </div>
 
                         </div>
+
 
                         <div class="emp-profile-timeline-item">
 
                             <div class="emp-profile-timeline-dot"></div>
 
                             <div>
-                                <h4>Current Position</h4>
-                                <p id="empPositionHistory"></p>
+
+                                <h4>
+                                    Current Department
+                                </h4>
+
+                                <p id="empDepartmentHistory">
+                                    Loading...
+                                </p>
+
                             </div>
+
                         </div>
+
+
+                        <div class="emp-profile-timeline-item">
+
+                            <div class="emp-profile-timeline-dot"></div>
+
+                            <div>
+
+                                <h4>
+                                    Current Position
+                                </h4>
+
+                                <p id="empPositionHistory">
+                                    Loading...
+                                </p>
+
+                            </div>
+
+                        </div>
+
                     </div>
+
                 </div>
+
             </div>
+
         </section>
+
     </main>
 
-    <!-- Javascript -->
+
+
+    <!-- =====================================================
+         JAVASCRIPT
+    ====================================================== -->
+
+    <!-- API helper -->
+    <script src="./js/worker_api.js"></script>
+
+    <!-- Profile logic -->
     <script src="javascript/worker-profile.js"></script>
+
+    <!-- Shared site logic -->
     <script src="javascript/script.js"></script>
+
+    <!-- Logout -->
     <script src="javascript/logout.js"></script>
 
 </body>
+
 </html>
