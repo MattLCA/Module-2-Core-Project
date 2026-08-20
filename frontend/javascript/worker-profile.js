@@ -1,14 +1,18 @@
 // ============================================================
 // ModernTech Worker Profile
 // ============================================================
-// Worker profile page only.
+// Responsibilities:
+// - Profile tab switching
+// - Profile display
+// - Sidebar profile display
+// - API-ready structure
 //
-// Backend/API integration is intentionally postponed while
-// backend naming is being finalized.
+// NOTE:
+// Backend endpoint testing is intentionally postponed while
+// backend naming is being finalized by the team.
 //
-// When the backend is ready, this file can call:
-// getWorkerProfile()
-// from worker_api.js.
+// DO NOT fetch employee_info.json here.
+// The database will eventually provide this information.
 // ============================================================
 
 console.log("Worker Profile JS connected.");
@@ -19,28 +23,43 @@ console.log("Worker Profile JS connected.");
 // ============================================================
 
 document.addEventListener("DOMContentLoaded", () => {
+
     initializeProfileTabs();
+
     initializeProfilePage();
+
 });
 
 
 // ============================================================
-// INITIALIZE PROFILE PAGE
+// PROFILE PAGE
 // ============================================================
 
 async function initializeProfilePage() {
 
     /*
-     * Backend integration is intentionally NOT being called yet.
-     *
-     * Once your teammate finishes the backend naming, this can
-     * become something like:
-     *
-     * const employee = await getWorkerProfile();
-     * updateWorkerProfile(employee);
-     */
+        Backend integration is intentionally postponed.
+
+        Once the backend naming is finalized, this function
+        will call:
+
+            getWorkerProfile()
+
+        from:
+
+            js/worker_api.js
+
+        Example future implementation:
+
+            const response = await getWorkerProfile();
+
+            if (response && response.data) {
+                updateWorkerProfile(response.data);
+            }
+    */
 
     console.log("Worker profile page initialized.");
+
 }
 
 
@@ -51,11 +70,14 @@ async function initializeProfilePage() {
 function initializeProfileTabs() {
 
     const tabs = document.querySelectorAll(".emp-profile-tab");
+
     const contents = document.querySelectorAll(".emp-profile-content");
+
 
     if (!tabs.length) {
         return;
     }
+
 
     tabs.forEach((tab) => {
 
@@ -63,27 +85,46 @@ function initializeProfileTabs() {
 
             const target = tab.dataset.tab;
 
+
             // Remove active state from all tabs
+
             tabs.forEach((button) => {
+
                 button.classList.remove("active");
+
             });
 
-            // Hide all content
+
+            // Hide all profile sections
+
             contents.forEach((content) => {
+
                 content.classList.remove("active");
+
             });
+
 
             // Activate clicked tab
+
             tab.classList.add("active");
 
-            // Show matching content
-            const targetContent = document.getElementById(target);
+
+            // Show selected section
+
+            const targetContent =
+                document.getElementById(target);
+
 
             if (targetContent) {
+
                 targetContent.classList.add("active");
+
             }
+
         });
+
     });
+
 }
 
 
@@ -94,160 +135,204 @@ function initializeProfileTabs() {
 function updateWorkerProfile(employee) {
 
     if (!employee) {
-        console.warn("No employee profile data supplied.");
+
+        console.warn(
+            "No employee profile data supplied."
+        );
+
         return;
+
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // PERSONAL INFORMATION
-    // --------------------------------------------------------
+    // ========================================================
 
     setText(
         "empName",
-        employee.name ??
-        employee.full_name ??
-        employee.fullName
+        employee.name
     );
+
 
     setText(
         "empID",
-        employee.employee_code ??
-        employee.employeeCode ??
-        employee.employee_id ??
-        employee.employeeId
+        getEmployeeCode(employee)
     );
+
 
     setText(
         "empDepartment",
-        employee.department ??
-        employee.department_name
+        employee.department
     );
+
 
     setText(
         "empPosition",
-        employee.position ??
-        employee.position_name ??
-        employee.job_title
+        employee.position
     );
+
 
     setText(
         "empEmail",
         employee.email ??
-        employee.email_address ??
         employee.contact
     );
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // EMPLOYMENT STATUS
-    // --------------------------------------------------------
+    // ========================================================
 
-    let status = "Full Time";
-
-    if (
+    const employmentStatus =
         employee.is_active === false ||
         employee.isActive === false
-    ) {
-        status = "Inactive";
-    }
-
-    if (employee.employment_status) {
-        status = employee.employment_status;
-    }
-
-    if (employee.employmentStatus) {
-        status = employee.employmentStatus;
-    }
-
-    setText("empStatus", status);
+            ? "Inactive"
+            : "Full Time";
 
 
-    // --------------------------------------------------------
+    setText(
+        "empStatus",
+        employmentStatus
+    );
+
+
+    // ========================================================
     // SALARY
-    // --------------------------------------------------------
+    // ========================================================
 
     const salary =
         employee.base_salary ??
         employee.baseSalary ??
         employee.salary;
 
+
     if (
         salary !== undefined &&
         salary !== null
     ) {
+
         setText(
             "empSalary",
             formatCurrency(salary)
         );
+
     }
 
 
-    // --------------------------------------------------------
-    // SALARY DETAILS
-    // --------------------------------------------------------
+    // ========================================================
+    // SALARY TYPE
+    // ========================================================
 
-    setText(
-        "empSalaryType",
+    const salaryType =
         employee.salary_type ??
-        employee.salaryType ??
-        "Monthly"
-    );
+        employee.salaryType;
 
-    setText(
-        "empPaymentMethod",
+
+    if (salaryType) {
+
+        setText(
+            "empSalaryType",
+            salaryType
+        );
+
+    }
+
+
+    // ========================================================
+    // PAYMENT METHOD
+    // ========================================================
+
+    const paymentMethod =
         employee.payment_method ??
-        employee.paymentMethod ??
-        "Bank Transfer"
-    );
+        employee.paymentMethod;
 
 
-    // --------------------------------------------------------
+    if (paymentMethod) {
+
+        setText(
+            "empPaymentMethod",
+            paymentMethod
+        );
+
+    }
+
+
+    // ========================================================
     // NEXT PAYDAY
-    // --------------------------------------------------------
+    // ========================================================
 
-    if (
-        employee.next_payday ||
-        employee.nextPayday
-    ) {
+    if (employee.next_payday) {
+
         setText(
             "empNextPayday",
-            employee.next_payday ??
-            employee.nextPayday
+            employee.next_payday
         );
+
     }
 
 
-    // --------------------------------------------------------
+    if (employee.nextPayday) {
+
+        setText(
+            "empNextPayday",
+            employee.nextPayday
+        );
+
+    }
+
+
+    // ========================================================
     // WORK HISTORY
-    // --------------------------------------------------------
+    // ========================================================
 
     setText(
         "empHistory",
         employee.employment_history ??
         employee.employmentHistory ??
-        "Current employment at ModernTech Solutions"
+        "Current employee at ModernTech Solutions"
     );
+
 
     setText(
         "empDepartmentHistory",
-        employee.department ??
-        employee.department_name
+        employee.department
     );
+
 
     setText(
         "empPositionHistory",
-        employee.position ??
-        employee.position_name ??
-        employee.job_title
+        employee.position
     );
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // SIDEBAR
-    // --------------------------------------------------------
+    // ========================================================
 
     updateProfileSidebar(employee);
+
+}
+
+
+// ============================================================
+// GET EMPLOYEE CODE
+// ============================================================
+
+function getEmployeeCode(employee) {
+
+    if (!employee) {
+        return null;
+    }
+
+
+    return (
+        employee.employee_code ??
+        employee.employeeCode ??
+        employee.employee_id ??
+        employee.employeeId
+    );
+
 }
 
 
@@ -261,45 +346,78 @@ function updateProfileSidebar(employee) {
         return;
     }
 
-    const name =
-        employee.name ??
-        employee.full_name ??
-        employee.fullName;
-
-    const employeeCode =
-        employee.employee_code ??
-        employee.employeeCode ??
-        employee.employee_id ??
-        employee.employeeId;
-
 
     // --------------------------------------------------------
-    // SUPPORT CURRENT + NEW SIDEBAR IDs
+    // Current HTML uses:
+    //
+    // .sidebar-footer .name
+    // .sidebar-footer .role
+    // .sidebar-footer .avatar
+    //
+    // Therefore we support both the new IDs and the
+    // existing classes.
     // --------------------------------------------------------
 
-    setText("sidebarWorkerName", name);
-    setText("sidebarName", name);
-
-    setText("sidebarEmployeeCode", employeeCode);
-    setText("sidebarRole", employeeCode);
+    const sidebarName =
+        document.getElementById("sidebarWorkerName") ||
+        document.querySelector(".sidebar-footer .name");
 
 
-    // --------------------------------------------------------
-    // AVATAR
-    // --------------------------------------------------------
+    const sidebarRole =
+        document.getElementById("sidebarEmployeeCode") ||
+        document.querySelector(".sidebar-footer .role");
 
-    const avatar =
+
+    const sidebarAvatar =
         document.getElementById("sidebarAvatar") ||
-        document.getElementById("sidebarInitials");
+        document.querySelector(".sidebar-footer .avatar");
 
-    if (avatar && name) {
-        avatar.textContent = getInitials(name);
+
+    // --------------------------------------------------------
+    // Name
+    // --------------------------------------------------------
+
+    if (sidebarName) {
+
+        sidebarName.textContent =
+            employee.name ??
+            "Worker";
+
     }
+
+
+    // --------------------------------------------------------
+    // Employee Code
+    // --------------------------------------------------------
+
+    if (sidebarRole) {
+
+        sidebarRole.textContent =
+            getEmployeeCode(employee) ??
+            "Employee";
+
+    }
+
+
+    // --------------------------------------------------------
+    // Avatar
+    // --------------------------------------------------------
+
+    if (
+        sidebarAvatar &&
+        employee.name
+    ) {
+
+        sidebarAvatar.textContent =
+            getInitials(employee.name);
+
+    }
+
 }
 
 
 // ============================================================
-// SET TEXT SAFELY
+// SAFE TEXT UPDATE
 // ============================================================
 
 function setText(elementId, value) {
@@ -307,20 +425,30 @@ function setText(elementId, value) {
     const element =
         document.getElementById(elementId);
 
+
     if (!element) {
+
         return;
+
     }
+
 
     if (
         value === undefined ||
         value === null ||
         value === ""
     ) {
-        element.textContent = "Not available";
+
+        element.textContent =
+            "Not available";
+
         return;
+
     }
 
+
     element.textContent = value;
+
 }
 
 
@@ -330,17 +458,26 @@ function setText(elementId, value) {
 
 function formatCurrency(amount) {
 
-    const number = Number(amount);
+    const number =
+        Number(amount);
+
 
     if (Number.isNaN(number)) {
+
         return amount;
+
     }
 
-    return new Intl.NumberFormat("en-ZA", {
-        style: "currency",
-        currency: "ZAR",
-        minimumFractionDigits: 2
-    }).format(number);
+
+    return new Intl.NumberFormat(
+        "en-ZA",
+        {
+            style: "currency",
+            currency: "ZAR",
+            minimumFractionDigits: 2
+        }
+    ).format(number);
+
 }
 
 
@@ -351,8 +488,11 @@ function formatCurrency(amount) {
 function getInitials(name) {
 
     if (!name) {
+
         return "--";
+
     }
+
 
     return name
         .trim()
@@ -361,4 +501,5 @@ function getInitials(name) {
         .join("")
         .substring(0, 2)
         .toUpperCase();
+
 }

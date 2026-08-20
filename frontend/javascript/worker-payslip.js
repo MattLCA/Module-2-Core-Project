@@ -1,17 +1,37 @@
 // ============================================================
-// ModernTech Worker Payslips
+// ModernTech Worker Payslip
 // ============================================================
 
-document.addEventListener("DOMContentLoaded", async () => {
+console.log("Worker Payslip JS connected.");
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    initializePayslip();
+
+});
+
+
+function initializePayslip() {
 
     const select =
-        document.getElementById("payslipMonth");
+        document.getElementById(
+            "payslipMonth"
+        );
 
-    if (!select) return;
+    if (!select) {
+        return;
+    }
+
 
     select.addEventListener(
         "change",
-        () => loadPayslip(select.value)
+        () => {
+
+            loadPayslip(
+                select.value
+            );
+
+        }
     );
 
 
@@ -19,6 +39,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById(
             "downloadPayslipBtn"
         );
+
 
     if (downloadButton) {
 
@@ -30,9 +51,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
 
-    await loadPayslip(select.value);
+    /*
+     * Don't use the old hard-coded payslipData.
+     *
+     * Database/API integration will load the actual payslip.
+     */
 
-});
+    showPendingPayslipState();
+
+}
 
 
 // ============================================================
@@ -41,38 +68,55 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadPayslip(month) {
 
-    try {
-
-        const response =
-            await getWorkerPayslip(month);
-
-        console.log(
-            "Payslip response:",
-            response
-        );
+    console.log(
+        "Payslip requested:",
+        month
+    );
 
 
-        const payslip =
-            response.payslip ||
-            response.data ||
-            response;
+    /*
+     * Future API call:
+     *
+     * const data =
+     *     await getWorkerPayslip(month);
+     *
+     * renderPayslip(data);
+     */
 
 
-        renderPayslip(payslip);
+    showToast(
+        "Payslip API integration is pending."
+    );
+}
 
-    } catch (error) {
 
-        console.error(
-            "Failed to load payslip:",
-            error
-        );
+// ============================================================
+// PENDING STATE
+// ============================================================
 
-        showToast(
-            "Unable to load payslip."
-        );
+function showPendingPayslipState() {
 
-    }
+    const fields = [
 
+        "basicSalary",
+        "totalEarnings",
+        "totalDeductions",
+        "netSalary"
+
+    ];
+
+
+    fields.forEach((id) => {
+
+        const element =
+            document.getElementById(id);
+
+        if (element) {
+            element.textContent =
+                "Loading from database...";
+        }
+
+    });
 }
 
 
@@ -82,244 +126,76 @@ async function loadPayslip(month) {
 
 function renderPayslip(data) {
 
-    const basic =
-        Number(data.basic || data.base_salary || 0);
-
-    const overtime =
-        Number(data.overtime || 0);
-
-    const allowance =
-        Number(data.allowance || 0);
-
-    const bonus =
-        Number(data.bonus || 0);
-
-    const tax =
-        Number(data.tax || 0);
-
-    const uif =
-        Number(data.uif || 0);
-
-    const pension =
-        Number(data.pension || 0);
-
-    const medical =
-        Number(data.medical || 0);
-
-
-    const earnings =
-        basic +
-        overtime +
-        allowance +
-        bonus;
-
-
-    const deductions =
-        tax +
-        uif +
-        pension +
-        medical;
-
-
-    const net =
-        earnings - deductions;
-
-
-    setText(
-        "basicSalary",
-        money(basic)
-    );
-
-    setText(
-        "totalEarnings",
-        money(earnings)
-    );
-
-    setText(
-        "totalDeductions",
-        money(deductions)
-    );
-
-    setText(
-        "netSalary",
-        money(net)
-    );
-
-
-    const rows = [
-
-        ["Basic Salary", "Earning", basic],
-
-        ["Overtime", "Earning", overtime],
-
-        ["Transport Allowance", "Earning", allowance],
-
-        ["Bonus", "Earning", bonus],
-
-        ["PAYE Tax", "Deduction", tax],
-
-        ["UIF", "Deduction", uif],
-
-        ["Pension", "Deduction", pension],
-
-        ["Medical Aid", "Deduction", medical],
-
-        ["Net Salary", "Final Pay", net]
-
-    ];
-
-
-    const table =
-        document.getElementById("payslipRows");
-
-
-    if (!table) return;
-
-
-    table.innerHTML =
-        rows.map(row => {
-
-            const statusClass =
-                row[0] === "Net Salary"
-                    ? "approved"
-                    : row[1] === "Deduction"
-                        ? "declined"
-                        : "approved";
-
-
-            return `
-                <tr>
-
-                    <td>
-                        <strong>
-                            ${row[0]}
-                        </strong>
-                    </td>
-
-                    <td>
-                        <span class="status ${statusClass}">
-                            ${row[1]}
-                        </span>
-                    </td>
-
-                    <td>
-                        ${money(row[2])}
-                    </td>
-
-                </tr>
-            `;
-
-        }).join("");
-
-}
-
-
-// ============================================================
-// DOWNLOAD PAYSLIP
-// ============================================================
-
-async function downloadPayslip() {
-
-    const select =
-        document.getElementById("payslipMonth");
-
-    if (!select) return;
-
-
-    const month =
-        select.value;
-
-
-    try {
-
-        const response =
-            await getWorkerPayslip(month);
-
-
-        const data =
-            response.payslip ||
-            response.data ||
-            response;
-
-
-        const content =
-            JSON.stringify(
-                data,
-                null,
-                2
-            );
-
-
-        const blob =
-            new Blob(
-                [content],
-                {
-                    type: "application/json"
-                }
-            );
-
-
-        const url =
-            URL.createObjectURL(blob);
-
-
-        const link =
-            document.createElement("a");
-
-
-        link.href = url;
-
-        link.download =
-            `ModernTech-Payslip-${month}.json`;
-
-
-        link.click();
-
-
-        URL.revokeObjectURL(url);
-
-
-        showToast(
-            "Payslip downloaded."
+    if (!data) {
+        return;
+    }
+
+
+    const basicSalary =
+        document.getElementById(
+            "basicSalary"
+        );
+
+    const totalEarnings =
+        document.getElementById(
+            "totalEarnings"
+        );
+
+    const totalDeductions =
+        document.getElementById(
+            "totalDeductions"
+        );
+
+    const netSalary =
+        document.getElementById(
+            "netSalary"
         );
 
 
-    } catch (error) {
-
-        console.error(error);
-
-        showToast(
-            "Unable to download payslip."
-        );
-
+    if (basicSalary) {
+        basicSalary.textContent =
+            formatCurrency(
+                data.basic_salary ??
+                data.basicSalary
+            );
     }
 
+
+    if (totalEarnings) {
+        totalEarnings.textContent =
+            formatCurrency(
+                data.total_earnings ??
+                data.totalEarnings
+            );
+    }
+
+
+    if (totalDeductions) {
+        totalDeductions.textContent =
+            formatCurrency(
+                data.total_deductions ??
+                data.totalDeductions
+            );
+    }
+
+
+    if (netSalary) {
+        netSalary.textContent =
+            formatCurrency(
+                data.net_salary ??
+                data.netSalary
+            );
+    }
 }
 
 
 // ============================================================
-// HELPERS
+// DOWNLOAD
 // ============================================================
 
-function money(value) {
+function downloadPayslip() {
 
-    return "R" +
-        Number(value || 0)
-            .toLocaleString("en-ZA", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
-
-}
-
-
-function setText(id, value) {
-
-    const element =
-        document.getElementById(id);
-
-    if (element) {
-        element.textContent = value;
-    }
-
+    showToast(
+        "Payslip download will be connected to the database."
+    );
 }

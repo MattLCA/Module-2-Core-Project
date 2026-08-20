@@ -1,22 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
 
-<title>ModernTech HR | Login</title>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <title>ModernTech HR | Login</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+    <!-- Google Fonts -->
 
-<link rel="stylesheet" href="styles1.css">
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
+
+    <!-- Tabler Icons -->
+
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"
+    >
+
+
+    <!-- Login Styles -->
+
+    <link
+        rel="stylesheet"
+        href="styles1.css"
+    >
 
 </head>
+
 
 <body class="page-login">
 
@@ -24,29 +56,50 @@
 <div class="login-container">
 
 
-    <!-- LEFT BRAND SECTION -->
+    <!-- ========================================================
+         LEFT BRAND SECTION
+    ========================================================= -->
+
     <section class="brand-section">
 
         <div class="brand">
 
-            <svg width="45" height="45" viewBox="0 0 34 34">
-                <rect width="34" height="34" rx="9" fill="#ffffff"/>
+            <svg
+                width="45"
+                height="45"
+                viewBox="0 0 34 34"
+            >
 
-                <path d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25"
-                fill="none"
-                stroke="#27187e"
-                stroke-width="3.2"
-                stroke-linecap="round"
-                stroke-linejoin="round"/>
+                <rect
+                    width="34"
+                    height="34"
+                    rx="9"
+                    fill="#ffffff"
+                />
 
-                <path d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0Z"
-                fill="#ff8600"/>
+                <path
+                    d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25"
+                    fill="none"
+                    stroke="#27187e"
+                    stroke-width="3.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
+
+                <path
+                    d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0Z"
+                    fill="#ff8600"
+                />
+
             </svg>
 
 
             <div>
+
                 <h2>ModernTech</h2>
+
                 <p>HR Workspace</p>
+
             </div>
 
         </div>
@@ -59,6 +112,7 @@
                 <span>smarter.</span>
             </h1>
 
+
             <p>
                 A modern HR platform designed to simplify
                 employee management, payroll, attendance,
@@ -69,22 +123,36 @@
             <div class="features">
 
                 <div>
+
                     <i class="ti ti-users"></i>
-                    <span>Employee Management</span>
+
+                    <span>
+                        Employee Management
+                    </span>
+
                 </div>
 
 
                 <div>
+
                     <i class="ti ti-calendar-check"></i>
-                    <span>Attendance Tracking</span>
+
+                    <span>
+                        Attendance Tracking
+                    </span>
+
                 </div>
 
 
                 <div>
-                    <i class="ti ti-cash"></i>
-                    <span>Payroll Management</span>
-                </div>
 
+                    <i class="ti ti-cash"></i>
+
+                    <span>
+                        Payroll Management
+                    </span>
+
+                </div>
 
             </div>
 
@@ -94,17 +162,23 @@
 
 
 
+    <!-- ========================================================
+         LOGIN SECTION
+    ========================================================= -->
 
-    <!-- LOGIN CARD -->
     <section class="login-section">
 
 
         <div class="login-card">
 
 
+            <!-- Login Header -->
+
             <div class="login-header">
 
-                <h1>Welcome back</h1>
+                <h1>
+                    Welcome back
+                </h1>
 
                 <p>
                     Sign in to access your HR dashboard
@@ -114,46 +188,106 @@
 
 
 
+            <!-- =================================================
+                 LOGIN FORM
+            ================================================== -->
+
             <form id="loginForm">
 
+
+                <!-- =================================================
+                     ROLE
+                ================================================== -->
+
                 <div class="input-group">
-                    <label>Login As</label>
+
+                    <label>
+                        Login As
+                    </label>
+
 
                     <div class="role-selector">
 
-                        <label class="role-option">
-                            <input type="radio" name="role" value="HR Manager" checked>
-                            <span>
-                                <i class="ti ti-briefcase"></i>
-                                HR
-                            </span>
-                        </label>
+
+                        <!-- HR -->
 
                         <label class="role-option">
-                            <input type="radio" name="role" value="Employee">
+
+                            <input
+                                type="radio"
+                                name="role"
+                                value="HR Manager"
+                                checked
+                            >
+
                             <span>
-                                <i class="ti ti-user"></i>
-                                Employee
+
+                                <i class="ti ti-briefcase"></i>
+
+                                HR
+
                             </span>
+
                         </label>
+
+
+
+                        <!-- Employee -->
+
+                        <label class="role-option">
+
+                            <input
+                                type="radio"
+                                name="role"
+                                value="Employee"
+                            >
+
+                            <span>
+
+                                <i class="ti ti-user"></i>
+
+                                Employee
+
+                            </span>
+
+                        </label>
+
 
                     </div>
+
                 </div>
 
 
-                <div class="input-group" id="loginIdentifierGroup">
 
-                    <label id="loginIdentifierLabel">Email Address</label>
+                <!-- =================================================
+                     EMAIL / EMPLOYEE ID
+                ================================================== -->
+
+                <div
+                    class="input-group"
+                    id="loginIdentifierGroup"
+                >
+
+                    <label id="loginIdentifierLabel">
+                        Email Address
+                    </label>
+
 
                     <div class="input-box">
 
-                        <i class="ti ti-mail" id="loginIdentifierIcon"></i>
+                        <i
+                            class="ti ti-mail"
+                            id="loginIdentifierIcon"
+                        ></i>
+
 
                         <input
                             type="email"
                             id="loginIdentifier"
-                            placeholder="busiswa@moderntech.com"
-                            required>
+                            placeholder="Enter your email address"
+                            autocomplete="username"
+                            required
+                        >
 
                     </div>
 
@@ -161,34 +295,48 @@
 
 
 
+                <!-- =================================================
+                     PASSWORD
+                ================================================== -->
+
                 <div class="input-group">
 
+                    <label>
+                        Password
+                    </label>
 
-                    <label>Password</label>
 
                     <div class="input-box">
 
                         <i class="ti ti-lock"></i>
 
+
                         <input
-                        type="password"
-                        id="password"
-                        placeholder="Enter your password"
-                        required>
+                            type="password"
+                            id="password"
+                            placeholder="Enter your password"
+                            autocomplete="current-password"
+                            required
+                        >
 
                     </div>
-
 
                 </div>
 
 
+
+                <!-- =================================================
+                     LOGIN OPTIONS
+                ================================================== -->
 
                 <div class="login-options">
 
 
                     <label class="remember">
 
-                        <input type="checkbox">
+                        <input
+                            type="checkbox"
+                        >
 
                         <span>
                             Remember me
@@ -206,10 +354,18 @@
 
 
 
+                <!-- =================================================
+                     LOGIN BUTTON
+                ================================================== -->
 
-                <button class="login-btn">
+                <button
+                    type="submit"
+                    class="login-btn"
+                >
 
-                    <span>Sign in</span>
+                    <span>
+                        Sign in
+                    </span>
 
                     <i class="ti ti-arrow-right"></i>
 
@@ -218,26 +374,11 @@
 
             </form>
 
-            <div class="demo-login">
-
-                <h4>Demo Login Details</h4>
-
-                <div class="demo-section">
-                    <strong>HR Manager</strong>
-                    <p><b>Email:</b> busiswa@moderntech.com</p>
-                    <p><b>Password:</b> admin123</p>
-                </div>
-
-                <div class="demo-section">
-                    <strong>Employee 1</strong>
-                    <p><b>Employee ID:</b> EMP001</p>
-                    <p><b>Password:</b> employee123</p>
-                </div>
 
 
-            </div>
-
-
+            <!-- =================================================
+                 FOOTER
+            ================================================== -->
 
             <div class="footer-text">
 
@@ -248,15 +389,17 @@
 
         </div>
 
-
     </section>
-
 
 
 </div>
 
 
-    <script src="login.js"></script>
+<!-- Login JavaScript -->
+
+<script src="login.js"></script>
+
 
 </body>
+
 </html>

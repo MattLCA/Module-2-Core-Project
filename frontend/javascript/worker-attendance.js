@@ -2,53 +2,35 @@
 // ModernTech Worker Attendance
 // ============================================================
 
-document.addEventListener("DOMContentLoaded", async () => {
+console.log("Worker Attendance JS connected.");
 
-    const table = document.getElementById("attendanceTable");
+document.addEventListener("DOMContentLoaded", () => {
 
-    if (!table) return;
-
-    initializeAttendanceButtons();
-
-    await loadAttendance();
+    initializeAttendance();
 
 });
 
 
-// ============================================================
-// ATTENDANCE BUTTONS
-// ============================================================
+function initializeAttendance() {
 
-function initializeAttendanceButtons() {
+    const table =
+        document.getElementById("attendanceTable");
 
-    document.querySelectorAll("[data-attendance]")
-        .forEach(button => {
+    if (!table) {
+        return;
+    }
 
-            button.addEventListener("click", async () => {
+
+    document
+        .querySelectorAll("[data-attendance]")
+        .forEach((button) => {
+
+            button.addEventListener("click", () => {
 
                 const action =
                     button.dataset.attendance;
 
-                try {
-
-                    await submitAttendance(action);
-
-                    showToast(
-                        `${action} saved successfully.`
-                    );
-
-                    await loadAttendance();
-
-                } catch (error) {
-
-                    console.error(error);
-
-                    showToast(
-                        error.message ||
-                        `Unable to save ${action}.`
-                    );
-
-                }
+                handleAttendanceAction(action);
 
             });
 
@@ -60,71 +42,51 @@ function initializeAttendanceButtons() {
 
     if (clearButton) {
 
-        clearButton.addEventListener("click", async () => {
-
-            /*
-             * DO NOT connect this to the database yet.
-             *
-             * Database attendance records should normally not
-             * be deleted from the worker interface.
-             */
-
-            showToast(
-                "Attendance records cannot be cleared."
-            );
-
-        });
-
-    }
-
-}
-
-
-// ============================================================
-// LOAD ATTENDANCE
-// ============================================================
-
-async function loadAttendance() {
-
-    try {
-
-        const response =
-            await getWorkerAttendance();
-
-        console.log(
-            "Attendance response:",
-            response
-        );
-
-        const logs =
-            response.attendance ||
-            response.data ||
-            response.logs ||
-            [];
-
-        renderAttendance(logs);
-
-    } catch (error) {
-
-        console.error(
-            "Failed to load attendance:",
-            error
-        );
-
-        showToast(
-            "Unable to load attendance."
+        clearButton.addEventListener(
+            "click",
+            clearAttendance
         );
 
     }
 
+
+    renderAttendance();
 }
 
 
 // ============================================================
-// RENDER ATTENDANCE
+// ATTENDANCE ACTION
 // ============================================================
 
-function renderAttendance(logs) {
+function handleAttendanceAction(action) {
+
+    /*
+     * Backend integration will eventually call worker_api.js.
+     *
+     * Example:
+     *
+     * await clockIn();
+     * await clockOut();
+     * await startBreak();
+     * await returnFromBreak();
+     */
+
+    console.log(
+        "Attendance action requested:",
+        action
+    );
+
+    showToast(
+        `${action} API integration is pending.`
+    );
+}
+
+
+// ============================================================
+// RENDER
+// ============================================================
+
+function renderAttendance() {
 
     const table =
         document.getElementById("attendanceTable");
@@ -140,79 +102,50 @@ function renderAttendance(logs) {
 
 
     if (status) {
-
         status.textContent =
-            logs.length
-                ? logs[0].action || "Recorded"
-                : "Not clocked in";
-
+            "Waiting for database";
     }
-
 
     if (count) {
-
         count.textContent =
-            `${logs.length} logs`;
-
+            "0 logs";
     }
-
 
     if (last) {
-
-        if (logs.length) {
-
-            const latest = logs[0];
-
-            last.textContent =
-                `${latest.action || "Action"} ${latest.time || ""}`;
-
-        } else {
-
-            last.textContent = "None";
-
-        }
-
+        last.textContent =
+            "None";
     }
 
 
-    if (!logs.length) {
+    if (table) {
 
         table.innerHTML = `
             <tr>
                 <td colspan="4">
-                    No attendance records found.
+                    Attendance records will load from the
+                    database after backend integration is finalized.
                 </td>
             </tr>
         `;
 
-        return;
     }
+}
 
 
-    table.innerHTML = logs.map(log => {
+// ============================================================
+// CLEAR ATTENDANCE
+// ============================================================
 
-        return `
-            <tr>
-                <td>
-                    ${log.date || log.attendance_date || "-"}
-                </td>
+function clearAttendance() {
 
-                <td>
-                    ${log.time || log.attendance_time || "-"}
-                </td>
+    /*
+     * Do NOT clear database records here.
+     *
+     * This button will eventually be removed or replaced
+     * depending on the final backend requirements.
+     */
 
-                <td>
-                    ${log.action || log.status || "-"}
-                </td>
-
-                <td>
-                    <span class="status approved">
-                        ${log.status || "Recorded"}
-                    </span>
-                </td>
-            </tr>
-        `;
-
-    }).join("");
-
+    showToast(
+        "Attendance history is managed by the database."
+    );
 }
