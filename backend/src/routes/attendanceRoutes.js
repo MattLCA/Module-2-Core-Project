@@ -3,18 +3,20 @@ import {
   getLeaveRequests,
   submitLeaveRequest,
   processLeaveDecision,
-} from "./LeaveModel.js"; // Pointing side-by-side inside the backend/src/modules/leave folder
-import { authenticate, authorize } from "../../middleware/auth.js"; // Backing up two directories to backend/src/middleware/
+} from "../controllers/leaveController.js";
+
+import { authenticate, authorize } from "../middleware/auth.js";
 import {
   validateLeaveSubmission,
   validateLeaveDecision,
-} from "../../middleware/validationMiddleware.js"; // Backing up two directories to backend/src/middleware/
+} from "../middleware/validationMiddleware.js";
 
 const router = express.Router();
 
-// Production endpoints from your functional module template
 router.get("/", authenticate, authorize("hr"), getLeaveRequests);
+
 router.post("/", authenticate, validateLeaveSubmission, submitLeaveRequest);
+
 router.put(
   "/:id/decision",
   authenticate,

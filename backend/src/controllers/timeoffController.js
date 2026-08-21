@@ -1,4 +1,4 @@
-import TimeOffModel from "../models/TimeOffModel.js";
+import TimeOffModel from "../modules/timeoff/TimeOffModel.js";
 
 export const getTimeOffRequests = async (req, res) => {
   try {

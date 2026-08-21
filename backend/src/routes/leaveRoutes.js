@@ -3,12 +3,12 @@ import {
   getLeaveRequests,
   submitLeaveRequest,
   processLeaveDecision,
-} from "./LeaveModel.js"; // Pointing side-by-side inside backend/src/modules/leave/
-import { authenticate, authorize } from "../../middleware/auth.js"; // Stepping back 2 levels to backend/src/middleware/
+} from "../controllers/leaveController.js"; // Pointing side-by-side inside backend/src/modules/leave/
+import { authenticate, authorize } from "../middleware/auth.js";
 import {
   validateLeaveSubmission,
   validateLeaveDecision,
-} from "../../middleware/validationMiddleware.js"; // Stepping back 2 levels to backend/src/middleware/
+} from "../middleware/validationMiddleware.js"; // Stepping back 2 levels to backend/src/middleware/
 
 const router = express.Router();
 

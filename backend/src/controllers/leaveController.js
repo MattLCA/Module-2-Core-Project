@@ -1,4 +1,4 @@
-import LeaveModel from "../models/LeaveModel.js";
+import LeaveModel from "../modules/leave/LeaveModel.js";
 
 export const getLeaveRequests = async (req, res) => {
   try {

@@ -1,4 +1,4 @@
-import IssuesModel from "../models/IssuesModel.js";
+import IssuesModel from "../modules/issues/IssuesModel.js";
 
 export const getIssues = async (req, res) => {
   try {
@@ -15,23 +15,30 @@ export const getIssues = async (req, res) => {
 
 export const createIssue = async (req, res) => {
   try {
-    const { employeeId, title, message } = req.body;
-    if (!employeeId || !title || !message) {
-      return res
-        .status(400)
-        .json({ message: "Employee ID, title, and message are required." });
+    const { title, description } = req.body;
+    const employeeId = req.user?.id;
+
+    if (!employeeId || !title || !description) {
+      return res.status(400).json({
+        message: "Employee ID, title, and description are required.",
+      });
     }
 
-    const result = await IssuesModel.create(req.body);
+    const result = await IssuesModel.create({
+      employeeId,
+      title,
+      message: description,
+    });
+
     return res.status(201).json({
-      message: "System notification logged successfully.",
+      message: "Issue reported successfully.",
       reportId: result.insertId,
     });
   } catch (error) {
-    console.error("Error creating notification log:", error);
-    return res
-      .status(500)
-      .json({ message: "Internal server error while logging item." });
+    console.error("Error creating issue:", error);
+    return res.status(500).json({
+      message: "Internal server error while creating issue.",
+    });
   }
 };
 
