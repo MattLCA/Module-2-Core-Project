@@ -1,4 +1,4 @@
-import LeaveModel from "../modules/LeaveModel.js";
+import LeaveModel from "../models/LeaveModel.js";
 
 export const getLeaveRequests = async (req, res) => {
   try {
@@ -7,11 +7,9 @@ export const getLeaveRequests = async (req, res) => {
     return res.status(200).json(rows);
   } catch (error) {
     console.error("Error fetching leave requests:", error);
-    return res
-      .status(500)
-      .json({
-        message: "Internal server error while fetching leave requests.",
-      });
+    return res.status(500).json({
+      message: "Internal server error while fetching leave requests.",
+    });
   }
 };
 
@@ -25,12 +23,10 @@ export const submitLeaveRequest = async (req, res) => {
     }
 
     const result = await LeaveModel.create(req.body);
-    return res
-      .status(201)
-      .json({
-        message: "Leave request submitted successfully.",
-        requestId: result.insertId,
-      });
+    return res.status(201).json({
+      message: "Leave request submitted successfully.",
+      requestId: result.insertId,
+    });
   } catch (error) {
     console.error("Error submitting leave request:", error);
     return res
@@ -45,11 +41,9 @@ export const processLeaveDecision = async (req, res) => {
     const { status } = req.body; // Expects 'Approved' or 'Rejected' (matching your new enum lookups)
 
     if (!["Approved", "Rejected", "Pending"].includes(status)) {
-      return res
-        .status(400)
-        .json({
-          message: "Status must be 'Approved', 'Rejected', or 'Pending'.",
-        });
+      return res.status(400).json({
+        message: "Status must be 'Approved', 'Rejected', or 'Pending'.",
+      });
     }
 
     const record = await LeaveModel.findById(id);

@@ -1,4 +1,4 @@
-import TimeOffModel from "../modules/TimeOffModel.js";
+import TimeOffModel from "../models/TimeOffModel.js";
 
 export const getTimeOffRequests = async (req, res) => {
   try {
@@ -6,11 +6,9 @@ export const getTimeOffRequests = async (req, res) => {
     return res.status(200).json(rows);
   } catch (error) {
     console.error("Error fetching time off requests:", error);
-    return res
-      .status(500)
-      .json({
-        message: "Internal server error while fetching time off requests.",
-      });
+    return res.status(500).json({
+      message: "Internal server error while fetching time off requests.",
+    });
   }
 };
 
@@ -32,17 +30,13 @@ export const processTimeOffDecision = async (req, res) => {
         .json({ message: "Single-day time off record not found." });
     }
 
-    return res
-      .status(200)
-      .json({
-        message: `Time off request ${status.toLowerCase()} successfully.`,
-      });
+    return res.status(200).json({
+      message: `Time off request ${status.toLowerCase()} successfully.`,
+    });
   } catch (error) {
     console.error("Error processing time off decision:", error);
-    return res
-      .status(500)
-      .json({
-        message: "Internal server error while processing time off decision.",
-      });
+    return res.status(500).json({
+      message: "Internal server error while processing time off decision.",
+    });
   }
 };

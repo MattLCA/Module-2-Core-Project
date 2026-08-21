@@ -1,4 +1,4 @@
-import IssuesModel from "../modules/IssuesModel.js";
+import IssuesModel from "../models/IssuesModel.js";
 
 export const getIssues = async (req, res) => {
   try {
@@ -23,12 +23,10 @@ export const createIssue = async (req, res) => {
     }
 
     const result = await IssuesModel.create(req.body);
-    return res
-      .status(201)
-      .json({
-        message: "System notification logged successfully.",
-        reportId: result.insertId,
-      });
+    return res.status(201).json({
+      message: "System notification logged successfully.",
+      reportId: result.insertId,
+    });
   } catch (error) {
     console.error("Error creating notification log:", error);
     return res

@@ -5,7 +5,7 @@
 //              Synchronized completely with the updated AttendanceModel.
 // =========================================================================
 
-import AttendanceModel from "../modules/AttendanceModel.js";
+import AttendanceModel from "../models/AttendanceModel.js";
 
 /**
  * @route   GET /api/attendance
