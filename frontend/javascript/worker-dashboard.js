@@ -1,21 +1,6 @@
 // ============================================================
 // ModernTech Worker Dashboard
 // ============================================================
-//
-// Connects the Worker Dashboard to the backend API.
-//
-// Expected API wrappers:
-//   getWorkerProfile()
-//   getWorkerAttendance()
-//   getWorkerLeaveBalances()
-//   getWorkerLeaveRequests()
-//   getWorkerNotifications()
-//   getWorkerPayslips()
-//
-// Authentication:
-//   localStorage["token"]
-//
-// ============================================================
 
 console.log("Worker Dashboard JS connected.");
 
@@ -26,15 +11,51 @@ console.log("Worker Dashboard JS connected.");
 
 document.addEventListener("DOMContentLoaded", async () => {
 
+    console.log("Initializing Worker Dashboard...");
+
+    // ----------------------------------------------------------
+    // Authentication
+    // ----------------------------------------------------------
+
     if (typeof requireWorkerLogin === "function") {
 
         if (!requireWorkerLogin()) {
             return;
         }
 
+    } else {
+
+        console.error(
+            "requireWorkerLogin() is not available."
+        );
+
+        return;
     }
 
-    await initializeDashboard();
+
+    // ----------------------------------------------------------
+    // Sidebar
+    // ----------------------------------------------------------
+
+    if (typeof initializeSidebar === "function") {
+
+        initializeSidebar();
+
+    }
+
+
+    // ----------------------------------------------------------
+    // Dashboard
+    // ----------------------------------------------------------
+
+    await initializeWorkerDashboard();
+
+
+    // ----------------------------------------------------------
+    // Buttons
+    // ----------------------------------------------------------
+
+    initializeDashboardButtons();
 
 });
 
@@ -43,124 +64,166 @@ document.addEventListener("DOMContentLoaded", async () => {
 // INITIALIZE DASHBOARD
 // ============================================================
 
-async function initializeDashboard() {
+async function initializeWorkerDashboard() {
 
-    try {
-
-        console.log("Loading worker dashboard...");
-
-        const results = await Promise.allSettled([
-
-            loadDashboardProfile(),
-
-            loadDashboardAttendance(),
-
-            loadDashboardLeave(),
-
-            loadDashboardNotifications(),
-
-            loadDashboardPayslip()
-
-        ]);
+    console.log("Loading worker dashboard...");
 
 
-        results.forEach((result, index) => {
+    // We deliberately load each section separately.
+    // If one API fails, the rest of the dashboard still loads.
 
-            if (result.status === "rejected") {
+    await loadDashboardProfile();
 
-                console.error(
-                    `Dashboard section ${index + 1} failed:`,
-                    result.reason
-                );
+    await loadDashboardAttendance();
 
-            }
+    await loadDashboardLeave();
 
-        });
+    await loadDashboardPayslips();
+
+    await loadDashboardLeaveRequests();
 
 
-        updateDashboardDate();
-
-        console.log("Worker dashboard loaded.");
-
-    } catch (error) {
-
-        console.error(
-            "Could not initialize worker dashboard:",
-            error
-        );
-
-        showDashboardMessage(
-            error.message ||
-            "Could not load your dashboard."
-        );
-
-    }
-
+    console.log(
+        "Worker Dashboard loaded successfully."
+    );
 }
 
 
 // ============================================================
-// LOAD PROFILE
+// PROFILE
 // ============================================================
 
 async function loadDashboardProfile() {
 
-    if (typeof getWorkerProfile !== "function") {
+    try {
 
-        console.warn(
-            "getWorkerProfile() is not available."
+        if (typeof getWorkerProfile !== "function") {
+
+            console.error(
+                "getWorkerProfile() is not available."
+            );
+
+            return;
+        }
+
+
+        const response =
+            await getWorkerProfile();
+
+
+        console.log(
+            "Profile API response:",
+            response
         );
 
-        return;
 
+        const profile =
+            extractProfile(response);
+
+
+        if (!profile) {
+
+            console.warn(
+                "No worker profile returned from API."
+            );
+
+            return;
+        }
+
+
+        console.log(
+            "Worker profile:",
+            profile
+        );
+
+
+        // Save latest database information
+
+        if (
+            typeof saveLoggedInWorker ===
+            "function"
+        ) {
+
+            saveLoggedInWorker(profile);
+
+        }
+
+
+        renderDashboardProfile(profile);
+
+
+    } catch (error) {
+
+        console.error(
+            "Could not load worker profile:",
+            error
+        );
+
+    }
+}
+
+
+// ============================================================
+// EXTRACT PROFILE
+// ============================================================
+
+function extractProfile(response) {
+
+    if (!response) {
+        return null;
     }
 
 
-    const response =
-        await getWorkerProfile();
-
-
-    const profile =
-        getResponseData(response);
-
-
-    if (!profile) {
-        return;
-    }
-
-
-    // Save latest employee information.
+    // { data: {...} }
 
     if (
-        typeof saveLoggedInWorker ===
-        "function"
+        response.data &&
+        typeof response.data === "object" &&
+        !Array.isArray(response.data)
     ) {
 
-        saveLoggedInWorker(profile);
+        return response.data;
 
     }
 
 
-    localStorage.setItem(
-        "employee",
-        JSON.stringify(profile)
-    );
-
-
-    // Update sidebar.
+    // { employee: {...} }
 
     if (
-        typeof updateSidebarEmployee ===
-        "function"
+        response.employee &&
+        typeof response.employee === "object"
     ) {
 
-        updateSidebarEmployee(profile);
+        return response.employee;
 
     }
 
 
-    renderDashboardProfile(profile);
+    // { profile: {...} }
 
+    if (
+        response.profile &&
+        typeof response.profile === "object"
+    ) {
+
+        return response.profile;
+
+    }
+
+
+    // Direct object
+
+    if (
+        typeof response === "object" &&
+        !Array.isArray(response)
+    ) {
+
+        return response;
+
+    }
+
+
+    return null;
 }
 
 
@@ -170,295 +233,573 @@ async function loadDashboardProfile() {
 
 function renderDashboardProfile(profile) {
 
-    const name =
-        profile.name ||
-        profile.fullName ||
-        (
-            profile.first_name &&
-            profile.last_name
-                ? `${profile.first_name} ${profile.last_name}`
-                : ""
-        ) ||
-        "Worker";
+    if (!profile) {
+        return;
+    }
 
 
-    const employeeCode =
-        profile.employee_code ||
-        profile.employeeCode ||
-        "";
-
-
-    setDashboardText(
-        [
-            "workerName",
-            "dashboardName",
-            "employeeName",
-            "profileName",
-            "welcomeName",
-            "welcomeMessageName"
-        ],
-        name
+    console.log(
+        "Rendering worker profile:",
+        profile
     );
 
 
-    setDashboardText(
-        [
-            "employeeCode",
-            "profileEmployeeCode",
-            "dashboardEmployeeCode"
-        ],
+    // ----------------------------------------------------------
+    // FIRST NAME
+    // ----------------------------------------------------------
+
+    const firstName =
+        profile.first_name ??
+        profile.firstName ??
+        "";
+
+
+    // ----------------------------------------------------------
+    // LAST NAME
+    // ----------------------------------------------------------
+
+    const lastName =
+        profile.last_name ??
+        profile.lastName ??
+        "";
+
+
+    // ----------------------------------------------------------
+    // FULL NAME
+    // ----------------------------------------------------------
+
+    const fullName =
+        profile.name ??
+        profile.fullName ??
+        `${firstName} ${lastName}`.trim() ??
+        "Worker";
+
+
+    const displayName =
+        fullName.trim() ||
+        "Worker";
+
+
+    // ----------------------------------------------------------
+    // EMPLOYEE CODE
+    // ----------------------------------------------------------
+
+    const employeeCode =
+        profile.employee_code ??
+        profile.employeeCode ??
+        profile.employee_id ??
+        profile.employeeId ??
+        "--";
+
+
+    // ----------------------------------------------------------
+    // WELCOME NAME
+    // ----------------------------------------------------------
+
+    setText(
+        "welcomeName",
+        firstName || displayName
+    );
+
+
+    // ----------------------------------------------------------
+    // SIDEBAR NAME
+    // ----------------------------------------------------------
+
+    setText(
+        "sidebarWorkerName",
+        displayName
+    );
+
+
+    // ----------------------------------------------------------
+    // SIDEBAR EMPLOYEE CODE
+    // ----------------------------------------------------------
+
+    setText(
+        "sidebarEmployeeCode",
         employeeCode
     );
 
 
-    setDashboardText(
-        [
-            "employeeEmail",
-            "profileEmail"
-        ],
+    // ----------------------------------------------------------
+    // AVATAR
+    // ----------------------------------------------------------
+
+    const avatar =
+        document.getElementById(
+            "sidebarAvatar"
+        );
+
+
+    if (avatar) {
+
+        avatar.textContent =
+            getInitials(displayName);
+
+    }
+
+
+    // ----------------------------------------------------------
+    // OPTIONAL PROFILE ELEMENTS
+    // ----------------------------------------------------------
+
+    setTextIfExists(
+        "employeeName",
+        displayName
+    );
+
+    setTextIfExists(
+        "employeeCode",
+        employeeCode
+    );
+
+    setTextIfExists(
+        "employeeEmail",
         profile.email
     );
 
-
-    setDashboardText(
-        [
-            "employeeDepartment",
-            "profileDepartment",
-            "department"
-        ],
-        profile.department_name ||
-        getDashboardNestedName(profile.department)
+    setTextIfExists(
+        "employeeDepartment",
+        profile.department_name ??
+        profile.departmentName ??
+        getNestedName(profile.department)
     );
 
-
-    setDashboardText(
-        [
-            "employeePosition",
-            "profilePosition",
-            "position"
-        ],
-        profile.position_name ||
-        getDashboardNestedName(profile.position)
+    setTextIfExists(
+        "employeePosition",
+        profile.position_name ??
+        profile.positionName ??
+        getNestedName(profile.position)
     );
 
 }
 
 
 // ============================================================
-// LOAD ATTENDANCE
+// INITIALS
+// ============================================================
+
+function getInitials(name) {
+
+    if (!name) {
+        return "--";
+    }
+
+
+    const parts =
+        String(name)
+            .trim()
+            .split(/\s+/);
+
+
+    if (parts.length === 1) {
+
+        return parts[0]
+            .substring(0, 2)
+            .toUpperCase();
+
+    }
+
+
+    return (
+        parts[0][0] +
+        parts[parts.length - 1][0]
+    ).toUpperCase();
+
+}
+
+
+// ============================================================
+// ATTENDANCE
 // ============================================================
 
 async function loadDashboardAttendance() {
 
-    if (
-        typeof getWorkerAttendance !==
-        "function"
-    ) {
+    try {
 
-        console.warn(
-            "getWorkerAttendance() is not available."
+        if (
+            typeof getWorkerAttendanceHistory !==
+            "function"
+        ) {
+
+            console.error(
+                "getWorkerAttendanceHistory() is not available."
+            );
+
+            return;
+        }
+
+
+        // ------------------------------------------------------
+        // Get history
+        // ------------------------------------------------------
+
+        const historyResponse =
+            await getWorkerAttendanceHistory();
+
+
+        console.log(
+            "Attendance history response:",
+            historyResponse
         );
 
-        return;
+
+        const attendance =
+            extractArray(historyResponse);
+
+
+        console.log(
+            "Attendance records:",
+            attendance
+        );
+
+
+        renderTodayStatus(
+            attendance
+        );
+
+        renderAttendanceActivity(
+            attendance
+        );
+
+
+        // ------------------------------------------------------
+        // Get current clock status
+        // ------------------------------------------------------
+
+        if (
+            typeof getWorkerClockStatus ===
+            "function"
+        ) {
+
+            const statusResponse =
+                await getWorkerClockStatus();
+
+
+            console.log(
+                "Clock status response:",
+                statusResponse
+            );
+
+
+            renderClockStatus(
+                statusResponse
+            );
+
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "Could not load attendance:",
+            error
+        );
+
+
+        setText(
+            "todayStatus",
+            "Not clocked in"
+        );
 
     }
-
-
-    const response =
-        await getWorkerAttendance();
-
-
-    const attendance =
-        getResponseData(response);
-
-
-    const records =
-        normalizeArray(attendance);
-
-
-    renderAttendanceSummary(records);
-
 }
 
 
 // ============================================================
-// ATTENDANCE SUMMARY
+// TODAY STATUS
 // ============================================================
 
-function renderAttendanceSummary(records) {
+function renderTodayStatus(attendance) {
 
-    if (!records.length) {
+    if (!Array.isArray(attendance)) {
 
-        setDashboardText(
-            [
-                "attendanceStatus",
-                "todayAttendanceStatus",
-                "attendanceSummary"
-            ],
-            "No attendance recorded"
+        setText(
+            "todayStatus",
+            "Not clocked in"
         );
 
         return;
-
     }
 
 
     const today =
-        getTodayString();
+        getTodayDateString();
 
 
-    let todayRecord =
-        records.find(
-            record =>
-                normalizeDate(
-                    record.attendance_date ||
-                    record.date
-                ) === today
+    console.log(
+        "Looking for today's attendance:",
+        today
+    );
+
+
+    const todayRecord =
+        attendance.find(
+            record => {
+
+                const date =
+                    record.attendanceDate ??
+                    record.attendance_date ??
+                    record.workDate ??
+                    record.work_date ??
+                    record.date;
+
+
+                return (
+                    normalizeDate(date) ===
+                    today
+                );
+
+            }
         );
 
 
     if (!todayRecord) {
 
-        todayRecord =
-            records[0];
+        setText(
+            "todayStatus",
+            "Not clocked in"
+        );
 
+        return;
     }
+
+
+    console.log(
+        "Today's attendance record:",
+        todayRecord
+    );
+
+
+    const clockIn =
+        todayRecord.clockIn ??
+        todayRecord.clock_in ??
+        todayRecord.timeIn ??
+        todayRecord.time_in;
+
+
+    const clockOut =
+        todayRecord.clockOut ??
+        todayRecord.clock_out ??
+        todayRecord.timeOut ??
+        todayRecord.time_out;
+
+
+    const breakStart =
+        todayRecord.breakStart ??
+        todayRecord.break_start;
+
+
+    const breakEnd =
+        todayRecord.breakEnd ??
+        todayRecord.break_end;
 
 
     const status =
-        todayRecord.attendance_status ||
-        todayRecord.status ||
-        "Present";
+        todayRecord.attendanceStatus ??
+        todayRecord.attendance_status ??
+        todayRecord.status;
 
 
-    setDashboardText(
-        [
-            "attendanceStatus",
-            "todayAttendanceStatus",
-            "attendanceSummary"
-        ],
-        status
-    );
+    // ----------------------------------------------------------
+    // Determine status
+    // ----------------------------------------------------------
 
+    if (clockOut) {
 
-    setDashboardText(
-        [
-            "clockInTime",
-            "todayClockIn"
-        ],
-        formatTime(
-            todayRecord.clock_in ||
-            todayRecord.clockIn
-        )
-    );
+        setText(
+            "todayStatus",
+            "Clocked out"
+        );
 
+    } else if (
+        breakStart &&
+        !breakEnd
+    ) {
 
-    setDashboardText(
-        [
-            "clockOutTime",
-            "todayClockOut"
-        ],
-        formatTime(
-            todayRecord.clock_out ||
-            todayRecord.clockOut
-        )
-    );
+        setText(
+            "todayStatus",
+            "On break"
+        );
 
+    } else if (clockIn) {
 
-    setDashboardText(
-        [
-            "breakStartTime",
-            "todayBreakStart"
-        ],
-        formatTime(
-            todayRecord.break_start ||
-            todayRecord.breakStart
-        )
-    );
+        setText(
+            "todayStatus",
+            "Clocked in"
+        );
 
+    } else if (status) {
 
-    setDashboardText(
-        [
-            "breakEndTime",
-            "todayBreakEnd"
-        ],
-        formatTime(
-            todayRecord.break_end ||
-            todayRecord.breakEnd
-        )
-    );
+        setText(
+            "todayStatus",
+            status
+        );
+
+    } else {
+
+        setText(
+            "todayStatus",
+            "Not clocked in"
+        );
+
+    }
 
 }
 
 
 // ============================================================
-// LOAD LEAVE
+// CURRENT CLOCK STATUS
 // ============================================================
 
-async function loadDashboardLeave() {
+function renderClockStatus(response) {
 
-    if (
-        typeof getWorkerLeaveBalances !==
-        "function"
-    ) {
-
-        console.warn(
-            "getWorkerLeaveBalances() is not available."
-        );
-
+    if (!response) {
         return;
-
     }
 
 
-    const response =
-        await getWorkerLeaveBalances();
+    console.log(
+        "Rendering clock status:",
+        response
+    );
 
 
-    const balances =
-        getResponseData(response);
+    /*
+        Backend response:
 
-
-    const records =
-        normalizeArray(balances);
-
-
-    renderLeaveSummary(records);
-
-
-    // Also load requests if the wrapper exists.
-
-    if (
-        typeof getWorkerLeaveRequests ===
-        "function"
-    ) {
-
-        try {
-
-            const requestResponse =
-                await getWorkerLeaveRequests();
-
-
-            const requests =
-                normalizeArray(
-                    getResponseData(
-                        requestResponse
-                    )
-                );
-
-
-            renderLeaveRequestSummary(
-                requests
-            );
-
-        } catch (error) {
-
-            console.error(
-                "Could not load leave requests:",
-                error
-            );
-
+        {
+            isClockedIn: true,
+            state: "WORKING",
+            activeRecord: {
+                attendanceId,
+                employeeId,
+                attendanceDate,
+                clockIn,
+                breakStart,
+                breakEnd,
+                clockOut,
+                attendanceStatus
+            }
         }
+    */
+
+
+    const state =
+        response.state;
+
+
+    const activeRecord =
+        response.activeRecord;
+
+
+    // ----------------------------------------------------------
+    // ON BREAK
+    // ----------------------------------------------------------
+
+    if (
+        state === "ON_BREAK"
+    ) {
+
+        setText(
+            "todayStatus",
+            "On break"
+        );
+
+    }
+
+
+    // ----------------------------------------------------------
+    // WORKING
+    // ----------------------------------------------------------
+
+    else if (
+        state === "WORKING"
+    ) {
+
+        setText(
+            "todayStatus",
+            "Clocked in"
+        );
+
+    }
+
+
+    // ----------------------------------------------------------
+    // CLOCKED OUT
+    // ----------------------------------------------------------
+
+    else if (
+        state === "CLOCKED_OUT"
+    ) {
+
+        setText(
+            "todayStatus",
+            "Clocked out"
+        );
+
+    }
+
+
+    // ----------------------------------------------------------
+    // FALLBACK
+    // ----------------------------------------------------------
+
+    else if (
+        response.isClockedIn === true
+    ) {
+
+        setText(
+            "todayStatus",
+            "Clocked in"
+        );
+
+    }
+
+
+    // ----------------------------------------------------------
+    // Update quick clock button
+    // ----------------------------------------------------------
+
+    updateQuickClockButton(
+        response
+    );
+
+
+    // ----------------------------------------------------------
+    // Optional dashboard clock information
+    // ----------------------------------------------------------
+
+    if (activeRecord) {
+
+        setTextIfExists(
+            "todayClockIn",
+            formatTime(
+                activeRecord.clockIn
+            )
+        );
+
+        setTextIfExists(
+            "todayBreakStart",
+            formatTime(
+                activeRecord.breakStart
+            )
+        );
+
+        setTextIfExists(
+            "todayBreakEnd",
+            formatTime(
+                activeRecord.breakEnd
+            )
+        );
+
+        setTextIfExists(
+            "todayClockOut",
+            formatTime(
+                activeRecord.clockOut
+            )
+        );
 
     }
 
@@ -466,54 +807,202 @@ async function loadDashboardLeave() {
 
 
 // ============================================================
-// LEAVE BALANCE SUMMARY
+// QUICK CLOCK BUTTON
 // ============================================================
 
-function renderLeaveSummary(records) {
+function updateQuickClockButton(status) {
 
-    if (!records.length) {
-
-        setDashboardText(
-            [
-                "leaveBalance",
-                "remainingLeave",
-                "leaveDaysRemaining"
-            ],
-            "0"
+    const button =
+        document.getElementById(
+            "quickClockBtn"
         );
 
-        return;
 
+    if (!button) {
+        return;
     }
 
 
-    let totalRemaining = 0;
+    const state =
+        status?.state;
 
 
-    records.forEach(
+    // ----------------------------------------------------------
+    // Currently working
+    // ----------------------------------------------------------
+
+    if (
+        state === "WORKING"
+    ) {
+
+        button.disabled = true;
+
+        button.innerHTML =
+            '<i class="ti ti-check"></i> Clocked In';
+
+        return;
+    }
+
+
+    // ----------------------------------------------------------
+    // On break
+    // ----------------------------------------------------------
+
+    if (
+        state === "ON_BREAK"
+    ) {
+
+        button.disabled = true;
+
+        button.innerHTML =
+            '<i class="ti ti-coffee"></i> On Break';
+
+        return;
+    }
+
+
+    // ----------------------------------------------------------
+    // Clocked out
+    // ----------------------------------------------------------
+
+    if (
+        state === "CLOCKED_OUT"
+    ) {
+
+        button.disabled = false;
+
+        button.innerHTML =
+            '<i class="ti ti-login-2"></i> Clock In';
+
+        return;
+    }
+
+
+    // ----------------------------------------------------------
+    // Default
+    // ----------------------------------------------------------
+
+    button.disabled = false;
+
+    button.innerHTML =
+        '<i class="ti ti-login-2"></i> Clock In';
+
+}
+
+
+// ============================================================
+// ATTENDANCE ACTIVITY
+// ============================================================
+
+function renderAttendanceActivity(
+    attendance
+) {
+
+    const tbody =
+        document.getElementById(
+            "dashboardActivity"
+        );
+
+
+    if (!tbody) {
+        return;
+    }
+
+
+    if (
+        !Array.isArray(attendance) ||
+        attendance.length === 0
+    ) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="3">
+                    No activity yet.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    const activities = [];
+
+
+    attendance.forEach(
         record => {
 
-            const remaining =
-                Number(
-                    record.remaining_days ??
-                    (
-                        Number(
-                            record.allocated_days || 0
-                        ) -
-                        Number(
-                            record.used_days || 0
-                        )
-                    )
-                );
+            const date =
+                record.attendanceDate ??
+                record.attendance_date ??
+                record.date;
 
 
-            if (
-                Number.isFinite(
-                    remaining
-                )
-            ) {
+            if (!date) {
+                return;
+            }
 
-                totalRemaining += remaining;
+
+            const clockIn =
+                record.clockIn ??
+                record.clock_in;
+
+
+            const breakStart =
+                record.breakStart ??
+                record.break_start;
+
+
+            const breakEnd =
+                record.breakEnd ??
+                record.break_end;
+
+
+            const clockOut =
+                record.clockOut ??
+                record.clock_out;
+
+
+            if (clockIn) {
+
+                activities.push({
+                    date,
+                    activity: "Clocked in",
+                    status: formatTime(clockIn)
+                });
+
+            }
+
+
+            if (breakStart) {
+
+                activities.push({
+                    date,
+                    activity: "Break started",
+                    status: formatTime(breakStart)
+                });
+
+            }
+
+
+            if (breakEnd) {
+
+                activities.push({
+                    date,
+                    activity: "Break ended",
+                    status: formatTime(breakEnd)
+                });
+
+            }
+
+
+            if (clockOut) {
+
+                activities.push({
+                    date,
+                    activity: "Clocked out",
+                    status: formatTime(clockOut)
+                });
 
             }
 
@@ -521,220 +1010,283 @@ function renderLeaveSummary(records) {
     );
 
 
-    setDashboardText(
-        [
-            "leaveBalance",
-            "remainingLeave",
-            "leaveDaysRemaining",
-            "totalLeaveBalance"
-        ],
-        formatNumber(totalRemaining)
+    activities.sort(
+        (a, b) => {
+
+            const dateA =
+                new Date(a.date).getTime();
+
+            const dateB =
+                new Date(b.date).getTime();
+
+            return dateB - dateA;
+
+        }
     );
+
+
+    const recent =
+        activities.slice(0, 5);
+
+
+    if (!recent.length) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="3">
+                    No activity yet.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    tbody.innerHTML =
+        recent.map(
+            item => `
+                <tr>
+                    <td>
+                        ${escapeHtml(
+                            formatDisplayDate(
+                                item.date
+                            )
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHtml(
+                            item.activity
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHtml(
+                            item.status
+                        )}
+                    </td>
+                </tr>
+            `
+        ).join("");
 
 }
 
 
 // ============================================================
-// LEAVE REQUEST SUMMARY
+// LEAVE
 // ============================================================
 
-function renderLeaveRequestSummary(
-    requests
+async function loadDashboardLeave() {
+
+    try {
+
+        if (
+            typeof getWorkerLeaveBalances !==
+            "function"
+        ) {
+
+            return;
+        }
+
+
+        const response =
+            await getWorkerLeaveBalances();
+
+
+        console.log(
+            "Leave balance response:",
+            response
+        );
+
+
+        const balances =
+            extractArray(response);
+
+
+        renderLeaveBalance(
+            balances
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Could not load leave balance:",
+            error
+        );
+
+
+        setText(
+            "leaveBalanceDash",
+            "0 days"
+        );
+
+    }
+
+}
+
+
+// ============================================================
+// LEAVE BALANCE
+// ============================================================
+
+function renderLeaveBalance(
+    balances
 ) {
 
-    if (!requests.length) {
-
-        setDashboardText(
-            [
-                "leaveRequestStatus",
-                "latestLeaveStatus"
-            ],
-            "No leave requests"
-        );
-
-        return;
-
-    }
-
-
-    const sorted =
-        [...requests].sort(
-            (a, b) =>
-                new Date(
-                    b.created_at ||
-                    b.submitted_date ||
-                    0
-                ) -
-                new Date(
-                    a.created_at ||
-                    a.submitted_date ||
-                    0
-                )
-        );
-
-
-    const latest =
-        sorted[0];
-
-
-    setDashboardText(
-        [
-            "leaveRequestStatus",
-            "latestLeaveStatus"
-        ],
-        latest.status ||
-        "Pending"
-    );
-
-}
-
-
-// ============================================================
-// LOAD NOTIFICATIONS
-// ============================================================
-
-async function loadDashboardNotifications() {
-
     if (
-        typeof getWorkerNotifications !==
-        "function"
+        !Array.isArray(balances) ||
+        balances.length === 0
     ) {
 
-        console.warn(
-            "getWorkerNotifications() is not available."
+        setText(
+            "leaveBalanceDash",
+            "0 days"
         );
 
         return;
-
     }
 
 
-    const response =
-        await getWorkerNotifications();
+    let balance =
+        balances.find(
+            item => {
 
-
-    const notifications =
-        normalizeArray(
-            getResponseData(response)
-        );
-
-
-    renderNotificationSummary(
-        notifications
-    );
-
-}
-
-
-// ============================================================
-// NOTIFICATION SUMMARY
-// ============================================================
-
-function renderNotificationSummary(
-    notifications
-) {
-
-    const unread =
-        notifications.filter(
-            notification =>
-                Number(
-                    notification.is_read
-                ) === 0 ||
-                notification.is_read === false
-        )
-        .length;
-
-
-    setDashboardText(
-        [
-            "notificationCount",
-            "unreadNotifications",
-            "notificationsCount"
-        ],
-        String(unread)
-    );
-
-
-    const badge =
-        document.getElementById(
-            "notificationBadge"
-        );
-
-
-    if (badge) {
-
-        badge.textContent =
-            String(unread);
-
-
-        badge.style.display =
-            unread > 0
-                ? ""
-                : "none";
-
-    }
-
-}
-
-
-// ============================================================
-// LOAD PAYSLIP
-// ============================================================
-
-async function loadDashboardPayslip() {
-
-    if (
-        typeof getWorkerPayslips !==
-        "function"
-    ) {
-
-        console.warn(
-            "getWorkerPayslips() is not available."
-        );
-
-        return;
-
-    }
-
-
-    const response =
-        await getWorkerPayslips();
-
-
-    const payslips =
-        normalizeArray(
-            getResponseData(response)
-        );
-
-
-    if (!payslips.length) {
-
-        return;
-
-    }
-
-
-    const sorted =
-        [...payslips].sort(
-            (a, b) =>
-                String(
-                    b.pay_period || ""
-                )
-                .localeCompare(
+                const type =
                     String(
-                        a.pay_period || ""
-                    )
-                )
+                        item.leave_type_name ??
+                        item.leaveTypeName ??
+                        item.leave_type ??
+                        item.leaveType ??
+                        ""
+                    ).toLowerCase();
+
+
+                return (
+                    type.includes("annual") ||
+                    type.includes("vacation")
+                );
+
+            }
         );
 
 
-    const latest =
-        sorted[0];
+    if (!balance) {
+        balance = balances[0];
+    }
 
 
-    renderLatestPayslip(
-        latest
+    let remaining;
+
+
+    if (
+        balance.remaining_days !== undefined
+    ) {
+
+        remaining =
+            Number(
+                balance.remaining_days
+            );
+
+    } else if (
+        balance.remainingDays !== undefined
+    ) {
+
+        remaining =
+            Number(
+                balance.remainingDays
+            );
+
+    } else {
+
+        const allocated =
+            Number(
+                balance.allocated_days ??
+                balance.allocatedDays ??
+                balance.total_days ??
+                balance.totalDays ??
+                0
+            );
+
+
+        const used =
+            Number(
+                balance.used_days ??
+                balance.usedDays ??
+                0
+            );
+
+
+        remaining =
+            allocated - used;
+
+    }
+
+
+    if (!Number.isFinite(remaining)) {
+        remaining = 0;
+    }
+
+
+    setText(
+        "leaveBalanceDash",
+        `${remaining} days`
     );
+
+}
+
+
+// ============================================================
+// PAYSLIPS
+// ============================================================
+
+async function loadDashboardPayslips() {
+
+    try {
+
+        if (
+            typeof getWorkerPayslips !==
+            "function"
+        ) {
+
+            return;
+        }
+
+
+        const response =
+            await getWorkerPayslips();
+
+
+        console.log(
+            "Payslips response:",
+            response
+        );
+
+
+        const payslips =
+            extractArray(response);
+
+
+        renderLatestPayslip(
+            payslips
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Could not load payslips:",
+            error
+        );
+
+
+        setText(
+            "netPayDash",
+            "R0.00"
+        );
+
+    }
 
 }
 
@@ -744,69 +1296,460 @@ async function loadDashboardPayslip() {
 // ============================================================
 
 function renderLatestPayslip(
-    payslip
+    payslips
 ) {
 
-    if (!payslip) {
+    if (
+        !Array.isArray(payslips) ||
+        payslips.length === 0
+    ) {
+
+        setText(
+            "netPayDash",
+            "R0.00"
+        );
+
         return;
     }
 
 
-    setDashboardText(
-        [
-            "latestPayPeriod",
-            "payPeriod",
-            "payslipPeriod"
-        ],
-        payslip.pay_period
-    );
+    const sorted =
+        [...payslips].sort(
+            (a, b) => {
+
+                const dateA =
+                    a.pay_period ??
+                    a.payPeriod ??
+                    a.created_at ??
+                    a.createdAt ??
+                    "";
+
+                const dateB =
+                    b.pay_period ??
+                    b.payPeriod ??
+                    b.created_at ??
+                    b.createdAt ??
+                    "";
 
 
-    setDashboardText(
-        [
-            "latestSalary",
-            "finalSalary",
-            "payslipSalary",
-            "salary"
-        ],
-        formatCurrency(
-            payslip.final_salary
-        )
-    );
+                return String(dateB)
+                    .localeCompare(
+                        String(dateA)
+                    );
+
+            }
+        );
 
 
-    setDashboardText(
-        [
-            "hoursWorked",
-            "payslipHours"
-        ],
-        payslip.hours_worked
-    );
+    const latest =
+        sorted[0];
 
 
-    setDashboardText(
-        [
-            "leaveDeductions",
-            "payslipDeductions"
-        ],
-        formatCurrency(
-            payslip.leave_deductions
-        )
+    const netPay =
+        latest.net_salary ??
+        latest.netSalary ??
+        latest.final_salary ??
+        latest.finalSalary ??
+        latest.net_pay ??
+        latest.netPay ??
+        0;
+
+
+    setText(
+        "netPayDash",
+        formatCurrency(netPay)
     );
 
 }
 
 
 // ============================================================
-// UPDATE DATE
+// LEAVE REQUESTS
 // ============================================================
 
-function updateDashboardDate() {
+async function loadDashboardLeaveRequests() {
+
+    try {
+
+        if (
+            typeof getWorkerLeaveRequests !==
+            "function"
+        ) {
+
+            return;
+        }
+
+
+        const response =
+            await getWorkerLeaveRequests();
+
+
+        console.log(
+            "Leave requests response:",
+            response
+        );
+
+
+        const requests =
+            extractArray(response);
+
+
+        renderLeaveActivity(
+            requests
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Could not load leave requests:",
+            error
+        );
+
+    }
+
+}
+
+
+// ============================================================
+// LEAVE ACTIVITY
+// ============================================================
+
+function renderLeaveActivity(
+    requests
+) {
+
+    const tbody =
+        document.getElementById(
+            "dashboardActivity"
+        );
+
+
+    if (!tbody) {
+        return;
+    }
+
+
+    if (
+        !Array.isArray(requests) ||
+        requests.length === 0
+    ) {
+
+        return;
+    }
+
+
+    // Do not overwrite attendance activity.
+
+    if (
+        tbody.children.length > 0 &&
+        !tbody.textContent.includes(
+            "No activity yet"
+        )
+    ) {
+
+        return;
+    }
+
+
+    const recent =
+        requests.slice(0, 5);
+
+
+    tbody.innerHTML =
+        recent.map(
+            request => {
+
+                const date =
+                    request.start_date ??
+                    request.startDate ??
+                    request.created_at ??
+                    request.createdAt;
+
+
+                const leaveType =
+                    request.leave_type_name ??
+                    request.leaveTypeName ??
+                    request.leave_type ??
+                    "Leave";
+
+
+                const status =
+                    request.status ??
+                    "Pending";
+
+
+                return `
+                    <tr>
+
+                        <td>
+                            ${escapeHtml(
+                                formatDisplayDate(
+                                    date
+                                )
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                leaveType
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                status
+                            )}
+                        </td>
+
+                    </tr>
+                `;
+
+            }
+        ).join("");
+
+}
+
+
+// ============================================================
+// DASHBOARD BUTTONS
+// ============================================================
+
+function initializeDashboardButtons() {
+
+    console.log(
+        "Initializing dashboard buttons..."
+    );
+
+
+    const quickClockBtn =
+        document.getElementById(
+            "quickClockBtn"
+        );
+
+
+    if (quickClockBtn) {
+
+        quickClockBtn.addEventListener(
+            "click",
+            handleClockButton
+        );
+
+    }
+
+}
+
+
+// ============================================================
+// QUICK CLOCK IN
+// ============================================================
+
+async function handleClockButton(
+    event
+) {
+
+    event.preventDefault();
+
+
+    const button =
+        event.currentTarget;
+
+
+    if (!button) {
+        return;
+    }
+
+
+    try {
+
+        button.disabled = true;
+
+        button.innerHTML =
+            '<i class="ti ti-loader-2"></i> Clocking in...';
+
+
+        if (
+            typeof workerClockIn !==
+            "function"
+        ) {
+
+            throw new Error(
+                "workerClockIn() is not available."
+            );
+
+        }
+
+
+        console.log(
+            "Sending clock-in request..."
+        );
+
+
+        const response =
+            await workerClockIn();
+
+
+        console.log(
+            "Clock-in response:",
+            response
+        );
+
+
+        showDashboardToast(
+            response?.message ||
+            "You have been clocked in successfully."
+        );
+
+
+        // Refresh everything from database
+
+        await loadDashboardAttendance();
+
+
+    } catch (error) {
+
+        console.error(
+            "Clock-in failed:",
+            error
+        );
+
+
+        button.disabled = false;
+
+        button.innerHTML =
+            '<i class="ti ti-login-2"></i> Clock In';
+
+
+        showDashboardToast(
+            error.message ||
+            "Could not clock in."
+        );
+
+    }
+
+}
+
+
+// ============================================================
+// RESPONSE HELPERS
+// ============================================================
+
+function extractArray(response) {
+
+    if (!response) {
+        return [];
+    }
+
+
+    if (Array.isArray(response)) {
+        return response;
+    }
+
+
+    if (
+        Array.isArray(response.data)
+    ) {
+
+        return response.data;
+    }
+
+
+    if (
+        Array.isArray(response.rows)
+    ) {
+
+        return response.rows;
+    }
+
+
+    if (
+        Array.isArray(response.results)
+    ) {
+
+        return response.results;
+    }
+
+
+    if (
+        Array.isArray(response.attendance)
+    ) {
+
+        return response.attendance;
+    }
+
+
+    if (
+        Array.isArray(response.balances)
+    ) {
+
+        return response.balances;
+    }
+
+
+    if (
+        Array.isArray(response.requests)
+    ) {
+
+        return response.requests;
+    }
+
+
+    if (
+        Array.isArray(response.payslips)
+    ) {
+
+        return response.payslips;
+    }
+
+
+    return [];
+}
+
+
+// ============================================================
+// GENERIC TEXT
+// ============================================================
+
+function setText(
+    id,
+    value
+) {
 
     const element =
-        document.getElementById(
-            "currentDate"
+        document.getElementById(id);
+
+
+    if (!element) {
+
+        console.warn(
+            `Element #${id} not found.`
         );
+
+        return;
+    }
+
+
+    element.textContent =
+        value === undefined ||
+        value === null ||
+        value === ""
+            ? "-"
+            : value;
+
+}
+
+
+// ============================================================
+// OPTIONAL TEXT
+// ============================================================
+
+function setTextIfExists(
+    id,
+    value
+) {
+
+    const element =
+        document.getElementById(id);
 
 
     if (!element) {
@@ -814,144 +1757,18 @@ function updateDashboardDate() {
     }
 
 
-    element.textContent =
-        new Date().toLocaleDateString(
-            "en-ZA",
-            {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric"
-            }
-        );
-
-}
-
-
-// ============================================================
-// TEXT HELPER
-// ============================================================
-
-function setDashboardText(
-    ids,
-    value
-) {
-
-    if (!Array.isArray(ids)) {
-        ids = [ids];
-    }
-
-
     if (
-        value === null ||
         value === undefined ||
+        value === null ||
         value === ""
     ) {
+
         return;
     }
 
 
-    ids.forEach(
-        id => {
-
-            const element =
-                document.getElementById(id);
-
-
-            if (!element) {
-                return;
-            }
-
-
-            element.textContent =
-                String(value);
-
-        }
-    );
-
-}
-
-
-// ============================================================
-// RESPONSE DATA HELPER
-// ============================================================
-
-function getResponseData(
-    response
-) {
-
-    if (
-        response === null ||
-        response === undefined
-    ) {
-
-        return null;
-
-    }
-
-
-    if (
-        response.data !== undefined
-    ) {
-
-        return response.data;
-
-    }
-
-
-    if (
-        response.result !== undefined
-    ) {
-
-        return response.result;
-
-    }
-
-
-    return response;
-
-}
-
-
-// ============================================================
-// ARRAY NORMALIZER
-// ============================================================
-
-function normalizeArray(
-    data
-) {
-
-    if (Array.isArray(data)) {
-        return data;
-    }
-
-
-    if (
-        data &&
-        Array.isArray(data.data)
-    ) {
-
-        return data.data;
-
-    }
-
-
-    if (
-        data &&
-        Array.isArray(data.results)
-    ) {
-
-        return data.results;
-
-    }
-
-
-    if (data) {
-        return [data];
-    }
-
-
-    return [];
+    element.textContent =
+        value;
 
 }
 
@@ -960,7 +1777,7 @@ function normalizeArray(
 // NESTED NAME
 // ============================================================
 
-function getDashboardNestedName(
+function getNestedName(
     value
 ) {
 
@@ -969,16 +1786,22 @@ function getDashboardNestedName(
     }
 
 
-    if (typeof value === "string") {
+    if (
+        typeof value ===
+        "string"
+    ) {
+
         return value;
     }
 
 
     return (
-        value.name ||
-        value.title ||
-        value.department_name ||
-        value.position_name ||
+        value.name ??
+        value.title ??
+        value.department_name ??
+        value.departmentName ??
+        value.position_name ??
+        value.positionName ??
         ""
     );
 
@@ -986,22 +1809,22 @@ function getDashboardNestedName(
 
 
 // ============================================================
-// DATE HELPERS
+// DATE
 // ============================================================
 
-function getTodayString() {
+function getTodayDateString() {
 
-    const date =
+    const now =
         new Date();
 
 
     return [
-        date.getFullYear(),
+        now.getFullYear(),
         String(
-            date.getMonth() + 1
+            now.getMonth() + 1
         ).padStart(2, "0"),
         String(
-            date.getDate()
+            now.getDate()
         ).padStart(2, "0")
     ].join("-");
 
@@ -1017,18 +1840,17 @@ function normalizeDate(
     }
 
 
-    return String(value)
-        .substring(0, 10);
+    // YYYY-MM-DD or YYYY-MM-DD HH:mm:ss
 
-}
+    if (
+        typeof value === "string" &&
+        /^\d{4}-\d{2}-\d{2}/.test(value)
+    ) {
 
-
-function formatTime(
-    value
-) {
-
-    if (!value) {
-        return "--";
+        return value.substring(
+            0,
+            10
+        );
 
     }
 
@@ -1043,15 +1865,103 @@ function formatTime(
         )
     ) {
 
-        const text =
-            String(value);
+        return String(value)
+            .substring(0, 10);
 
-        if (text.length >= 5) {
-            return text.substring(0, 5);
+    }
+
+
+    return [
+        date.getFullYear(),
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0"),
+        String(
+            date.getDate()
+        ).padStart(2, "0")
+    ].join("-");
+
+}
+
+
+// ============================================================
+// DISPLAY DATE
+// ============================================================
+
+function formatDisplayDate(
+    value
+) {
+
+    if (!value) {
+        return "-";
+    }
+
+
+    const date =
+        new Date(value);
+
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+
+        return String(value);
+    }
+
+
+    return date.toLocaleDateString(
+        "en-ZA",
+        {
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
         }
+    );
 
-        return text;
+}
 
+
+// ============================================================
+// TIME
+// ============================================================
+
+function formatTime(
+    value
+) {
+
+    if (!value) {
+        return "-";
+    }
+
+
+    // MySQL TIME
+
+    if (
+        typeof value === "string" &&
+        /^\d{2}:\d{2}/.test(value)
+    ) {
+
+        return value.substring(
+            0,
+            5
+        );
+
+    }
+
+
+    const date =
+        new Date(value);
+
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+
+        return String(value);
     }
 
 
@@ -1067,31 +1977,8 @@ function formatTime(
 
 
 // ============================================================
-// NUMBER / CURRENCY
+// CURRENCY
 // ============================================================
-
-function formatNumber(
-    value
-) {
-
-    const number =
-        Number(value);
-
-
-    if (!Number.isFinite(number)) {
-        return "0";
-    }
-
-
-    return number.toLocaleString(
-        "en-ZA",
-        {
-            maximumFractionDigits: 2
-        }
-    );
-
-}
-
 
 function formatCurrency(
     value
@@ -1101,7 +1988,10 @@ function formatCurrency(
         Number(value);
 
 
-    if (!Number.isFinite(number)) {
+    if (
+        !Number.isFinite(number)
+    ) {
+
         return "R0.00";
     }
 
@@ -1110,7 +2000,8 @@ function formatCurrency(
         "en-ZA",
         {
             style: "currency",
-            currency: "ZAR"
+            currency: "ZAR",
+            minimumFractionDigits: 2
         }
     );
 
@@ -1118,10 +2009,45 @@ function formatCurrency(
 
 
 // ============================================================
-// ERROR MESSAGE
+// HTML ESCAPE
 // ============================================================
 
-function showDashboardMessage(
+function escapeHtml(
+    value
+) {
+
+    return String(
+        value ?? ""
+    )
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+// ============================================================
+// TOAST
+// ============================================================
+
+function showDashboardToast(
     message
 ) {
 
@@ -1131,19 +2057,111 @@ function showDashboardMessage(
     ) {
 
         showToast(message);
+
         return;
+    }
+
+
+    let toast =
+        document.getElementById(
+            "dashboardToast"
+        );
+
+
+    if (!toast) {
+
+        toast =
+            document.createElement(
+                "div"
+            );
+
+
+        toast.id =
+            "dashboardToast";
+
+
+        toast.style.position =
+            "fixed";
+
+
+        toast.style.bottom =
+            "25px";
+
+
+        toast.style.right =
+            "25px";
+
+
+        toast.style.padding =
+            "14px 20px";
+
+
+        toast.style.borderRadius =
+            "10px";
+
+
+        toast.style.background =
+            "#27187E";
+
+
+        toast.style.color =
+            "#ffffff";
+
+
+        toast.style.zIndex =
+            "9999";
+
+
+        toast.style.boxShadow =
+            "0 5px 20px rgba(0,0,0,0.2)";
+
+
+        document.body.appendChild(
+            toast
+        );
 
     }
 
 
-    console.error(message);
+    toast.textContent =
+        message;
+
+
+    setTimeout(
+        () => {
+
+            if (toast) {
+                toast.remove();
+            }
+
+        },
+        3000
+    );
 
 }
 
 
 // ============================================================
-// GLOBAL ACCESS
+// GLOBALS
 // ============================================================
 
-window.initializeDashboard =
-    initializeDashboard;
+window.initializeWorkerDashboard =
+    initializeWorkerDashboard;
+
+window.renderDashboardProfile =
+    renderDashboardProfile;
+
+window.renderTodayStatus =
+    renderTodayStatus;
+
+window.renderClockStatus =
+    renderClockStatus;
+
+window.renderLeaveBalance =
+    renderLeaveBalance;
+
+window.renderLatestPayslip =
+    renderLatestPayslip;
+
+window.handleClockButton =
+    handleClockButton;
