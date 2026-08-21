@@ -1,142 +1,231 @@
 // ============================================================
-// ModernTech Worker Payslips
+// ModernTech Worker Payslip
 // ============================================================
-// Backend endpoints:
 //
-// GET /api/worker/payslips
-// GET /api/worker/payslips/:id
-// GET /api/worker/payslips/:id/download
+// Connects the Worker Payslip page to the backend API.
 //
-// Authentication is handled by worker_api.js.
+// Database source:
+//   employee_payslips
+//
+// Expected fields:
+//   payroll_id
+//   employee_id
+//   employee_code
+//   name
+//   pay_period
+//   hours_worked
+//   leave_deductions
+//   final_salary
+//   created_at
+//
+// Expected API wrapper:
+//   getWorkerPayslips()
+//
 // ============================================================
 
 console.log("Worker Payslip JS connected.");
 
 
 // ============================================================
-// DOM READY
+// PAGE INITIALIZATION
 // ============================================================
 
-document.addEventListener("DOMContentLoaded", async () => {
-    console.log("Initializing worker payslips...");
+document.addEventListener(
+    "DOMContentLoaded",
+    async () => {
 
-    // Protect page.
-    if (typeof requireWorkerLogin === "function") {
-        if (!requireWorkerLogin()) {
-            return;
+        if (
+            typeof requireWorkerLogin ===
+            "function"
+        ) {
+
+            if (!requireWorkerLogin()) {
+                return;
+            }
+
         }
+
+
+        await initializePayslip();
+
     }
-
-    // Display stored employee immediately.
-    if (typeof initializeStoredEmployee === "function") {
-        initializeStoredEmployee();
-    }
-
-    // Load employee information.
-    await loadPayslipEmployee();
-
-    // Load payslips.
-    await loadPayslips();
-
-    // Set up any payslip controls.
-    initializePayslipControls();
-});
+);
 
 
 // ============================================================
-// EMPLOYEE
+// INITIALIZE PAYSLIP
 // ============================================================
 
-async function loadPayslipEmployee() {
+async function initializePayslip() {
+
     try {
-        if (typeof getWorkerProfile !== "function") {
-            return;
-        }
-
-        const response = await getWorkerProfile();
 
         console.log(
-            "Payslip employee response:",
-            response
+            "Loading worker payslips..."
         );
 
-        const employee =
-            response?.data?.employee ||
-            response?.data ||
-            response?.employee ||
-            response;
 
-        if (!employee) {
-            return;
-        }
+        if (
+            typeof getWorkerPayslips !==
+            "function"
+        ) {
 
-        if (typeof saveLoggedInWorker === "function") {
-            saveLoggedInWorker(employee);
-        }
-
-        if (typeof updateSidebarEmployee === "function") {
-            updateSidebarEmployee(employee);
-        }
-
-    } catch (error) {
-        console.error(
-            "Could not load payslip employee:",
-            error
-        );
-    }
-}
-
-
-// ============================================================
-// LOAD PAYSLIPS
-// ============================================================
-
-async function loadPayslips() {
-    try {
-        if (typeof getWorkerPayslips !== "function") {
-            console.error(
-                "getWorkerPayslips() is unavailable."
+            throw new Error(
+                "getWorkerPayslips() is not available. Check your API wrapper."
             );
-            return;
+
         }
+
 
         const response =
             await getWorkerPayslips();
 
+
         console.log(
-            "Payslips response:",
+            "Payslip API response:",
             response
         );
 
-        const payslips =
-            response?.data?.payslips ||
-            response?.data?.payrolls ||
-            response?.payslips ||
-            response?.payrolls ||
-            response?.data ||
-            response;
 
-        if (!Array.isArray(payslips)) {
-            console.warn(
-                "Payslips response was not an array."
+        const data =
+            getPayslipResponseData(
+                response
             );
-            return;
-        }
 
-        renderPayslips(payslips);
+
+        const payslips =
+            normalizePayslips(data);
+
+
+        console.log(
+            "Payslips:",
+            payslips
+        );
+
+
+        renderPayslips(
+            payslips
+        );
+
+
+        updatePayslipSummary(
+            payslips
+        );
+
 
     } catch (error) {
+
         console.error(
-            "Could not load payslips:",
+            "Could not load worker payslips:",
             error
         );
 
+
         showPayslipMessage(
             error.message ||
-            "Could not load your payslips.",
-            "error"
+            "Could not load your payslips."
         );
+
     }
+
+}
+
+
+// ============================================================
+// GET RESPONSE DATA
+// ============================================================
+
+function getPayslipResponseData(
+    response
+) {
+
+    if (
+        response === null ||
+        response === undefined
+    ) {
+
+        return null;
+
+    }
+
+
+    // Axios-style response.
+
+    if (
+        response.data !== undefined
+    ) {
+
+        return response.data;
+
+    }
+
+
+    // Standard backend response.
+
+    if (
+        response.result !== undefined
+    ) {
+
+        return response.result;
+
+    }
+
+
+    return response;
+
+}
+
+
+// ============================================================
+// NORMALIZE PAYSLIPS
+// ============================================================
+
+function normalizePayslips(
+    data
+) {
+
+    if (Array.isArray(data)) {
+        return data;
+    }
+
+
+    if (
+        data &&
+        Array.isArray(data.data)
+    ) {
+
+        return data.data;
+
+    }
+
+
+    if (
+        data &&
+        Array.isArray(data.payslips)
+    ) {
+
+        return data.payslips;
+
+    }
+
+
+    if (
+        data &&
+        Array.isArray(data.results)
+    ) {
+
+        return data.results;
+
+    }
+
+
+    if (data) {
+        return [data];
+    }
+
+
+    return [];
+
 }
 
 
@@ -144,720 +233,446 @@ async function loadPayslips() {
 // RENDER PAYSLIPS
 // ============================================================
 
-function renderPayslips(payslips) {
-
-    // Try common table body IDs.
-    const tableBody =
-        document.getElementById("payslipsBody") ||
-        document.getElementById("payslipBody") ||
-        document.getElementById("payrollBody") ||
-        document.querySelector(
-            "#payslipTable tbody"
-        ) ||
-        document.querySelector(
-            "#payslipsTable tbody"
-        );
-
-    if (tableBody) {
-        renderPayslipTable(
-            tableBody,
-            payslips
-        );
-        return;
-    }
-
-    // Try card container.
-    const cardContainer =
-        document.getElementById("payslips") ||
-        document.getElementById("payslipList") ||
-        document.getElementById("payslipCards");
-
-    if (cardContainer) {
-        renderPayslipCards(
-            cardContainer,
-            payslips
-        );
-        return;
-    }
-
-    console.warn(
-        "No payslip table or card container found."
-    );
-}
-
-
-// ============================================================
-// TABLE
-// ============================================================
-
-function renderPayslipTable(
-    tableBody,
+function renderPayslips(
     payslips
 ) {
 
-    if (payslips.length === 0) {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="7">
-                    No payslips available.
-                </td>
-            </tr>
-        `;
+    const container =
+        findPayslipContainer();
+
+
+    if (!container) {
+
+        console.warn(
+            "Payslip container not found."
+        );
 
         return;
+
     }
 
-    tableBody.innerHTML = "";
-
-    payslips.forEach((payslip) => {
-
-        const id =
-            payslip.id ??
-            payslip.payroll_id ??
-            payslip.payslip_id ??
-            payslip.payrollId ??
-            payslip.payslipId;
-
-        const period =
-            payslip.pay_period ||
-            payslip.payPeriod ||
-            payslip.period ||
-            payslip.payroll_period ||
-            formatPayPeriod(payslip);
-
-        const payDate =
-            payslip.pay_date ||
-            payslip.payDate ||
-            payslip.payment_date ||
-            payslip.paymentDate;
-
-        const gross =
-            payslip.gross_pay ??
-            payslip.grossPay ??
-            payslip.gross_salary ??
-            payslip.grossSalary ??
-            0;
-
-        const deductions =
-            payslip.total_deductions ??
-            payslip.totalDeductions ??
-            payslip.deductions ??
-            0;
-
-        const net =
-            payslip.net_pay ??
-            payslip.netPay ??
-            payslip.net_salary ??
-            payslip.netSalary ??
-            0;
-
-        const row =
-            document.createElement("tr");
-
-        row.innerHTML = `
-            <td>
-                ${escapeHtml(period)}
-            </td>
-
-            <td>
-                ${formatCurrencySafe(gross)}
-            </td>
-
-            <td>
-                ${formatCurrencySafe(deductions)}
-            </td>
-
-            <td>
-                ${formatCurrencySafe(net)}
-            </td>
-
-            <td>
-                ${formatPayslipDate(payDate)}
-            </td>
-
-            <td>
-                <span class="status approved">
-                    Available
-                </span>
-            </td>
-
-            <td>
-                <button
-                    type="button"
-                    class="btn payslip-view-btn"
-                    data-payslip-id="${escapeHtml(id)}"
-                >
-                    View
-                </button>
-
-                <button
-                    type="button"
-                    class="btn payslip-download-btn"
-                    data-payslip-id="${escapeHtml(id)}"
-                >
-                    Download
-                </button>
-            </td>
-        `;
-
-        tableBody.appendChild(row);
-    });
-}
-
-
-// ============================================================
-// CARDS
-// ============================================================
-
-function renderPayslipCards(
-    container,
-    payslips
-) {
-
-    if (payslips.length === 0) {
-        container.innerHTML = `
-            <p class="empty-state">
-                No payslips available.
-            </p>
-        `;
-
-        return;
-    }
 
     container.innerHTML = "";
 
-    payslips.forEach((payslip) => {
 
-        const id =
-            payslip.id ??
-            payslip.payroll_id ??
-            payslip.payslip_id ??
-            "";
+    if (!payslips.length) {
 
-        const period =
-            payslip.pay_period ||
-            payslip.payPeriod ||
-            payslip.period ||
-            formatPayPeriod(payslip);
-
-        const gross =
-            payslip.gross_pay ??
-            payslip.grossPay ??
-            0;
-
-        const deductions =
-            payslip.total_deductions ??
-            payslip.totalDeductions ??
-            payslip.deductions ??
-            0;
-
-        const net =
-            payslip.net_pay ??
-            payslip.netPay ??
-            0;
-
-        const card =
-            document.createElement("article");
-
-        card.className =
-            "payslip-card";
-
-        card.innerHTML = `
-            <div class="payslip-card-header">
-                <div>
-                    <span>Pay Period</span>
-                    <h3>
-                        ${escapeHtml(period)}
-                    </h3>
-                </div>
-
-                <span class="status approved">
-                    Available
-                </span>
-            </div>
-
-            <div class="payslip-card-details">
-
-                <div>
-                    <span>Gross Pay</span>
-                    <strong>
-                        ${formatCurrencySafe(gross)}
-                    </strong>
-                </div>
-
-                <div>
-                    <span>Deductions</span>
-                    <strong>
-                        ${formatCurrencySafe(deductions)}
-                    </strong>
-                </div>
-
-                <div>
-                    <span>Net Pay</span>
-                    <strong>
-                        ${formatCurrencySafe(net)}
-                    </strong>
-                </div>
-
-            </div>
-
-            <div class="payslip-card-actions">
-
-                <button
-                    type="button"
-                    class="btn payslip-view-btn"
-                    data-payslip-id="${escapeHtml(id)}"
-                >
-                    View Payslip
-                </button>
-
-                <button
-                    type="button"
-                    class="btn payslip-download-btn"
-                    data-payslip-id="${escapeHtml(id)}"
-                >
-                    Download
-                </button>
-
+        container.innerHTML = `
+            <div class="empty-state">
+                <p>No payslips are available yet.</p>
             </div>
         `;
 
-        container.appendChild(card);
-    });
-}
+        return;
+
+    }
 
 
-// ============================================================
-// CONTROLS
-// ============================================================
+    // Newest payslip first.
 
-function initializePayslipControls() {
+    const sortedPayslips =
+        [...payslips].sort(
+            (a, b) =>
+                String(
+                    b.pay_period || ""
+                )
+                .localeCompare(
+                    String(
+                        a.pay_period || ""
+                    )
+                )
+        );
 
-    document.addEventListener(
-        "click",
-        async (event) => {
 
-            const viewButton =
-                event.target.closest(
-                    ".payslip-view-btn"
+    sortedPayslips.forEach(
+        payslip => {
+
+            const element =
+                createPayslipElement(
+                    payslip
                 );
 
-            if (viewButton) {
 
-                const payslipId =
-                    viewButton.dataset.payslipId;
-
-                if (payslipId) {
-                    await viewPayslip(
-                        payslipId
-                    );
-                }
-
-                return;
-            }
-
-
-            const downloadButton =
-                event.target.closest(
-                    ".payslip-download-btn"
-                );
-
-            if (downloadButton) {
-
-                const payslipId =
-                    downloadButton.dataset.payslipId;
-
-                if (payslipId) {
-                    await downloadPayslip(
-                        payslipId
-                    );
-                }
-            }
+            container.appendChild(
+                element
+            );
 
         }
     );
+
 }
 
 
 // ============================================================
-// VIEW PAYSLIP
+// FIND PAYSLIP CONTAINER
 // ============================================================
 
-async function viewPayslip(payslipId) {
+function findPayslipContainer() {
 
-    try {
+    const possibleIds = [
 
-        if (
-            typeof getWorkerPayslip !==
-            "function"
-        ) {
-            throw new Error(
-                "Payslip API is unavailable."
-            );
+        "payslipContainer",
+
+        "payslipsContainer",
+
+        "payrollContainer",
+
+        "payslipList",
+
+        "payslipsList",
+
+        "payrollList",
+
+        "employeePayslips",
+
+        "payslipTableBody"
+
+    ];
+
+
+    for (
+        const id of possibleIds
+    ) {
+
+        const element =
+            document.getElementById(id);
+
+
+        if (element) {
+            return element;
         }
 
-        const response =
-            await getWorkerPayslip(
-                payslipId
-            );
-
-        console.log(
-            "Payslip details:",
-            response
-        );
-
-        const payslip =
-            response?.data?.payslip ||
-            response?.data ||
-            response?.payslip ||
-            response;
-
-        if (!payslip) {
-            throw new Error(
-                "Payslip data was not returned."
-            );
-        }
-
-        displayPayslipDetails(
-            payslip
-        );
-
-    } catch (error) {
-
-        console.error(
-            "Could not load payslip:",
-            error
-        );
-
-        showPayslipMessage(
-            error.message ||
-            "Could not load payslip.",
-            "error"
-        );
     }
+
+
+    // If a table exists, use tbody.
+
+    const tbody =
+        document.querySelector(
+            "table tbody"
+        );
+
+
+    if (tbody) {
+        return tbody;
+    }
+
+
+    return null;
+
 }
 
 
 // ============================================================
-// DISPLAY PAYSLIP DETAILS
+// CREATE PAYSLIP ELEMENT
 // ============================================================
 
-function displayPayslipDetails(
+function createPayslipElement(
     payslip
 ) {
-
-    let modal =
-        document.getElementById(
-            "payslipModal"
-        );
-
-    if (!modal) {
-
-        modal =
-            document.createElement("div");
-
-        modal.id =
-            "payslipModal";
-
-        modal.className =
-            "modal";
-
-        document.body.appendChild(
-            modal
-        );
-    }
 
     const period =
         payslip.pay_period ||
         payslip.payPeriod ||
-        payslip.period ||
-        formatPayPeriod(payslip);
+        "Unknown";
 
-    const gross =
-        payslip.gross_pay ??
-        payslip.grossPay ??
-        0;
+
+    const salary =
+        Number(
+            payslip.final_salary ??
+            payslip.finalSalary ??
+            0
+        );
+
+
+    const hours =
+        Number(
+            payslip.hours_worked ??
+            payslip.hoursWorked ??
+            0
+        );
+
 
     const deductions =
-        payslip.total_deductions ??
-        payslip.totalDeductions ??
-        payslip.deductions ??
-        0;
+        Number(
+            payslip.leave_deductions ??
+            payslip.leaveDeductions ??
+            0
+        );
 
-    const net =
-        payslip.net_pay ??
-        payslip.netPay ??
-        0;
 
-    const payDate =
-        payslip.pay_date ||
-        payslip.payDate ||
-        payslip.payment_date ||
-        payslip.paymentDate;
+    const payrollId =
+        payslip.payroll_id ||
+        payslip.payrollId ||
+        "";
 
-    modal.innerHTML = `
-        <div class="modal-content">
 
-            <button
-                type="button"
-                class="modal-close"
-                id="closePayslipModal"
-                aria-label="Close"
-            >
-                ×
-            </button>
+    // --------------------------------------------------------
+    // TABLE ROW
+    // --------------------------------------------------------
 
-            <div class="modal-header">
-                <h2>
-                    Payslip
-                </h2>
+    if (
+        findPayslipContainer() &&
+        findPayslipContainer().tagName ===
+        "TBODY"
+    ) {
 
-                <p>
-                    ${escapeHtml(period)}
-                </p>
-            </div>
+        const row =
+            document.createElement(
+                "tr"
+            );
 
-            <div class="payslip-details">
 
-                <div class="payslip-detail-row">
-                    <span>Pay Period</span>
-                    <strong>
-                        ${escapeHtml(period)}
-                    </strong>
-                </div>
+        row.innerHTML = `
+            <td>${escapePayslipHTML(period)}</td>
 
-                <div class="payslip-detail-row">
-                    <span>Payment Date</span>
-                    <strong>
-                        ${formatPayslipDate(payDate)}
-                    </strong>
-                </div>
+            <td>
+                ${formatPayslipCurrency(salary)}
+            </td>
 
-                <div class="payslip-detail-row">
-                    <span>Gross Pay</span>
-                    <strong>
-                        ${formatCurrencySafe(gross)}
-                    </strong>
-                </div>
+            <td>
+                ${formatPayslipNumber(hours)}
+            </td>
 
-                <div class="payslip-detail-row">
-                    <span>Deductions</span>
-                    <strong>
-                        ${formatCurrencySafe(deductions)}
-                    </strong>
-                </div>
+            <td>
+                ${formatPayslipCurrency(deductions)}
+            </td>
 
-                <div class="payslip-detail-row total">
-                    <span>Net Pay</span>
-                    <strong>
-                        ${formatCurrencySafe(net)}
-                    </strong>
-                </div>
-
-            </div>
-
-            <div class="modal-actions">
-
+            <td>
                 <button
                     type="button"
-                    class="btn"
-                    id="modalDownloadPayslip"
-                    data-payslip-id="${escapeHtml(
-                        payslip.id ??
-                        payslip.payroll_id ??
-                        payslip.payslip_id ??
-                        ""
-                    )}"
+                    class="view-payslip-btn"
+                    data-payroll-id="${escapePayslipHTML(payrollId)}"
                 >
-                    Download Payslip
+                    View
                 </button>
+            </td>
+        `;
+
+
+        return row;
+
+    }
+
+
+    // --------------------------------------------------------
+    // CARD
+    // --------------------------------------------------------
+
+    const card =
+        document.createElement(
+            "div"
+        );
+
+
+    card.className =
+        "payslip-card";
+
+
+    card.innerHTML = `
+        <div class="payslip-card-header">
+
+            <div>
+                <h3>
+                    Payslip
+                </h3>
+
+                <span>
+                    ${escapePayslipHTML(period)}
+                </span>
+            </div>
+
+            <strong>
+                ${formatPayslipCurrency(salary)}
+            </strong>
+
+        </div>
+
+        <div class="payslip-card-body">
+
+            <div class="payslip-detail">
+
+                <span>
+                    Hours Worked
+                </span>
+
+                <strong>
+                    ${formatPayslipNumber(hours)}
+                </strong>
+
+            </div>
+
+            <div class="payslip-detail">
+
+                <span>
+                    Leave Deductions
+                </span>
+
+                <strong>
+                    ${formatPayslipCurrency(deductions)}
+                </strong>
 
             </div>
 
         </div>
+
+        <div class="payslip-card-footer">
+
+            <button
+                type="button"
+                class="view-payslip-btn"
+                data-payroll-id="${escapePayslipHTML(payrollId)}"
+            >
+                View Payslip
+            </button>
+
+        </div>
     `;
 
-    modal.classList.add("show");
 
-    const closeButton =
-        document.getElementById(
-            "closePayslipModal"
-        );
+    return card;
 
-    if (closeButton) {
-
-        closeButton.addEventListener(
-            "click",
-            () => {
-                modal.classList.remove(
-                    "show"
-                );
-            }
-        );
-    }
-
-    const downloadButton =
-        document.getElementById(
-            "modalDownloadPayslip"
-        );
-
-    if (downloadButton) {
-
-        downloadButton.addEventListener(
-            "click",
-            async () => {
-
-                const id =
-                    downloadButton.dataset
-                        .payslipId;
-
-                if (id) {
-                    await downloadPayslip(
-                        id
-                    );
-                }
-
-            }
-        );
-    }
-
-    modal.addEventListener(
-        "click",
-        (event) => {
-
-            if (event.target === modal) {
-
-                modal.classList.remove(
-                    "show"
-                );
-            }
-
-        }
-    );
 }
 
 
 // ============================================================
-// DOWNLOAD PAYSLIP
+// SUMMARY
 // ============================================================
 
-async function downloadPayslip(
-    payslipId
+function updatePayslipSummary(
+    payslips
 ) {
 
-    try {
-
-        if (
-            typeof downloadWorkerPayslip !==
-            "function"
-        ) {
-            throw new Error(
-                "Payslip download API is unavailable."
-            );
-        }
-
-        showPayslipMessage(
-            "Preparing payslip download...",
-            "info"
-        );
-
-        await downloadWorkerPayslip(
-            payslipId
-        );
-
-        showPayslipMessage(
-            "Payslip downloaded successfully.",
-            "success"
-        );
-
-    } catch (error) {
-
-        console.error(
-            "Payslip download failed:",
-            error
-        );
-
-        showPayslipMessage(
-            error.message ||
-            "Could not download payslip.",
-            "error"
-        );
-    }
-}
-
-
-// ============================================================
-// PAY PERIOD
-// ============================================================
-
-function formatPayPeriod(payslip) {
-
-    const month =
-        payslip.month;
-
-    const year =
-        payslip.year;
-
-    if (month && year) {
-        return `${month} ${year}`;
+    if (!payslips.length) {
+        return;
     }
 
-    const start =
-        payslip.period_start ||
-        payslip.periodStart;
 
-    const end =
-        payslip.period_end ||
-        payslip.periodEnd;
-
-    if (start && end) {
-        return `${formatPayslipDate(start)} - ${formatPayslipDate(end)}`;
-    }
-
-    return "Pay Period";
-}
-
-
-// ============================================================
-// DATE
-// ============================================================
-
-function formatPayslipDate(
-    dateValue
-) {
-
-    if (!dateValue) {
-        return "-";
-    }
-
-    if (
-        typeof formatDate ===
-        "function"
-    ) {
-        return formatDate(
-            dateValue
+    const sorted =
+        [...payslips].sort(
+            (a, b) =>
+                String(
+                    b.pay_period || ""
+                )
+                .localeCompare(
+                    String(
+                        a.pay_period || ""
+                    )
+                )
         );
-    }
 
-    const date =
-        new Date(dateValue);
 
-    if (
-        Number.isNaN(
-            date.getTime()
+    const latest =
+        sorted[0];
+
+
+    const salary =
+        Number(
+            latest.final_salary ||
+            0
+        );
+
+
+    setPayslipText(
+        [
+            "latestSalary",
+            "currentSalary",
+            "finalSalary",
+            "payslipSalary"
+        ],
+        formatPayslipCurrency(
+            salary
         )
-    ) {
-        return String(dateValue);
+    );
+
+
+    setPayslipText(
+        [
+            "latestPayPeriod",
+            "currentPayPeriod",
+            "payPeriod",
+            "payslipPeriod"
+        ],
+        latest.pay_period
+    );
+
+
+    setPayslipText(
+        [
+            "totalPayslips",
+            "payslipCount"
+        ],
+        String(
+            payslips.length
+        )
+    );
+
+
+    setPayslipText(
+        [
+            "hoursWorked",
+            "latestHoursWorked"
+        ],
+        formatPayslipNumber(
+            latest.hours_worked
+        )
+    );
+
+
+    setPayslipText(
+        [
+            "leaveDeductions",
+            "latestLeaveDeductions"
+        ],
+        formatPayslipCurrency(
+            latest.leave_deductions
+        )
+    );
+
+}
+
+
+// ============================================================
+// TEXT HELPER
+// ============================================================
+
+function setPayslipText(
+    ids,
+    value
+) {
+
+    if (!Array.isArray(ids)) {
+        ids = [ids];
     }
 
-    return date.toLocaleDateString(
-        "en-ZA",
-        {
-            day: "2-digit",
-            month: "short",
-            year: "numeric"
+
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+        return;
+    }
+
+
+    ids.forEach(
+        id => {
+
+            const element =
+                document.getElementById(id);
+
+
+            if (!element) {
+                return;
+            }
+
+
+            element.textContent =
+                String(value);
+
         }
     );
+
 }
 
 
@@ -865,76 +680,82 @@ function formatPayslipDate(
 // CURRENCY
 // ============================================================
 
-function formatCurrencySafe(
-    amount
+function formatPayslipCurrency(
+    value
 ) {
 
-    if (
-        typeof formatCurrency ===
-        "function"
-    ) {
-        return formatCurrency(
-            amount
-        );
+    const amount =
+        Number(value);
+
+
+    if (!Number.isFinite(amount)) {
+
+        return "R0.00";
+
     }
 
-    const number =
-        Number(amount);
 
-    if (
-        Number.isNaN(number)
-    ) {
-        return String(amount);
-    }
-
-    return new Intl.NumberFormat(
+    return amount.toLocaleString(
         "en-ZA",
         {
             style: "currency",
             currency: "ZAR"
         }
-    ).format(number);
+    );
+
 }
 
 
 // ============================================================
-// MESSAGE
+// NUMBER
 // ============================================================
 
-function showPayslipMessage(
-    message,
-    type = "info"
+function formatPayslipNumber(
+    value
 ) {
 
-    if (
-        typeof showToast ===
-        "function"
-    ) {
-        showToast(message);
-        return;
+    const number =
+        Number(value);
+
+
+    if (!Number.isFinite(number)) {
+        return "0";
     }
 
-    console.log(
-        `[${type}] ${message}`
+
+    return number.toLocaleString(
+        "en-ZA",
+        {
+            maximumFractionDigits: 2
+        }
     );
+
 }
 
 
 // ============================================================
-// ESCAPE HTML
+// HTML ESCAPE
 // ============================================================
 
-function escapeHtml(value) {
+function escapePayslipHTML(
+    value
+) {
 
     if (
         value === null ||
         value === undefined
     ) {
+
         return "";
+
     }
 
+
     return String(value)
-        .replace(/&/g, "&amp;")
+        .replace(
+            /&/g,
+            "&amp;"
+        )
         .replace(
             /</g,
             "&lt;"
@@ -951,6 +772,95 @@ function escapeHtml(value) {
             /'/g,
             "&#039;"
         );
+
+}
+
+
+// ============================================================
+// BUTTON EVENTS
+// ============================================================
+
+document.addEventListener(
+    "click",
+    event => {
+
+        const button =
+            event.target.closest(
+                ".view-payslip-btn"
+            );
+
+
+        if (!button) {
+            return;
+        }
+
+
+        const payrollId =
+            button.dataset.payrollId;
+
+
+        console.log(
+            "Selected payroll:",
+            payrollId
+        );
+
+
+        // If your HTML has a payslip modal,
+        // this can be connected to it later.
+
+        if (
+            typeof openPayslipModal ===
+            "function"
+        ) {
+
+            openPayslipModal(
+                payrollId
+            );
+
+        }
+
+    }
+);
+
+
+// ============================================================
+// ERROR MESSAGE
+// ============================================================
+
+function showPayslipMessage(
+    message
+) {
+
+    if (
+        typeof showToast ===
+        "function"
+    ) {
+
+        showToast(message);
+
+        return;
+
+    }
+
+
+    const container =
+        findPayslipContainer();
+
+
+    if (container) {
+
+        container.innerHTML = `
+            <div class="error-state">
+                <p>
+                    ${escapePayslipHTML(message)}
+                </p>
+            </div>
+        `;
+
+    }
+
+    console.error(message);
+
 }
 
 
@@ -958,11 +868,8 @@ function escapeHtml(value) {
 // GLOBAL ACCESS
 // ============================================================
 
-window.loadPayslips =
-    loadPayslips;
+window.initializePayslip =
+    initializePayslip;
 
-window.viewPayslip =
-    viewPayslip;
-
-window.downloadPayslip =
-    downloadPayslip;
+window.renderPayslips =
+    renderPayslips;

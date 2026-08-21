@@ -3,16 +3,15 @@
 // Shared JavaScript
 // ============================================================
 //
-// This file contains ONLY functionality shared across
-// worker portal pages.
+// This file contains ONLY shared worker-portal functionality.
 //
 // Authentication:
-// - Login stores JWT under "authToken"
-// - Worker API also supports "token"
-// - This file accepts both so the worker portal does not
-//   immediately redirect back to the login page.
+// - token      = JWT
+// - employee   = logged-in employee object
+// - userRole   = worker / hr
 //
-// Employee information comes from the API/login response.
+// Employee data ALWAYS comes from the login/API response.
+// No worker is hard-coded here.
 // ============================================================
 
 console.log("ModernTech shared script connected.");
@@ -23,10 +22,12 @@ console.log("ModernTech shared script connected.");
 // ============================================================
 
 document.addEventListener("DOMContentLoaded", () => {
+
     initializeSidebar();
     highlightCurrentPage();
     initializeToastButtons();
     initializeStoredEmployee();
+
 });
 
 
@@ -36,8 +37,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function initializeSidebar() {
 
-    const sidebar = document.getElementById("sidebar");
-    const toggle = document.getElementById("sidebarToggle");
+    const sidebar =
+        document.getElementById("sidebar");
+
+    const toggle =
+        document.getElementById("sidebarToggle");
 
     if (!sidebar || !toggle) {
         return;
@@ -45,7 +49,8 @@ function initializeSidebar() {
 
     toggle.addEventListener("click", () => {
 
-        const isOpen = sidebar.classList.toggle("open");
+        const isOpen =
+            sidebar.classList.toggle("open");
 
         toggle.setAttribute(
             "aria-expanded",
@@ -55,7 +60,6 @@ function initializeSidebar() {
     });
 
 
-    // Close mobile sidebar after selecting a page
     document
         .querySelectorAll(".nav-item")
         .forEach((item) => {
@@ -83,7 +87,7 @@ function initializeSidebar() {
 function highlightCurrentPage() {
 
     const currentPage =
-        location.pathname
+        window.location.pathname
             .split("/")
             .pop() ||
         "worker-dashboard.html";
@@ -93,14 +97,19 @@ function highlightCurrentPage() {
         .querySelectorAll(".nav-item")
         .forEach((link) => {
 
-            const href = link.getAttribute("href");
+            const href =
+                link.getAttribute("href");
 
             if (!href) {
                 return;
             }
 
 
-            if (href === currentPage) {
+            const linkPage =
+                href.split("/").pop();
+
+
+            if (linkPage === currentPage) {
 
                 link.classList.add("active");
 
@@ -125,27 +134,98 @@ function highlightCurrentPage() {
 
 
 // ============================================================
-// UPDATE SIDEBAR EMPLOYEE
+// GET LOGGED-IN EMPLOYEE
 // ============================================================
-//
-// Call:
-//
-// updateSidebarEmployee(employee);
-//
-// Supported formats:
-//
-// {
-//     name: "Sibongile Nkosi",
-//     employee_code: "EMP-001"
-// }
-//
-// OR:
-//
-// {
-//     first_name: "Sibongile",
-//     last_name: "Nkosi",
-//     employee_code: "EMP-001"
-// }
+
+function getStoredEmployee() {
+
+    const employeeJSON =
+        localStorage.getItem("employee");
+
+    if (!employeeJSON) {
+        return null;
+    }
+
+    try {
+
+        return JSON.parse(employeeJSON);
+
+    } catch (error) {
+
+        console.error(
+            "Could not parse employee data:",
+            error
+        );
+
+        return null;
+
+    }
+
+}
+
+
+// ============================================================
+// SAVE EMPLOYEE
+// ============================================================
+
+function saveStoredEmployee(employee) {
+
+    if (!employee) {
+        return;
+    }
+
+    const employeeJSON =
+        JSON.stringify(employee);
+
+
+    localStorage.setItem(
+        "employee",
+        employeeJSON
+    );
+
+    // Compatibility with existing pages.
+    localStorage.setItem(
+        "loggedInUser",
+        employeeJSON
+    );
+
+
+    // Worker profile compatibility.
+    if (
+        employee.role === "worker" ||
+        employee.roleName === "worker"
+    ) {
+
+        localStorage.setItem(
+            "workerProfile",
+            employeeJSON
+        );
+
+    }
+
+}
+
+
+// ============================================================
+// INITIALIZE STORED EMPLOYEE
+// ============================================================
+
+function initializeStoredEmployee() {
+
+    const employee =
+        getStoredEmployee();
+
+    if (!employee) {
+        return;
+    }
+
+    updateSidebarEmployee(employee);
+
+}
+
+
+// ============================================================
+// UPDATE SIDEBAR EMPLOYEE
 // ============================================================
 
 function updateSidebarEmployee(employee) {
@@ -155,10 +235,6 @@ function updateSidebarEmployee(employee) {
     }
 
 
-    // --------------------------------------------------------
-    // Employee name
-    // --------------------------------------------------------
-
     const name =
         employee.name ||
         employee.fullName ||
@@ -166,73 +242,69 @@ function updateSidebarEmployee(employee) {
             employee.first_name &&
             employee.last_name
                 ? `${employee.first_name} ${employee.last_name}`
-                : null
+                : ""
         ) ||
         "Worker";
 
 
-    // --------------------------------------------------------
-    // Employee code
-    // --------------------------------------------------------
-
     const employeeCode =
-        employee.employee_code ||
         employee.employeeCode ||
-        employee.employee_id ||
+        employee.employee_code ||
         employee.employeeId ||
+        employee.employee_id ||
         "";
 
 
-    // --------------------------------------------------------
-    // Find sidebar elements
-    // --------------------------------------------------------
-
     const avatar =
-        document.getElementById("sidebarAvatar");
+        document.getElementById(
+            "sidebarAvatar"
+        );
 
     const sidebarName =
-        document.getElementById("sidebarWorkerName");
+        document.getElementById(
+            "sidebarWorkerName"
+        );
 
     const sidebarCode =
-        document.getElementById("sidebarEmployeeCode");
+        document.getElementById(
+            "sidebarEmployeeCode"
+        );
 
     const welcomeName =
-        document.getElementById("welcomeName");
+        document.getElementById(
+            "welcomeName"
+        );
 
-
-    // --------------------------------------------------------
-    // Update sidebar name
-    // --------------------------------------------------------
 
     if (sidebarName) {
-        sidebarName.textContent = name;
+
+        sidebarName.textContent =
+            name;
+
     }
 
-
-    // --------------------------------------------------------
-    // Update employee code
-    // --------------------------------------------------------
 
     if (sidebarCode) {
-        sidebarCode.textContent = employeeCode;
+
+        sidebarCode.textContent =
+            employeeCode;
+
     }
 
-
-    // --------------------------------------------------------
-    // Update avatar
-    // --------------------------------------------------------
 
     if (avatar) {
-        avatar.textContent = getInitials(name);
+
+        avatar.textContent =
+            getInitials(name);
+
     }
 
 
-    // --------------------------------------------------------
-    // Update dashboard welcome name
-    // --------------------------------------------------------
-
     if (welcomeName) {
-        welcomeName.textContent = getFirstName(name);
+
+        welcomeName.textContent =
+            getFirstName(name);
+
     }
 
 }
@@ -251,7 +323,9 @@ function getInitials(name) {
     return name
         .trim()
         .split(/\s+/)
-        .map((part) => part.charAt(0))
+        .map((part) =>
+            part.charAt(0)
+        )
         .join("")
         .substring(0, 2)
         .toUpperCase();
@@ -277,144 +351,68 @@ function getFirstName(name) {
 
 
 // ============================================================
-// AUTHENTICATION TOKEN
-// ============================================================
-//
-// IMPORTANT:
-//
-// login.js stores the JWT as:
-//
-//     authToken
-//
-// worker_api.js historically looked for:
-//
-//     token
-//
-// We support both here.
-//
-// ============================================================
-
-function getAuthToken() {
-
-    return (
-        localStorage.getItem("authToken") ||
-        localStorage.getItem("token") ||
-        localStorage.getItem("workerToken")
-    );
-
-}
-
-
-// ============================================================
 // PAGE PROTECTION
 // ============================================================
 
 function protectPage(requiredRole = null) {
 
-    const token = getAuthToken();
+    const token =
+        localStorage.getItem("token");
 
-    const loggedInUserRaw =
-        localStorage.getItem("loggedInUser");
+    const employee =
+        getStoredEmployee();
 
-    const employeeRaw =
-        localStorage.getItem("employee");
+    const userRole =
+        localStorage.getItem("userRole");
+
 
     // --------------------------------------------------------
-    // No authentication information
+    // No authentication
     // --------------------------------------------------------
 
-    if (!token) {
+    if (!token || !employee) {
 
-        console.warn(
-            "No authentication token found. Redirecting to login."
-        );
-
-        window.location.href = "index.html";
+        window.location.href =
+            "index.html";
 
         return false;
-    }
-
-
-    // --------------------------------------------------------
-    // Get logged-in employee
-    // --------------------------------------------------------
-
-    let loggedInUser = null;
-
-    if (loggedInUserRaw) {
-
-        try {
-
-            loggedInUser =
-                JSON.parse(loggedInUserRaw);
-
-        } catch (error) {
-
-            console.error(
-                "Could not parse loggedInUser:",
-                error
-            );
-
-        }
 
     }
 
 
     // --------------------------------------------------------
-    // If there is no loggedInUser but there is an employee,
-    // use the employee object.
+    // Determine actual role
     // --------------------------------------------------------
 
-    if (!loggedInUser && employeeRaw) {
+    const actualRole =
+        userRole ||
+        employee.role ||
+        employee.roleName ||
+        null;
 
-        try {
 
-            loggedInUser =
-                JSON.parse(employeeRaw);
+    // --------------------------------------------------------
+    // Role protection
+    // --------------------------------------------------------
 
-        } catch (error) {
+    if (
+        requiredRole &&
+        actualRole !== requiredRole
+    ) {
 
-            console.error(
-                "Could not parse employee:",
-                error
-            );
+        if (actualRole === "hr") {
+
+            window.location.href =
+                "hr-dashboard.html";
+
+        } else {
+
+            window.location.href =
+                "worker-dashboard.html";
 
         }
 
-    }
-
-
-    // --------------------------------------------------------
-    // Optional role protection
-    // --------------------------------------------------------
-
-    if (requiredRole && loggedInUser) {
-
-        const actualRole =
-            loggedInUser.role ||
-            loggedInUser.user_role ||
-            loggedInUser.role_name;
-
-
-        if (
-            actualRole &&
-            actualRole !== requiredRole
-        ) {
-
-            if (actualRole === "hr") {
-
-                window.location.href =
-                    "hr-dashboard.html";
-
-            } else if (actualRole === "worker") {
-
-                window.location.href =
-                    "worker-dashboard.html";
-
-            }
-
-            return false;
-        }
+        return false;
 
     }
 
@@ -425,86 +423,12 @@ function protectPage(requiredRole = null) {
 
 
 // ============================================================
-// WORKER LOGIN CHECK
-// ============================================================
-//
-// Worker pages call:
-//
-// requireWorkerLogin();
-//
-// The old problem was that login.js stored "authToken"
-// while worker_api.js only checked "token".
-//
-// This function accepts both.
-//
+// REQUIRE WORKER LOGIN
 // ============================================================
 
 function requireWorkerLogin() {
 
-    const token = getAuthToken();
-
-    if (!token) {
-
-        console.warn(
-            "Worker is not authenticated. Redirecting to login."
-        );
-
-        window.location.href =
-            "index.html";
-
-        return false;
-    }
-
-
-    // --------------------------------------------------------
-    // Make sure the logged-in user is actually a worker
-    // when role information exists.
-    // --------------------------------------------------------
-
-    const loggedInUserRaw =
-        localStorage.getItem("loggedInUser");
-
-    if (loggedInUserRaw) {
-
-        try {
-
-            const employee =
-                JSON.parse(loggedInUserRaw);
-
-            const role =
-                employee?.role ||
-                employee?.user_role ||
-                employee?.role_name;
-
-
-            if (
-                role &&
-                role !== "worker"
-            ) {
-
-                if (role === "hr") {
-
-                    window.location.href =
-                        "hr-dashboard.html";
-
-                }
-
-                return false;
-            }
-
-        } catch (error) {
-
-            console.error(
-                "Could not validate logged-in worker:",
-                error
-            );
-
-        }
-
-    }
-
-
-    return true;
+    return protectPage("worker");
 
 }
 
@@ -524,55 +448,43 @@ function showToast(message) {
         document.querySelector(".toast");
 
 
-    // --------------------------------------------------------
-    // Create toast if one does not already exist
-    // --------------------------------------------------------
-
     if (!toast) {
 
         toast =
             document.createElement("div");
 
-        toast.className = "toast";
+        toast.className =
+            "toast";
 
-        document.body.appendChild(toast);
+        document.body.appendChild(
+            toast
+        );
 
     }
 
 
-    // --------------------------------------------------------
-    // Set message
-    // --------------------------------------------------------
+    toast.textContent =
+        message;
 
-    toast.textContent = message;
-
-
-    // --------------------------------------------------------
-    // Show toast
-    // --------------------------------------------------------
 
     toast.classList.add("show");
 
 
-    // --------------------------------------------------------
-    // Remove previous timeout
-    // --------------------------------------------------------
-
     if (toast._timeout) {
 
-        clearTimeout(toast._timeout);
+        clearTimeout(
+            toast._timeout
+        );
 
     }
 
 
-    // --------------------------------------------------------
-    // Hide after 2.8 seconds
-    // --------------------------------------------------------
-
     toast._timeout =
         setTimeout(() => {
 
-            toast.classList.remove("show");
+            toast.classList.remove(
+                "show"
+            );
 
         }, 2800);
 
@@ -580,7 +492,7 @@ function showToast(message) {
 
 
 // ============================================================
-// DATA-TOAST BUTTONS
+// TOAST BUTTONS
 // ============================================================
 
 function initializeToastButtons() {
@@ -606,7 +518,7 @@ function initializeToastButtons() {
 
 
 // ============================================================
-// CURRENCY FORMATTER
+// CURRENCY
 // ============================================================
 
 function formatCurrency(amount) {
@@ -614,11 +526,8 @@ function formatCurrency(amount) {
     const number =
         Number(amount);
 
-
     if (Number.isNaN(number)) {
-
         return amount;
-
     }
 
 
@@ -635,7 +544,7 @@ function formatCurrency(amount) {
 
 
 // ============================================================
-// DATE FORMATTER
+// TODAY
 // ============================================================
 
 function todayLabel() {
@@ -654,7 +563,7 @@ function todayLabel() {
 
 
 // ============================================================
-// TIME FORMATTER
+// TIME
 // ============================================================
 
 function timeLabel() {
@@ -672,7 +581,7 @@ function timeLabel() {
 
 
 // ============================================================
-// SAFE TEXT HELPER
+// SAFE TEXT
 // ============================================================
 
 function safeText(
@@ -690,14 +599,13 @@ function safeText(
 
     }
 
-
     return String(value);
 
 }
 
 
 // ============================================================
-// FORMAT DATE FROM API
+// DATE
 // ============================================================
 
 function formatDate(dateValue) {
@@ -711,9 +619,15 @@ function formatDate(dateValue) {
         new Date(dateValue);
 
 
-    if (Number.isNaN(date.getTime())) {
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
 
-        return String(dateValue);
+        return String(
+            dateValue
+        );
 
     }
 
@@ -731,7 +645,7 @@ function formatDate(dateValue) {
 
 
 // ============================================================
-// FORMAT DATE + TIME FROM API
+// DATE + TIME
 // ============================================================
 
 function formatDateTime(dateValue) {
@@ -745,9 +659,15 @@ function formatDateTime(dateValue) {
         new Date(dateValue);
 
 
-    if (Number.isNaN(date.getTime())) {
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
 
-        return String(dateValue);
+        return String(
+            dateValue
+        );
 
     }
 
@@ -767,7 +687,7 @@ function formatDateTime(dateValue) {
 
 
 // ============================================================
-// API RESPONSE DATA HELPER
+// API RESPONSE HELPER
 // ============================================================
 
 function getResponseData(response) {
@@ -792,214 +712,14 @@ function getResponseData(response) {
 
 
 // ============================================================
-// LOGGED-IN EMPLOYEE HELPER
-// ============================================================
-//
-// Login stores the employee as:
-//
-//     loggedInUser
-//
-// worker_api.js stores the employee as:
-//
-//     employee
-//
-// This helper supports both.
-//
-// ============================================================
-
-function getStoredEmployee() {
-
-    // --------------------------------------------------------
-    // First try the API worker employee key.
-    // --------------------------------------------------------
-
-    const employee =
-        localStorage.getItem("employee");
-
-
-    if (employee) {
-
-        try {
-
-            return JSON.parse(employee);
-
-        } catch (error) {
-
-            console.error(
-                "Could not parse stored employee:",
-                error
-            );
-
-        }
-
-    }
-
-
-    // --------------------------------------------------------
-    // Fall back to login's loggedInUser key.
-    // --------------------------------------------------------
-
-    const loggedInUser =
-        localStorage.getItem("loggedInUser");
-
-
-    if (loggedInUser) {
-
-        try {
-
-            return JSON.parse(loggedInUser);
-
-        } catch (error) {
-
-            console.error(
-                "Could not parse loggedInUser:",
-                error
-            );
-
-        }
-
-    }
-
-
-    return null;
-
-}
-
-
-// ============================================================
-// SYNCHRONIZE AUTH STORAGE
-// ============================================================
-//
-// This fixes the mismatch between login.js and worker_api.js.
-//
-// login.js:
-//
-//     authToken
-//     loggedInUser
-//
-// worker_api.js:
-//
-//     token
-//     employee
-//
-// We keep both copies synchronized.
-//
-// ============================================================
-
-function synchronizeAuthStorage() {
-
-    // --------------------------------------------------------
-    // TOKEN
-    // --------------------------------------------------------
-
-    const authToken =
-        localStorage.getItem("authToken");
-
-    const token =
-        localStorage.getItem("token");
-
-
-    if (authToken && !token) {
-
-        localStorage.setItem(
-            "token",
-            authToken
-        );
-
-    }
-
-
-    if (token && !authToken) {
-
-        localStorage.setItem(
-            "authToken",
-            token
-        );
-
-    }
-
-
-    // --------------------------------------------------------
-    // EMPLOYEE
-    // --------------------------------------------------------
-
-    const loggedInUser =
-        localStorage.getItem("loggedInUser");
-
-    const employee =
-        localStorage.getItem("employee");
-
-
-    if (loggedInUser && !employee) {
-
-        localStorage.setItem(
-            "employee",
-            loggedInUser
-        );
-
-    }
-
-
-    if (employee && !loggedInUser) {
-
-        localStorage.setItem(
-            "loggedInUser",
-            employee
-        );
-
-    }
-
-}
-
-
-// ============================================================
-// INITIALIZE SIDEBAR FROM STORED EMPLOYEE
-// ============================================================
-
-function initializeStoredEmployee() {
-
-    // Make sure both authentication storage systems agree.
-    synchronizeAuthStorage();
-
-
-    const employee =
-        getStoredEmployee();
-
-
-    if (!employee) {
-
-        return;
-
-    }
-
-
-    updateSidebarEmployee(employee);
-
-}
-
-
-// ============================================================
-// LOGOUT / CLEAR AUTHENTICATION
-// ============================================================
-
-function clearAuthentication() {
-
-    localStorage.removeItem("token");
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("workerToken");
-
-    localStorage.removeItem("employee");
-    localStorage.removeItem("loggedInUser");
-
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("workerProfile");
-
-}
-
-
-// ============================================================
 // GLOBAL ACCESS
 // ============================================================
+
+window.getStoredEmployee =
+    getStoredEmployee;
+
+window.saveStoredEmployee =
+    saveStoredEmployee;
 
 window.updateSidebarEmployee =
     updateSidebarEmployee;
@@ -1009,9 +729,6 @@ window.getInitials =
 
 window.getFirstName =
     getFirstName;
-
-window.getAuthToken =
-    getAuthToken;
 
 window.protectPage =
     protectPage;
@@ -1043,14 +760,5 @@ window.formatDateTime =
 window.getResponseData =
     getResponseData;
 
-window.getStoredEmployee =
-    getStoredEmployee;
-
 window.initializeStoredEmployee =
     initializeStoredEmployee;
-
-window.synchronizeAuthStorage =
-    synchronizeAuthStorage;
-
-window.clearAuthentication =
-    clearAuthentication;

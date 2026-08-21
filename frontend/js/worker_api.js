@@ -2,36 +2,35 @@
 // ModernTech Worker Portal API
 // ============================================================
 //
-// Connects the employee frontend to:
-// Node.js / Express backend
-// http://localhost:4000/api
+// Frontend:
+//     HTML / CSS / JavaScript
 //
-// Backend worker routes:
-// /worker/dashboard
-// /worker/profile
-// /worker/attendance
-// /worker/leave
-// /worker/payslips
-// /worker/notifications
+// Backend:
+//     Node.js / Express
+//
+// Database:
+//     MySQL
+//
+// API:
+//     http://localhost:4000/api
+//
 // ============================================================
 
+console.log("ModernTech Worker API connected.");
 
-const WORKER_API_BASE_URL =
-    "http://localhost:4000/api";
+const WORKER_API_BASE_URL = "http://localhost:4000/api";
 
 
 // ============================================================
-// TOKEN HELPERS
+// TOKEN
 // ============================================================
 
 function getWorkerToken() {
-
     return (
-        localStorage.getItem("token") ||
         localStorage.getItem("authToken") ||
+        localStorage.getItem("token") ||
         localStorage.getItem("workerToken")
     );
-
 }
 
 
@@ -41,107 +40,62 @@ function saveWorkerToken(token) {
         return;
     }
 
-    // Keep both names because the login/frontend code
-    // currently uses authToken while older API code uses token.
-
-    localStorage.setItem(
-        "token",
-        token
-    );
-
-    localStorage.setItem(
-        "authToken",
-        token
-    );
-
+    localStorage.setItem("authToken", token);
+    localStorage.setItem("token", token);
+    localStorage.setItem("workerToken", token);
 }
 
 
 function clearWorkerToken() {
 
+    localStorage.removeItem("authToken");
     localStorage.removeItem("token");
+    localStorage.removeItem("workerToken");
 
-    localStorage.removeItem(
-        "authToken"
-    );
-
-    localStorage.removeItem(
-        "workerToken"
-    );
-
-    localStorage.removeItem(
-        "employee"
-    );
-
-    localStorage.removeItem(
-        "loggedInUser"
-    );
-
-    localStorage.removeItem(
-        "userRole"
-    );
-
-    localStorage.removeItem(
-        "workerProfile"
-    );
-
+    localStorage.removeItem("employee");
+    localStorage.removeItem("loggedInUser");
+    localStorage.removeItem("workerProfile");
+    localStorage.removeItem("userRole");
 }
 
 
 // ============================================================
-// LOGGED-IN EMPLOYEE
+// EMPLOYEE STORAGE
 // ============================================================
 
 function getLoggedInWorker() {
 
-    const employee =
-        localStorage.getItem("employee");
+    const keys = [
+        "employee",
+        "loggedInUser",
+        "workerProfile"
+    ];
 
-    if (employee) {
+    for (const key of keys) {
+
+        const stored =
+            localStorage.getItem(key);
+
+        if (!stored) {
+            continue;
+        }
 
         try {
 
-            return JSON.parse(employee);
+            return JSON.parse(stored);
 
         } catch (error) {
 
             console.error(
-                "Could not parse employee:",
+                `Could not parse ${key}:`,
                 error
             );
 
         }
 
     }
-
-
-    const loggedInUser =
-        localStorage.getItem(
-            "loggedInUser"
-        );
-
-    if (loggedInUser) {
-
-        try {
-
-            return JSON.parse(
-                loggedInUser
-            );
-
-        } catch (error) {
-
-            console.error(
-                "Could not parse loggedInUser:",
-                error
-            );
-
-        }
-
-    }
-
 
     return null;
-
 }
 
 
@@ -151,24 +105,28 @@ function saveLoggedInWorker(employee) {
         return;
     }
 
-    const employeeJSON =
+    const json =
         JSON.stringify(employee);
 
     localStorage.setItem(
         "employee",
-        employeeJSON
+        json
     );
 
     localStorage.setItem(
         "loggedInUser",
-        employeeJSON
+        json
     );
 
+    localStorage.setItem(
+        "workerProfile",
+        json
+    );
 }
 
 
 // ============================================================
-// AUTHENTICATED API REQUEST
+// GENERIC API REQUEST
 // ============================================================
 
 async function workerApiRequest(
@@ -179,30 +137,15 @@ async function workerApiRequest(
     const token =
         getWorkerToken();
 
-
-    // --------------------------------------------------------
-    // Request configuration
-    // --------------------------------------------------------
-
     const config = {
-
         ...options,
 
         headers: {
-
-            "Content-Type":
-                "application/json",
-
+            "Content-Type": "application/json",
             ...(options.headers || {})
-
         }
-
     };
 
-
-    // --------------------------------------------------------
-    // JWT authentication
-    // --------------------------------------------------------
 
     if (token) {
 
@@ -212,14 +155,14 @@ async function workerApiRequest(
     }
 
 
+    const url =
+        `${WORKER_API_BASE_URL}${endpoint}`;
+
+
     console.log(
-        `Worker API: ${config.method || "GET"} ${WORKER_API_BASE_URL}${endpoint}`
+        `Worker API: ${config.method || "GET"} ${url}`
     );
 
-
-    // --------------------------------------------------------
-    // Make request
-    // --------------------------------------------------------
 
     let response;
 
@@ -227,14 +170,14 @@ async function workerApiRequest(
 
         response =
             await fetch(
-                `${WORKER_API_BASE_URL}${endpoint}`,
+                url,
                 config
             );
 
     } catch (error) {
 
         console.error(
-            "Could not connect to backend:",
+            "Backend connection failed:",
             error
         );
 
@@ -245,38 +188,48 @@ async function workerApiRequest(
     }
 
 
-    // --------------------------------------------------------
-    // Read response
-    // --------------------------------------------------------
-
     let data = null;
 
-    try {
+    const contentType =
+        response.headers.get(
+            "content-type"
+        );
 
-        data =
-            await response.json();
 
-    } catch (error) {
+    if (
+        contentType &&
+        contentType.includes("application/json")
+    ) {
 
-        data = null;
+        try {
+
+            data =
+                await response.json();
+
+        } catch (error) {
+
+            console.error(
+                "Could not parse API response:",
+                error
+            );
+
+        }
 
     }
 
 
     console.log(
-        "Worker API response:",
+        "API response:",
         response.status,
         data
     );
 
 
     // --------------------------------------------------------
-    // Handle authentication failure
+    // Unauthorized
     // --------------------------------------------------------
 
-    if (
-        response.status === 401
-    ) {
+    if (response.status === 401) {
 
         clearWorkerToken();
 
@@ -284,17 +237,14 @@ async function workerApiRequest(
             "index.html";
 
         return null;
-
     }
 
 
     // --------------------------------------------------------
-    // Handle forbidden
+    // Forbidden
     // --------------------------------------------------------
 
-    if (
-        response.status === 403
-    ) {
+    if (response.status === 403) {
 
         throw new Error(
             data?.error ||
@@ -306,25 +256,21 @@ async function workerApiRequest(
 
 
     // --------------------------------------------------------
-    // Handle all other errors
+    // Other errors
     // --------------------------------------------------------
 
     if (!response.ok) {
 
-        const errorMessage =
+        throw new Error(
             data?.error ||
             data?.message ||
-            `Request failed with status ${response.status}`;
-
-        throw new Error(
-            errorMessage
+            `Request failed with status ${response.status}`
         );
 
     }
 
 
     return data;
-
 }
 
 
@@ -344,45 +290,43 @@ async function workerLogin(
                 method: "POST",
 
                 body: JSON.stringify({
-
                     role: "worker",
-
-                    identifier:
-                        employeeCode,
-
-                    password:
-                        password
-
+                    identifier: employeeCode,
+                    password: password
                 })
-
             }
         );
 
 
-    if (
-        response?.data?.token
-    ) {
+    if (!response) {
+        return null;
+    }
+
+
+    const data =
+        response.data ||
+        response;
+
+
+    if (data.token) {
 
         saveWorkerToken(
-            response.data.token
+            data.token
         );
 
     }
 
 
-    if (
-        response?.data?.employee
-    ) {
+    if (data.employee) {
 
         saveLoggedInWorker(
-            response.data.employee
+            data.employee
         );
 
     }
 
 
     return response;
-
 }
 
 
@@ -390,227 +334,155 @@ async function workerLogin(
 // LOGOUT
 // ============================================================
 
-async function workerLogout() {
+function workerLogout() {
 
     clearWorkerToken();
 
     window.location.href =
         "index.html";
-
 }
 
 
 // ============================================================
-// WORKER DASHBOARD
+// DASHBOARD
 // ============================================================
 
 async function getWorkerDashboard() {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         "/worker/dashboard"
     );
-
 }
 
 
 // ============================================================
-// WORKER PROFILE
+// PROFILE
 // ============================================================
 
 async function getWorkerProfile() {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         "/worker/profile"
     );
-
 }
 
 
-async function updateWorkerProfile(
-    profileData
-) {
-
-    return await workerApiRequest(
-        "/worker/profile",
-        {
-            method: "PUT",
-
-            body: JSON.stringify(
-                profileData
-            )
-
-        }
-    );
-
-}
-
-
-// ============================================================
-// WORKER ATTENDANCE
+// IMPORTANT:
+//
+// Your current backend ONLY exposes:
+// GET /api/worker/profile
+//
+// There is currently NO PUT endpoint.
+//
+// Therefore DO NOT call updateWorkerProfile()
+// until the backend has a PUT route.
+//
 // ============================================================
 
 
-// ------------------------------------------------------------
-// Clock status
-// GET /api/worker/attendance/clock-status
-// ------------------------------------------------------------
+// ============================================================
+// ATTENDANCE
+// ============================================================
 
 async function getWorkerClockStatus() {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         "/worker/attendance/clock-status"
     );
-
 }
 
 
-// ------------------------------------------------------------
-// Clock in
-// POST /api/worker/attendance/clock-in
-// ------------------------------------------------------------
-
 async function workerClockIn() {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         "/worker/attendance/clock-in",
         {
             method: "POST"
         }
     );
-
 }
 
 
-// ------------------------------------------------------------
-// Start break
-// PUT /api/worker/attendance/break/start
-// ------------------------------------------------------------
-
 async function workerStartBreak() {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         "/worker/attendance/break/start",
         {
             method: "PUT"
         }
     );
-
 }
 
 
-// ------------------------------------------------------------
-// End break
-// PUT /api/worker/attendance/break/end
-// ------------------------------------------------------------
-
 async function workerEndBreak() {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         "/worker/attendance/break/end",
         {
             method: "PUT"
         }
     );
-
 }
 
 
-// ------------------------------------------------------------
-// Clock out
-// PUT /api/worker/attendance/clock-out
-// ------------------------------------------------------------
-
 async function workerClockOut() {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         "/worker/attendance/clock-out",
         {
             method: "PUT"
         }
     );
-
 }
 
-
-// ------------------------------------------------------------
-// Attendance history
-// GET /api/worker/attendance/history
-// ------------------------------------------------------------
 
 async function getWorkerAttendanceHistory() {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         "/worker/attendance/history"
     );
-
 }
 
 
-// Backwards-compatible function name
 async function getWorkerAttendance() {
 
-    return await getWorkerAttendanceHistory();
-
+    return getWorkerAttendanceHistory();
 }
 
 
 // ============================================================
-// WORKER LEAVE
+// LEAVE
 // ============================================================
-
-
-// ------------------------------------------------------------
-// Leave types
-// GET /api/worker/leave/types
-// ------------------------------------------------------------
 
 async function getWorkerLeaveTypes() {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         "/worker/leave/types"
     );
-
 }
 
-
-// ------------------------------------------------------------
-// Leave balances
-// GET /api/worker/leave/balances
-// ------------------------------------------------------------
 
 async function getWorkerLeaveBalances() {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         "/worker/leave/balances"
     );
-
 }
 
-
-// ------------------------------------------------------------
-// Leave requests
-// GET /api/worker/leave/requests
-// ------------------------------------------------------------
 
 async function getWorkerLeaveRequests() {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         "/worker/leave/requests"
     );
-
 }
 
-
-// ------------------------------------------------------------
-// Create leave request
-// POST /api/worker/leave/requests
-// ------------------------------------------------------------
 
 async function createWorkerLeaveRequest(
     leaveData
 ) {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         "/worker/leave/requests",
         {
             method: "POST",
@@ -618,180 +490,181 @@ async function createWorkerLeaveRequest(
             body: JSON.stringify(
                 leaveData
             )
-
         }
     );
-
 }
 
 
-// ------------------------------------------------------------
-// NOTE:
-//
-// Your backend currently exposes:
-//
-// POST /requests
-//
-// but does NOT show PUT /requests/:id
-// or DELETE /requests/:id.
-//
-// Therefore those old frontend functions are intentionally
-// not mapped to nonexistent backend endpoints.
-// ------------------------------------------------------------
-
-
 // ============================================================
-// WORKER PAYSLIPS
+// PAYSLIPS
 // ============================================================
-
-
-// ------------------------------------------------------------
-// Get all payslips
-// GET /api/worker/payslips
-// ------------------------------------------------------------
 
 async function getWorkerPayslips() {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         "/worker/payslips"
     );
-
 }
 
-
-// ------------------------------------------------------------
-// Get one payslip
-// GET /api/worker/payslips/:id
-// ------------------------------------------------------------
 
 async function getWorkerPayslip(
     payslipId
 ) {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         `/worker/payslips/${payslipId}`
     );
-
 }
 
-
-// ------------------------------------------------------------
-// Download payslip
-// GET /api/worker/payslips/:id/download
-// ------------------------------------------------------------
 
 async function downloadWorkerPayslip(
     payslipId
 ) {
 
-    return await workerApiRequest(
-        `/worker/payslips/${payslipId}/download`
-    );
+    const token =
+        getWorkerToken();
 
+
+    const response =
+        await fetch(
+            `${WORKER_API_BASE_URL}/worker/payslips/${payslipId}/download`,
+            {
+                method: "GET",
+
+                headers: {
+                    Authorization:
+                        `Bearer ${token}`
+                }
+            }
+        );
+
+
+    if (response.status === 401) {
+
+        clearWorkerToken();
+
+        window.location.href =
+            "index.html";
+
+        return;
+
+    }
+
+
+    if (!response.ok) {
+
+        let message =
+            "Could not download payslip.";
+
+        try {
+
+            const data =
+                await response.json();
+
+            message =
+                data.error ||
+                data.message ||
+                message;
+
+        } catch (error) {
+            // Ignore JSON parsing failure.
+        }
+
+        throw new Error(message);
+
+    }
+
+
+    const blob =
+        await response.blob();
+
+
+    const url =
+        window.URL.createObjectURL(blob);
+
+
+    const link =
+        document.createElement("a");
+
+    link.href = url;
+
+    link.download =
+        `Payslip-${payslipId}.pdf`;
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    link.remove();
+
+    window.URL.revokeObjectURL(url);
 }
 
 
 // ============================================================
-// WORKER NOTIFICATIONS
+// NOTIFICATIONS
 // ============================================================
-
-
-// ------------------------------------------------------------
-// Get all notifications
-// GET /api/worker/notifications
-// ------------------------------------------------------------
 
 async function getWorkerNotifications() {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         "/worker/notifications"
     );
-
 }
 
-
-// ------------------------------------------------------------
-// Get unread notifications
-// GET /api/worker/notifications/unread
-// ------------------------------------------------------------
 
 async function getUnreadWorkerNotifications() {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         "/worker/notifications/unread"
     );
-
 }
 
-
-// ------------------------------------------------------------
-// Get unread count
-// GET /api/worker/notifications/unread-count
-// ------------------------------------------------------------
 
 async function getUnreadWorkerNotificationCount() {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         "/worker/notifications/unread-count"
     );
-
 }
 
-
-// ------------------------------------------------------------
-// Get one notification
-// GET /api/worker/notifications/:id
-// ------------------------------------------------------------
 
 async function getWorkerNotification(
     notificationId
 ) {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         `/worker/notifications/${notificationId}`
     );
-
 }
 
-
-// ------------------------------------------------------------
-// Mark notification as read
-// PATCH /api/worker/notifications/:id/read
-// ------------------------------------------------------------
 
 async function markWorkerNotificationAsRead(
     notificationId
 ) {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         `/worker/notifications/${notificationId}/read`,
         {
             method: "PATCH"
         }
     );
-
 }
 
 
-// ------------------------------------------------------------
-// Mark all notifications as read
-// PATCH /api/worker/notifications/read-all
-// ------------------------------------------------------------
-
 async function markAllWorkerNotificationsAsRead() {
 
-    return await workerApiRequest(
+    return workerApiRequest(
         "/worker/notifications/read-all",
         {
             method: "PATCH"
         }
     );
-
 }
 
 
 // ============================================================
-// AUTHENTICATION HELPERS
+// AUTHENTICATION
 // ============================================================
 
 function isWorkerLoggedIn() {
@@ -799,7 +672,6 @@ function isWorkerLoggedIn() {
     return Boolean(
         getWorkerToken()
     );
-
 }
 
 
@@ -808,22 +680,22 @@ function requireWorkerLogin() {
     const token =
         getWorkerToken();
 
+
     if (!token) {
 
         window.location.href =
             "index.html";
 
         return false;
-
     }
 
-    return true;
 
+    return true;
 }
 
 
 // ============================================================
-// EXPORT FUNCTIONS TO WINDOW
+// GLOBALS
 // ============================================================
 
 window.getWorkerToken =
@@ -855,9 +727,6 @@ window.getWorkerDashboard =
 
 window.getWorkerProfile =
     getWorkerProfile;
-
-window.updateWorkerProfile =
-    updateWorkerProfile;
 
 window.getWorkerClockStatus =
     getWorkerClockStatus;
@@ -924,5 +793,3 @@ window.isWorkerLoggedIn =
 
 window.requireWorkerLogin =
     requireWorkerLogin;
-
-    

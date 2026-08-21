@@ -1,105 +1,77 @@
 // ============================================================
 // ModernTech Worker Profile
 // ============================================================
-//
-// Connects the Worker Profile page to the backend API.
-//
-// Backend endpoint:
-// GET  /api/worker/profile
-// PUT  /api/worker/profile
-//
-// Authentication:
-// JWT token from localStorage["token"]
-//
-// ============================================================
 
 console.log("Worker Profile JS connected.");
 
 
-// ============================================================
-// PAGE INITIALIZATION
-// ============================================================
+document.addEventListener(
+    "DOMContentLoaded",
+    async () => {
 
-document.addEventListener("DOMContentLoaded", async () => {
-
-    // Make sure the worker is authenticated.
-    if (typeof requireWorkerLogin === "function") {
-
-        if (!requireWorkerLogin()) {
+        if (
+            typeof requireWorkerLogin === "function" &&
+            !requireWorkerLogin()
+        ) {
             return;
         }
 
+        await initializeProfile();
+
     }
-
-    // Load the profile from the backend.
-    await initializeProfile();
-
-});
+);
 
 
 // ============================================================
-// INITIALIZE PROFILE
+// INITIALIZE
 // ============================================================
 
 async function initializeProfile() {
 
     try {
 
-        // Load the logged-in worker from the API.
-        const response = await getWorkerProfile();
+        const response =
+            await getWorkerProfile();
 
         console.log(
-            "Worker profile response:",
+            "Worker profile:",
             response
         );
 
+
         const profile =
-            getResponseData(response);
+            response?.data ||
+            response;
+
 
         if (!profile) {
 
-            console.error(
-                "No employee profile returned from API."
+            throw new Error(
+                "Employee profile was not returned."
             );
-
-            showToast(
-                "Could not load your profile."
-            );
-
-            return;
 
         }
 
-        // Store the latest employee information.
-        if (typeof saveLoggedInWorker === "function") {
 
-            saveLoggedInWorker(profile);
-
-        }
-
-        // Also keep the shared localStorage copy updated.
-        localStorage.setItem(
-            "employee",
-            JSON.stringify(profile)
+        saveLoggedInWorker(
+            profile
         );
 
-        // Update the sidebar.
-        if (
-            typeof updateSidebarEmployee ===
-            "function"
-        ) {
 
-            updateSidebarEmployee(profile);
+        renderProfile(
+            profile
+        );
 
-        }
 
-        // Display the profile.
-        renderProfile(profile);
+        updateSidebarEmployee(
+            profile
+        );
+
 
     } catch (error) {
 
         console.error(
-            "Could not load worker profile:",
+            "Profile error:",
             error
         );
 
@@ -124,453 +96,185 @@ function renderProfile(profile) {
     }
 
 
-    // --------------------------------------------------------
-    // NAME
-    // --------------------------------------------------------
-
-    const fullName =
+    const name =
         profile.name ||
-        profile.fullName ||
-        (
-            profile.first_name &&
-            profile.last_name
-                ? `${profile.first_name} ${profile.last_name}`
-                : ""
-        ) ||
         "Worker";
 
 
-    // --------------------------------------------------------
-    // EMPLOYEE CODE
-    // --------------------------------------------------------
-
     const employeeCode =
-        profile.employee_code ||
         profile.employeeCode ||
-        profile.employee_id ||
         profile.employeeId ||
-        "";
+        "--";
+
+
+    const department =
+        profile.departmentName ||
+        "--";
+
+
+    const position =
+        profile.positionName ||
+        "--";
+
+
+    const email =
+        profile.email ||
+        "--";
+
+
+    const status =
+        profile.isActive
+            ? "Active"
+            : "Inactive";
+
+
+    const salary =
+        Number(
+            profile.baseSalary || 0
+        );
+
+
+    const history =
+        profile.employmentHistory ||
+        "No employment history available.";
 
 
     // --------------------------------------------------------
-    // BASIC INFORMATION
+    // Personal information
     // --------------------------------------------------------
 
-    setElementText(
-        [
-            "profileName",
-            "employeeName",
-            "fullName",
-            "displayName"
-        ],
-        fullName
+    setText(
+        "empName",
+        name
     );
 
-
-    setElementText(
-        [
-            "profileEmployeeCode",
-            "employeeCode",
-            "profileCode"
-        ],
+    setText(
+        "empID",
         employeeCode
     );
 
-
-    setElementText(
-        [
-            "profileEmail",
-            "employeeEmail",
-            "email"
-        ],
-        profile.email
+    setText(
+        "empDepartment",
+        department
     );
 
-
-    setElementText(
-        [
-            "profilePhone",
-            "employeePhone",
-            "phone",
-            "phoneNumber"
-        ],
-        profile.phone ||
-        profile.phone_number
+    setText(
+        "empPosition",
+        position
     );
 
-
-    // --------------------------------------------------------
-    // JOB INFORMATION
-    // --------------------------------------------------------
-
-    setElementText(
-        [
-            "profileDepartment",
-            "department"
-        ],
-        getNestedName(
-            profile.department
-        ) ||
-        profile.department_name
+    setText(
+        "empEmail",
+        email
     );
 
-
-    setElementText(
-        [
-            "profilePosition",
-            "position",
-            "jobTitle",
-            "job_title"
-        ],
-        getNestedName(
-            profile.position
-        ) ||
-        profile.position_name ||
-        profile.job_title
-    );
-
-
-    setElementText(
-        [
-            "profileRole",
-            "role"
-        ],
-        profile.role
+    setText(
+        "empStatus",
+        status
     );
 
 
     // --------------------------------------------------------
-    // OTHER INFORMATION
+    // Salary
     // --------------------------------------------------------
 
-    setElementText(
-        [
-            "profileStatus",
-            "employmentStatus",
-            "status"
-        ],
-        profile.status ||
-        profile.employment_status
+    setText(
+        "empSalary",
+        formatCurrency(salary)
     );
 
 
-    setElementText(
-        [
-            "profileHireDate",
-            "hireDate",
-            "hire_date"
-        ],
-        formatProfileDate(
-            profile.hire_date ||
-            profile.hireDate
-        )
+    setText(
+        "empSalaryType",
+        "Monthly"
     );
 
 
-    setElementText(
-        [
-            "profileAddress",
-            "address"
-        ],
-        profile.address
+    setText(
+        "empPaymentMethod",
+        "Bank Transfer"
     );
 
 
-    setElementText(
-        [
-            "profileCity",
-            "city"
-        ],
-        profile.city
-    );
-
-
-    setElementText(
-        [
-            "profileCountry",
-            "country"
-        ],
-        profile.country
+    setText(
+        "empNextPayday",
+        getNextPayday()
     );
 
 
     // --------------------------------------------------------
-    // AVATAR
+    // History
     // --------------------------------------------------------
 
-    updateProfileAvatar(
-        fullName
+    setText(
+        "empHistory",
+        history
     );
 
-
-    // --------------------------------------------------------
-    // INPUT FIELDS
-    // --------------------------------------------------------
-
-    populateInput(
-        [
-            "profileFirstName",
-            "firstName",
-            "first_name"
-        ],
-        profile.first_name ||
-        profile.firstName
+    setText(
+        "empDepartmentHistory",
+        department
     );
 
-
-    populateInput(
-        [
-            "profileLastName",
-            "lastName",
-            "last_name"
-        ],
-        profile.last_name ||
-        profile.lastName
-    );
-
-
-    populateInput(
-        [
-            "profileEmailInput",
-            "emailInput"
-        ],
-        profile.email
-    );
-
-
-    populateInput(
-        [
-            "profilePhoneInput",
-            "phoneInput"
-        ],
-        profile.phone ||
-        profile.phone_number
-    );
-
-
-    populateInput(
-        [
-            "profileAddressInput",
-            "addressInput"
-        ],
-        profile.address
+    setText(
+        "empPositionHistory",
+        position
     );
 
 }
 
 
 // ============================================================
-// SET TEXT HELPER
+// SAFE TEXT
 // ============================================================
 
-function setElementText(
-    ids,
+function setText(
+    id,
     value
 ) {
 
-    if (!Array.isArray(ids)) {
-        ids = [ids];
-    }
+    const element =
+        document.getElementById(id);
 
-    if (
-        value === null ||
-        value === undefined ||
-        value === ""
-    ) {
+    if (!element) {
         return;
     }
 
-
-    ids.forEach((id) => {
-
-        const element =
-            document.getElementById(id);
-
-        if (!element) {
-            return;
-        }
-
-        element.textContent =
-            String(value);
-
-    });
-
+    element.textContent =
+        value ?? "--";
 }
 
 
 // ============================================================
-// INPUT HELPER
+// NEXT PAYDAY
 // ============================================================
 
-function populateInput(
-    ids,
-    value
-) {
+function getNextPayday() {
 
-    if (!Array.isArray(ids)) {
-        ids = [ids];
-    }
+    const today =
+        new Date();
 
-    if (
-        value === null ||
-        value === undefined
-    ) {
-        return;
-    }
-
-
-    ids.forEach((id) => {
-
-        const element =
-            document.getElementById(id);
-
-        if (!element) {
-            return;
-        }
-
-        // Do not overwrite an element that isn't an input.
-        if (
-            element.tagName !== "INPUT" &&
-            element.tagName !== "TEXTAREA" &&
-            element.tagName !== "SELECT"
-        ) {
-            return;
-        }
-
-        element.value =
-            String(value);
-
-    });
-
-}
-
-
-// ============================================================
-// NESTED NAME HELPER
-// ============================================================
-
-function getNestedName(value) {
-
-    if (!value) {
-        return "";
-    }
-
-
-    if (typeof value === "string") {
-        return value;
-    }
-
-
-    if (typeof value === "object") {
-
-        return (
-            value.name ||
-            value.title ||
-            value.department_name ||
-            value.position_name ||
-            ""
+    let payday =
+        new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            25
         );
 
-    }
 
+    if (today > payday) {
 
-    return "";
-
-}
-
-
-// ============================================================
-// PROFILE AVATAR
-// ============================================================
-
-function updateProfileAvatar(name) {
-
-    const avatarIds = [
-        "profileAvatar",
-        "avatar",
-        "profileImage"
-    ];
-
-
-    avatarIds.forEach((id) => {
-
-        const element =
-            document.getElementById(id);
-
-        if (!element) {
-            return;
-        }
-
-
-        // If this is an image, don't replace it
-        // with text.
-        if (
-            element.tagName === "IMG"
-        ) {
-
-            return;
-
-        }
-
-
-        if (
-            typeof getInitials ===
-            "function"
-        ) {
-
-            element.textContent =
-                getInitials(name);
-
-        }
-
-    });
-
-}
-
-
-// ============================================================
-// DATE FORMATTER
-// ============================================================
-
-function formatProfileDate(
-    dateValue
-) {
-
-    if (!dateValue) {
-        return "";
-    }
-
-
-    if (
-        typeof formatDate ===
-        "function"
-    ) {
-
-        return formatDate(
-            dateValue
-        );
+        payday =
+            new Date(
+                today.getFullYear(),
+                today.getMonth() + 1,
+                25
+            );
 
     }
 
 
-    const date =
-        new Date(dateValue);
-
-
-    if (
-        Number.isNaN(
-            date.getTime()
-        )
-    ) {
-
-        return String(
-            dateValue
-        );
-
-    }
-
-
-    return date.toLocaleDateString(
+    return payday.toLocaleDateString(
         "en-ZA",
         {
             day: "2-digit",
@@ -583,354 +287,68 @@ function formatProfileDate(
 
 
 // ============================================================
-// EDIT PROFILE
-// ============================================================
-//
-// This function collects editable profile fields and sends
-// them to:
-//
-// PUT /api/worker/profile
-//
-// It is intentionally flexible so it works whether your
-// HTML uses the original IDs or the newer IDs.
+// PROFILE TABS
 // ============================================================
 
-async function saveWorkerProfile() {
+function initializeProfileTabs() {
 
-    try {
-
-        const profileData = {};
-
-
-        // ----------------------------------------------------
-        // FIRST NAME
-        // ----------------------------------------------------
-
-        const firstName =
-            getInputValue([
-                "profileFirstName",
-                "firstName",
-                "first_name"
-            ]);
-
-        if (firstName) {
-
-            profileData.first_name =
-                firstName;
-
-        }
-
-
-        // ----------------------------------------------------
-        // LAST NAME
-        // ----------------------------------------------------
-
-        const lastName =
-            getInputValue([
-                "profileLastName",
-                "lastName",
-                "last_name"
-            ]);
-
-        if (lastName) {
-
-            profileData.last_name =
-                lastName;
-
-        }
-
-
-        // ----------------------------------------------------
-        // EMAIL
-        // ----------------------------------------------------
-
-        const email =
-            getInputValue([
-                "profileEmailInput",
-                "emailInput"
-            ]);
-
-        if (email) {
-
-            profileData.email =
-                email;
-
-        }
-
-
-        // ----------------------------------------------------
-        // PHONE
-        // ----------------------------------------------------
-
-        const phone =
-            getInputValue([
-                "profilePhoneInput",
-                "phoneInput"
-            ]);
-
-        if (phone) {
-
-            profileData.phone =
-                phone;
-
-        }
-
-
-        // ----------------------------------------------------
-        // ADDRESS
-        // ----------------------------------------------------
-
-        const address =
-            getInputValue([
-                "profileAddressInput",
-                "addressInput"
-            ]);
-
-        if (address) {
-
-            profileData.address =
-                address;
-
-        }
-
-
-        console.log(
-            "Updating worker profile:",
-            profileData
-        );
-
-
-        // ----------------------------------------------------
-        // SEND TO BACKEND
-        // ----------------------------------------------------
-
-        const response =
-            await updateWorkerProfile(
-                profileData
-            );
-
-
-        console.log(
-            "Updated worker profile:",
-            response
-        );
-
-
-        // ----------------------------------------------------
-        // Get updated employee
-        // ----------------------------------------------------
-
-        const updatedProfile =
-            getResponseData(
-                response
-            );
-
-
-        if (updatedProfile) {
-
-            localStorage.setItem(
-                "employee",
-                JSON.stringify(
-                    updatedProfile
-                )
-            );
-
-
-            if (
-                typeof saveLoggedInWorker ===
-                "function"
-            ) {
-
-                saveLoggedInWorker(
-                    updatedProfile
-                );
-
-            }
-
-
-            if (
-                typeof updateSidebarEmployee ===
-                "function"
-            ) {
-
-                updateSidebarEmployee(
-                    updatedProfile
-                );
-
-            }
-
-
-            renderProfile(
-                updatedProfile
-            );
-
-        }
-
-
-        showToast(
-            "Profile updated successfully."
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Could not update profile:",
-            error
-        );
-
-        showToast(
-            error.message ||
-            "Could not update your profile."
-        );
-
-    }
-
-}
-
-
-// ============================================================
-// INPUT VALUE HELPER
-// ============================================================
-
-function getInputValue(ids) {
-
-    if (!Array.isArray(ids)) {
-        ids = [ids];
-    }
-
-
-    for (const id of ids) {
-
-        const element =
-            document.getElementById(id);
-
-        if (!element) {
-            continue;
-        }
-
-
-        if (
-            element.value !==
-            undefined
-        ) {
-
-            return element.value.trim();
-
-        }
-
-    }
-
-
-    return "";
-
-}
-
-
-// ============================================================
-// CONNECT SAVE BUTTONS
-// ============================================================
-
-function initializeProfileSaveButtons() {
-
-    const possibleButtons = [
-        "saveProfileBtn",
-        "saveBtn",
-        "updateProfileBtn",
-        "editProfileSaveBtn"
-    ];
-
-
-    possibleButtons.forEach(
-        (id) => {
-
-            const button =
-                document.getElementById(
-                    id
-                );
-
-            if (!button) {
-                return;
-            }
-
-
-            // Prevent duplicate listeners.
-            if (
-                button.dataset.profileListener ===
-                "true"
-            ) {
-                return;
-            }
-
-
-            button.dataset.profileListener =
-                "true";
-
-
-            button.addEventListener(
-                "click",
-                async (event) => {
-
-                    event.preventDefault();
-
-                    await saveWorkerProfile();
-
-                }
-            );
-
-        }
-    );
-
-}
-
-
-// ============================================================
-// PROFILE FORM
-// ============================================================
-
-function initializeProfileForm() {
-
-    const forms =
+    const tabs =
         document.querySelectorAll(
-            "form"
+            ".emp-profile-tab"
         );
 
 
-    forms.forEach(
-        (form) => {
-
-            // Only attach to forms that contain
-            // profile-related inputs.
-            const hasProfileInput =
-                form.querySelector(
-                    "#profileFirstName, #firstName, #profileLastName, #lastName, #profileEmailInput, #emailInput, #profilePhoneInput, #phoneInput"
-                );
+    const contents =
+        document.querySelectorAll(
+            ".emp-profile-content"
+        );
 
 
-            if (!hasProfileInput) {
-                return;
-            }
+    tabs.forEach(
+        (tab) => {
+
+            tab.addEventListener(
+                "click",
+                () => {
+
+                    const target =
+                        tab.dataset.tab;
 
 
-            if (
-                form.dataset.profileListener ===
-                "true"
-            ) {
-                return;
-            }
+                    tabs.forEach(
+                        (item) =>
+                            item.classList.remove(
+                                "active"
+                            )
+                    );
 
 
-            form.dataset.profileListener =
-                "true";
+                    contents.forEach(
+                        (content) =>
+                            content.classList.remove(
+                                "active"
+                            )
+                    );
 
 
-            form.addEventListener(
-                "submit",
-                async (event) => {
+                    tab.classList.add(
+                        "active"
+                    );
 
-                    event.preventDefault();
 
-                    await saveWorkerProfile();
+                    const targetContent =
+                        document.getElementById(
+                            target
+                        );
+
+
+                    if (targetContent) {
+
+                        targetContent.classList.add(
+                            "active"
+                        );
+
+                    }
 
                 }
             );
@@ -942,23 +360,7 @@ function initializeProfileForm() {
 
 
 // ============================================================
-// RUN FORM SETUP
-// ============================================================
-
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
-
-        initializeProfileSaveButtons();
-
-        initializeProfileForm();
-
-    }
-);
-
-
-// ============================================================
-// GLOBAL ACCESS
+// GLOBAL
 // ============================================================
 
 window.initializeProfile =
@@ -967,5 +369,12 @@ window.initializeProfile =
 window.renderProfile =
     renderProfile;
 
-window.saveWorkerProfile =
-    saveWorkerProfile;
+
+// ============================================================
+// START
+// ============================================================
+
+document.addEventListener(
+    "DOMContentLoaded",
+    initializeProfileTabs
+);

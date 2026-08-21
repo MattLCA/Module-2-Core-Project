@@ -1,95 +1,104 @@
 // ============================================================
 // ModernTech Worker Leave
 // ============================================================
-// Connects the employee leave page to the backend.
-//
-// Backend endpoints:
-// GET  /api/worker/leave/types
-// GET  /api/worker/leave/balances
-// GET  /api/worker/leave/requests
-// POST /api/worker/leave/requests
-//
-// Authentication:
-// worker_api.js supplies:
-// Authorization: Bearer <JWT>
-// ============================================================
 
 console.log("Worker Leave JS connected.");
 
 
+let workerLeaveTypes = [];
+let workerLeaveBalances = [];
+let workerLeaveRequests = [];
+
+
 // ============================================================
-// DOM READY
+// INITIALIZE
 // ============================================================
 
-document.addEventListener("DOMContentLoaded", async () => {
-    console.log("Initializing worker leave page...");
+document.addEventListener(
+    "DOMContentLoaded",
+    async () => {
 
-    // Make sure the worker has a JWT.
-    if (typeof requireWorkerLogin === "function") {
-        if (!requireWorkerLogin()) {
+        if (
+            typeof requireWorkerLogin === "function" &&
+            !requireWorkerLogin()
+        ) {
             return;
         }
+
+
+        initializeLeaveTabs();
+
+        initializeLeaveForm();
+
+        initializeLeaveFilters();
+
+        initializeLeaveClearButton();
+
+
+        await loadLeaveData();
+
     }
-
-    // Display employee information immediately if available.
-    if (typeof initializeStoredEmployee === "function") {
-        initializeStoredEmployee();
-    }
-
-    // Load the actual employee profile from the backend.
-    await loadLeaveEmployee();
-
-    // Load leave information.
-    await loadLeaveTypes();
-    await loadLeaveBalances();
-    await loadLeaveRequests();
-
-    // Set up the leave request form.
-    initializeLeaveForm();
-});
+);
 
 
 // ============================================================
-// EMPLOYEE INFORMATION
+// LOAD ALL LEAVE DATA
 // ============================================================
 
-async function loadLeaveEmployee() {
+async function loadLeaveData() {
+
     try {
-        if (typeof getWorkerProfile !== "function") {
-            console.warn("getWorkerProfile() is unavailable.");
-            return;
-        }
 
-        const response = await getWorkerProfile();
+        const [
+            typesResponse,
+            balancesResponse,
+            requestsResponse
+        ] = await Promise.all([
+            getWorkerLeaveTypes(),
+            getWorkerLeaveBalances(),
+            getWorkerLeaveRequests()
+        ]);
 
-        console.log("Worker profile response:", response);
 
-        const employee =
-            response?.data?.employee ||
-            response?.data ||
-            response?.employee ||
-            response;
+        workerLeaveTypes =
+            typesResponse?.data ||
+            [];
 
-        if (!employee) {
-            return;
-        }
 
-        // Save the latest employee returned by the backend.
-        if (typeof saveLoggedInWorker === "function") {
-            saveLoggedInWorker(employee);
-        }
+        workerLeaveBalances =
+            balancesResponse?.data ||
+            [];
 
-        // Update sidebar.
-        if (typeof updateSidebarEmployee === "function") {
-            updateSidebarEmployee(employee);
-        }
+
+        workerLeaveRequests =
+            requestsResponse?.data ||
+            [];
+
+
+        renderLeaveTypes();
+
+        renderLeaveBalances();
+
+        renderLeaveRequests(
+            workerLeaveRequests
+        );
+
 
     } catch (error) {
-        console.error("Could not load worker profile:", error);
 
-        // Do NOT automatically redirect here.
-        // A profile failure should not destroy a valid login session.
+        console.error(
+            "Leave loading error:",
+            error
+        );
+
+
+        showToast(
+            error.message ||
+            "Could not load leave information."
+        );
+
     }
+
 }
 
 
@@ -97,695 +106,826 @@ async function loadLeaveEmployee() {
 // LEAVE TYPES
 // ============================================================
 
-async function loadLeaveTypes() {
-    try {
-        if (typeof getWorkerLeaveTypes !== "function") {
-            console.warn(
-                "getWorkerLeaveTypes() is unavailable."
-            );
-            return;
-        }
+function renderLeaveTypes() {
 
-        const response = await getWorkerLeaveTypes();
-
-        console.log("Leave types response:", response);
-
-        const types =
-            response?.data?.leaveTypes ||
-            response?.data?.types ||
-            response?.leaveTypes ||
-            response?.types ||
-            response?.data ||
-            response;
-
-        if (!Array.isArray(types)) {
-            console.warn("Leave types response was not an array.");
-            return;
-        }
-
-        populateLeaveTypeSelect(types);
-
-    } catch (error) {
-        console.error("Could not load leave types:", error);
-
-        showLeaveMessage(
-            error.message || "Could not load leave types.",
-            "error"
-        );
-    }
-}
-
-
-// ============================================================
-// POPULATE LEAVE TYPE SELECT
-// ============================================================
-
-function populateLeaveTypeSelect(types) {
     const select =
-        document.getElementById("leaveType") ||
-        document.getElementById("leave-type") ||
-        document.querySelector(
-            'select[name="leave_type"]'
-        ) ||
-        document.querySelector(
-            'select[name="leaveType"]'
+        document.getElementById(
+            "leaveType"
         );
+
 
     if (!select) {
-        console.warn(
-            "Leave type select element was not found."
-        );
         return;
     }
+
 
     select.innerHTML = `
-        <option value="">Select leave type</option>
+        <option value="">
+            Select Leave Type
+        </option>
     `;
 
-    types.forEach((type) => {
-        const option = document.createElement("option");
 
-        const id =
-            type.id ??
-            type.leave_type_id ??
-            type.leaveTypeId;
+    workerLeaveTypes.forEach(
+        (type) => {
 
-        const name =
-            type.name ??
-            type.leave_type_name ??
-            type.leaveTypeName ??
-            type.type ??
-            "Leave";
-
-        option.value = id;
-        option.textContent = name;
-
-        select.appendChild(option);
-    });
-}
+            const option =
+                document.createElement(
+                    "option"
+                );
 
 
-// ============================================================
-// LEAVE BALANCES
-// ============================================================
+            option.value =
+                type.leaveTypeId;
 
-async function loadLeaveBalances() {
-    try {
-        if (typeof getWorkerLeaveBalances !== "function") {
-            console.warn(
-                "getWorkerLeaveBalances() is unavailable."
+
+            option.textContent =
+                type.leaveTypeName;
+
+
+            select.appendChild(
+                option
             );
-            return;
+
         }
+    );
 
-        const response =
-            await getWorkerLeaveBalances();
-
-        console.log(
-            "Leave balances response:",
-            response
-        );
-
-        const balances =
-            response?.data?.balances ||
-            response?.balances ||
-            response?.data ||
-            response;
-
-        if (!Array.isArray(balances)) {
-            console.warn(
-                "Leave balances response was not an array."
-            );
-            return;
-        }
-
-        renderLeaveBalances(balances);
-
-    } catch (error) {
-        console.error(
-            "Could not load leave balances:",
-            error
-        );
-    }
 }
 
 
 // ============================================================
-// RENDER LEAVE BALANCES
+// BALANCES
 // ============================================================
 
-function renderLeaveBalances(balances) {
-    /*
-     * Try to find an existing balance container.
-     * This supports several possible IDs used by the frontend.
-     */
+function renderLeaveBalances() {
 
-    const container =
-        document.getElementById("leaveBalances") ||
-        document.getElementById("leaveBalanceList") ||
-        document.getElementById("leave-balance-list");
+    const map = {
 
-    if (!container) {
-        console.warn(
-            "Leave balance container was not found."
-        );
-        return;
-    }
+        "Annual Leave":
+            "annualLeave",
 
-    if (balances.length === 0) {
-        container.innerHTML = `
-            <p class="empty-state">
-                No leave balances available.
-            </p>
-        `;
-        return;
-    }
+        "Sick Leave":
+            "sickLeave",
 
-    container.innerHTML = "";
+        "Family Responsibility":
+            "familyLeave",
 
-    balances.forEach((balance) => {
-        const leaveName =
-            balance.leave_type_name ||
-            balance.leaveTypeName ||
-            balance.name ||
-            balance.leave_type ||
-            "Leave";
+        "Study Leave":
+            "studyLeave",
 
-        const available =
-            balance.available_days ??
-            balance.remaining_days ??
-            balance.balance ??
-            balance.days_remaining ??
-            0;
+        "Personal":
+            "personalLeave",
 
-        const used =
-            balance.used_days ??
-            balance.days_used ??
-            0;
+        "Vacation":
+            "vacationLeave",
 
-        const total =
-            balance.total_days ??
-            balance.entitlement ??
-            balance.allocated_days ??
-            Number(available) + Number(used);
+        "Medical Appointment":
+            "medicalLeave",
 
-        const item = document.createElement("div");
+        "Bereavement":
+            "bereavementLeave",
 
-        item.className = "leave-balance-item";
+        "Childcare":
+            "childcareLeave"
 
-        item.innerHTML = `
-            <div class="leave-balance-info">
-                <strong>${escapeHtml(leaveName)}</strong>
-                <span>
-                    ${escapeHtml(String(available))} days available
-                </span>
-            </div>
-
-            <div class="leave-balance-value">
-                ${escapeHtml(String(available))}
-                <small>/ ${escapeHtml(String(total))}</small>
-            </div>
-        `;
-
-        container.appendChild(item);
-    });
-}
+    };
 
 
-// ============================================================
-// LEAVE REQUESTS
-// ============================================================
+    workerLeaveBalances.forEach(
+        (balance) => {
 
-async function loadLeaveRequests() {
-    try {
-        if (typeof getWorkerLeaveRequests !== "function") {
-            console.warn(
-                "getWorkerLeaveRequests() is unavailable."
-            );
-            return;
+            const id =
+                map[
+                    balance.leaveTypeName
+                ];
+
+
+            if (!id) {
+                return;
+            }
+
+
+            const element =
+                document.getElementById(
+                    id
+                );
+
+
+            if (element) {
+
+                element.textContent =
+                    `${Number(
+                        balance.remainingDays || 0
+                    )} days`;
+
+            }
+
         }
+    );
 
-        const response =
-            await getWorkerLeaveRequests();
 
-        console.log(
-            "Leave requests response:",
-            response
+    const pending =
+        workerLeaveRequests.filter(
+            request =>
+                String(
+                    request.status
+                ).toLowerCase() ===
+                "pending"
+        ).length;
+
+
+    const pendingElement =
+        document.getElementById(
+            "leavePendingText"
         );
 
-        const requests =
-            response?.data?.requests ||
-            response?.data?.leaveRequests ||
-            response?.requests ||
-            response?.leaveRequests ||
-            response?.data ||
-            response;
 
-        if (!Array.isArray(requests)) {
-            console.warn(
-                "Leave requests response was not an array."
-            );
-            return;
-        }
+    if (pendingElement) {
 
-        renderLeaveRequests(requests);
+        pendingElement.textContent =
+            pending;
 
-    } catch (error) {
-        console.error(
-            "Could not load leave requests:",
-            error
-        );
-
-        showLeaveMessage(
-            error.message ||
-            "Could not load your leave requests.",
-            "error"
-        );
     }
+
 }
 
 
 // ============================================================
-// RENDER LEAVE REQUESTS
-// ============================================================
-
-function renderLeaveRequests(requests) {
-    const tableBody =
-        document.getElementById("leaveRequestsBody") ||
-        document.getElementById("leaveRequestBody") ||
-        document.getElementById("leaveRequests") ||
-        document.querySelector(
-            "#leaveRequestsTable tbody"
-        );
-
-    if (!tableBody) {
-        console.warn(
-            "Leave requests table body was not found."
-        );
-        return;
-    }
-
-    if (requests.length === 0) {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="6">
-                    No leave requests found.
-                </td>
-            </tr>
-        `;
-        return;
-    }
-
-    tableBody.innerHTML = "";
-
-    requests.forEach((request) => {
-        const row = document.createElement("tr");
-
-        const leaveType =
-            request.leave_type_name ||
-            request.leaveTypeName ||
-            request.leave_type ||
-            request.type ||
-            "Leave";
-
-        const startDate =
-            request.start_date ||
-            request.startDate ||
-            request.from_date ||
-            "";
-
-        const endDate =
-            request.end_date ||
-            request.endDate ||
-            request.to_date ||
-            "";
-
-        const days =
-            request.days_requested ??
-            request.number_of_days ??
-            request.days ??
-            calculateDays(startDate, endDate);
-
-        const status =
-            request.status ||
-            "Pending";
-
-        const reason =
-            request.reason ||
-            request.notes ||
-            "-";
-
-        row.innerHTML = `
-            <td>
-                ${escapeHtml(leaveType)}
-            </td>
-
-            <td>
-                ${formatLeaveDate(startDate)}
-            </td>
-
-            <td>
-                ${formatLeaveDate(endDate)}
-            </td>
-
-            <td>
-                ${escapeHtml(String(days))}
-            </td>
-
-            <td>
-                ${escapeHtml(reason)}
-            </td>
-
-            <td>
-                <span class="status ${getStatusClass(status)}">
-                    ${escapeHtml(formatStatus(status))}
-                </span>
-            </td>
-        `;
-
-        tableBody.appendChild(row);
-    });
-}
-
-
-// ============================================================
-// LEAVE REQUEST FORM
+// SUBMIT FORM
 // ============================================================
 
 function initializeLeaveForm() {
+
     const form =
-        document.getElementById("leaveRequestForm") ||
-        document.getElementById("leaveForm") ||
-        document.querySelector(
-            'form[data-form="leave"]'
+        document.getElementById(
+            "leaveForm"
         );
+
 
     if (!form) {
-        console.warn(
-            "Leave request form was not found."
-        );
         return;
     }
 
-    // Prevent duplicate event listeners.
-    if (form.dataset.initialized === "true") {
-        return;
-    }
-
-    form.dataset.initialized = "true";
 
     form.addEventListener(
         "submit",
         async (event) => {
+
             event.preventDefault();
 
-            await submitLeaveRequest(form);
+
+            try {
+
+                const leaveTypeId =
+                    document.getElementById(
+                        "leaveType"
+                    )?.value;
+
+
+                const startDate =
+                    document.getElementById(
+                        "startDate"
+                    )?.value;
+
+
+                const endDate =
+                    document.getElementById(
+                        "endDate"
+                    )?.value;
+
+
+                const reason =
+                    document.getElementById(
+                        "leaveReason"
+                    )?.value.trim();
+
+
+                if (!leaveTypeId) {
+
+                    showToast(
+                        "Please select a leave type."
+                    );
+
+                    return;
+                }
+
+
+                if (!startDate) {
+
+                    showToast(
+                        "Please select a start date."
+                    );
+
+                    return;
+                }
+
+
+                if (!endDate) {
+
+                    showToast(
+                        "Please select an end date."
+                    );
+
+                    return;
+                }
+
+
+                if (!reason) {
+
+                    showToast(
+                        "Please provide a reason."
+                    );
+
+                    return;
+                }
+
+
+                const start =
+                    new Date(
+                        `${startDate}T00:00:00`
+                    );
+
+
+                const end =
+                    new Date(
+                        `${endDate}T00:00:00`
+                    );
+
+
+                if (end < start) {
+
+                    showToast(
+                        "End date cannot be before start date."
+                    );
+
+                    return;
+                }
+
+
+                const totalDays =
+                    Math.floor(
+                        (
+                            end -
+                            start
+                        ) /
+                        (
+                            1000 *
+                            60 *
+                            60 *
+                            24
+                        )
+                    ) + 1;
+
+
+                const response =
+                    await createWorkerLeaveRequest({
+                        leaveTypeId:
+                            Number(
+                                leaveTypeId
+                            ),
+
+                        startDate,
+
+                        endDate,
+
+                        reason
+                    });
+
+
+                showLeaveModal(
+                    response?.data
+                );
+
+
+                form.reset();
+
+
+                await loadLeaveData();
+
+
+            } catch (error) {
+
+                console.error(
+                    "Leave submission error:",
+                    error
+                );
+
+
+                showToast(
+                    error.message ||
+                    "Could not submit leave request."
+                );
+
+            }
+
         }
     );
+
 }
 
 
 // ============================================================
-// SUBMIT LEAVE REQUEST
+// MODAL
 // ============================================================
 
-async function submitLeaveRequest(form) {
-    try {
-        const leaveType =
-            getFieldValue(
-                form,
-                [
-                    "#leaveType",
-                    "#leave-type",
-                    '[name="leave_type"]',
-                    '[name="leaveType"]'
-                ]
-            );
+function showLeaveModal(
+    request
+) {
 
-        const startDate =
-            getFieldValue(
-                form,
-                [
-                    "#startDate",
-                    "#start-date",
-                    '[name="start_date"]',
-                    '[name="startDate"]'
-                ]
-            );
-
-        const endDate =
-            getFieldValue(
-                form,
-                [
-                    "#endDate",
-                    "#end-date",
-                    '[name="end_date"]',
-                    '[name="endDate"]'
-                ]
-            );
-
-        const reason =
-            getFieldValue(
-                form,
-                [
-                    "#reason",
-                    "#leaveReason",
-                    '[name="reason"]',
-                    '[name="notes"]'
-                ]
-            );
-
-        // ----------------------------------------------------
-        // Validation
-        // ----------------------------------------------------
-
-        if (!leaveType) {
-            showLeaveMessage(
-                "Please select a leave type.",
-                "error"
-            );
-            return;
-        }
-
-        if (!startDate) {
-            showLeaveMessage(
-                "Please select a start date.",
-                "error"
-            );
-            return;
-        }
-
-        if (!endDate) {
-            showLeaveMessage(
-                "Please select an end date.",
-                "error"
-            );
-            return;
-        }
-
-        if (
-            new Date(endDate) <
-            new Date(startDate)
-        ) {
-            showLeaveMessage(
-                "The end date cannot be before the start date.",
-                "error"
-            );
-            return;
-        }
-
-        // ----------------------------------------------------
-        // Find submit button
-        // ----------------------------------------------------
-
-        const submitButton =
-            form.querySelector(
-                'button[type="submit"]'
-            );
-
-        let originalButtonText = null;
-
-        if (submitButton) {
-            originalButtonText =
-                submitButton.innerHTML;
-
-            submitButton.disabled = true;
-
-            submitButton.innerHTML = `
-                <span>Submitting...</span>
-            `;
-        }
-
-        // ----------------------------------------------------
-        // Build backend payload
-        // ----------------------------------------------------
-
-        const payload = {
-            leave_type_id: Number(leaveType),
-            start_date: startDate,
-            end_date: endDate,
-            reason: reason || null
-        };
-
-        console.log(
-            "Submitting leave request:",
-            payload
-        );
-
-        // ----------------------------------------------------
-        // Send request
-        // ----------------------------------------------------
-
-        if (
-            typeof createWorkerLeaveRequest !==
-            "function"
-        ) {
-            throw new Error(
-                "Leave API is unavailable."
-            );
-        }
-
-        const response =
-            await createWorkerLeaveRequest(
-                payload
-            );
-
-        console.log(
-            "Leave request created:",
-            response
-        );
-
-        showLeaveMessage(
-            "Leave request submitted successfully.",
-            "success"
-        );
-
-        // ----------------------------------------------------
-        // Reset form
-        // ----------------------------------------------------
-
-        form.reset();
-
-        // ----------------------------------------------------
-        // Refresh requests and balances
-        // ----------------------------------------------------
-
-        await loadLeaveRequests();
-        await loadLeaveBalances();
-
-        // ----------------------------------------------------
-        // Restore button
-        // ----------------------------------------------------
-
-        if (submitButton) {
-            submitButton.disabled = false;
-
-            submitButton.innerHTML =
-                originalButtonText;
-        }
-
-    } catch (error) {
-        console.error(
-            "Leave request submission failed:",
-            error
-        );
-
-        showLeaveMessage(
-            error.message ||
-            "Could not submit leave request.",
-            "error"
-        );
-
-        const submitButton =
-            form.querySelector(
-                'button[type="submit"]'
-            );
-
-        if (submitButton) {
-            submitButton.disabled = false;
-
-            submitButton.innerHTML =
-                "Submit Request";
-        }
-    }
-}
-
-
-// ============================================================
-// FIELD HELPER
-// ============================================================
-
-function getFieldValue(form, selectors) {
-    for (const selector of selectors) {
-        const field =
-            form.querySelector(selector);
-
-        if (field) {
-            return field.value.trim();
-        }
+    if (!request) {
+        return;
     }
 
-    return "";
-}
+
+    const leaveType =
+        workerLeaveTypes.find(
+            type =>
+                Number(
+                    type.leaveTypeId
+                ) ===
+                Number(
+                    request.leaveTypeId
+                )
+        );
 
 
-// ============================================================
-// DATE CALCULATION
-// ============================================================
-
-function calculateDays(startDate, endDate) {
-    if (!startDate || !endDate) {
-        return 0;
-    }
-
-    const start =
-        new Date(startDate);
-
-    const end =
-        new Date(endDate);
-
-    if (
-        Number.isNaN(start.getTime()) ||
-        Number.isNaN(end.getTime())
-    ) {
-        return 0;
-    }
-
-    const difference =
-        end.getTime() -
-        start.getTime();
-
-    return (
-        Math.floor(
-            difference /
-            (1000 * 60 * 60 * 24)
-        ) + 1
+    setText(
+        "summaryType",
+        leaveType?.leaveTypeName ||
+        "Leave"
     );
+
+
+    setText(
+        "summaryDays",
+        request.totalDays
+    );
+
+
+    setText(
+        "summaryStart",
+        formatDate(
+            request.startDate
+        )
+    );
+
+
+    setText(
+        "summaryEnd",
+        formatDate(
+            request.endDate
+        )
+    );
+
+
+    setText(
+        "summaryReason",
+        request.reason ||
+        "--"
+    );
+
+
+    const modal =
+        document.getElementById(
+            "leaveModal"
+        );
+
+
+    if (modal) {
+
+        modal.classList.add(
+            "active"
+        );
+
+    }
+
+}
+
+
+function initializeLeaveModal() {
+
+    const modal =
+        document.getElementById(
+            "leaveModal"
+        );
+
+
+    const close =
+        document.getElementById(
+            "closeModal"
+        );
+
+
+    if (close) {
+
+        close.addEventListener(
+            "click",
+            () => {
+
+                modal?.classList.remove(
+                    "active"
+                );
+
+            }
+        );
+
+    }
+
 }
 
 
 // ============================================================
-// DATE FORMAT
+// REQUEST HISTORY
 // ============================================================
 
-function formatLeaveDate(dateValue) {
-    if (!dateValue) {
-        return "-";
+function renderLeaveRequests(
+    requests
+) {
+
+    const table =
+        document.getElementById(
+            "leaveTable"
+        );
+
+
+    if (!table) {
+        return;
     }
 
-    if (
-        typeof formatDate ===
-        "function"
-    ) {
-        return formatDate(dateValue);
+
+    if (!requests.length) {
+
+        table.innerHTML = `
+            <tr>
+                <td colspan="5">
+                    No leave requests found.
+                </td>
+            </tr>
+        `;
+
+        return;
     }
+
+
+    table.innerHTML =
+        requests
+            .map(
+                request => `
+
+                <tr
+                    data-leave-type="${escapeHTML(
+                        request.leaveTypeName
+                    )}"
+                    data-status="${escapeHTML(
+                        request.status
+                    )}"
+                    data-start="${escapeHTML(
+                        request.startDate
+                    )}"
+                >
+
+                    <td>
+                        ${escapeHTML(
+                            request.leaveTypeName
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            formatDate(
+                                request.startDate
+                            )
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            formatDate(
+                                request.endDate
+                            )
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            request.totalDays
+                        )}
+                    </td>
+
+                    <td>
+                        <span class="status">
+                            ${escapeHTML(
+                                request.status
+                            )}
+                        </span>
+                    </td>
+
+                </tr>
+            `
+            )
+            .join("");
+
+}
+
+
+// ============================================================
+// FILTERS
+// ============================================================
+
+function initializeLeaveFilters() {
+
+    [
+        "filterType",
+        "filterStatus",
+        "fromDate",
+        "toDate"
+    ]
+        .forEach(
+            id => {
+
+                const element =
+                    document.getElementById(
+                        id
+                    );
+
+
+                if (element) {
+
+                    element.addEventListener(
+                        "change",
+                        applyLeaveFilters
+                    );
+
+                }
+
+            }
+        );
+
+
+    const clear =
+        document.getElementById(
+            "clearFilters"
+        );
+
+
+    if (clear) {
+
+        clear.addEventListener(
+            "click",
+            () => {
+
+                document.getElementById(
+                    "filterType"
+                ).value = "All";
+
+                document.getElementById(
+                    "filterStatus"
+                ).value = "All";
+
+                document.getElementById(
+                    "fromDate"
+                ).value = "";
+
+                document.getElementById(
+                    "toDate"
+                ).value = "";
+
+
+                renderLeaveRequests(
+                    workerLeaveRequests
+                );
+
+            }
+        );
+
+    }
+
+}
+
+
+function applyLeaveFilters() {
+
+    const type =
+        document.getElementById(
+            "filterType"
+        )?.value || "All";
+
+
+    const status =
+        document.getElementById(
+            "filterStatus"
+        )?.value || "All";
+
+
+    const from =
+        document.getElementById(
+            "fromDate"
+        )?.value || "";
+
+
+    const to =
+        document.getElementById(
+            "toDate"
+        )?.value || "";
+
+
+    const filtered =
+        workerLeaveRequests.filter(
+            request => {
+
+                if (
+                    type !== "All" &&
+                    request.leaveTypeName !== type
+                ) {
+                    return false;
+                }
+
+
+                if (
+                    status !== "All" &&
+                    request.status !== status
+                ) {
+                    return false;
+                }
+
+
+                if (
+                    from &&
+                    request.startDate < from
+                ) {
+                    return false;
+                }
+
+
+                if (
+                    to &&
+                    request.startDate > to
+                ) {
+                    return false;
+                }
+
+
+                return true;
+
+            }
+        );
+
+
+    renderLeaveRequests(
+        filtered
+    );
+
+}
+
+
+// ============================================================
+// TABS
+// ============================================================
+
+function initializeLeaveTabs() {
+
+    const tabs =
+        document.querySelectorAll(
+            ".leave-tab"
+        );
+
+
+    const contents =
+        document.querySelectorAll(
+            ".leave-content"
+        );
+
+
+    tabs.forEach(
+        tab => {
+
+            tab.addEventListener(
+                "click",
+                () => {
+
+                    const target =
+                        tab.dataset.tab;
+
+
+                    tabs.forEach(
+                        item =>
+                            item.classList.remove(
+                                "active"
+                            )
+                    );
+
+
+                    contents.forEach(
+                        content =>
+                            content.classList.remove(
+                                "active"
+                            )
+                    );
+
+
+                    tab.classList.add(
+                        "active"
+                    );
+
+
+                    document
+                        .getElementById(
+                            target
+                        )
+                        ?.classList.add(
+                            "active"
+                        );
+
+                }
+            );
+
+        }
+    );
+
+}
+
+
+// ============================================================
+// CLEAR BUTTON
+// ============================================================
+
+function initializeLeaveClearButton() {
+
+    const button =
+        document.getElementById(
+            "clearLeaveBtn"
+        );
+
+
+    if (!button) {
+        return;
+    }
+
+
+    button.addEventListener(
+        "click",
+        () => {
+
+            renderLeaveRequests(
+                workerLeaveRequests
+            );
+
+            showToast(
+                "Leave requests are stored in the database and cannot be deleted from this page."
+            );
+
+        }
+    );
+
+}
+
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+function setText(
+    id,
+    value
+) {
+
+    const element =
+        document.getElementById(id);
+
+
+    if (element) {
+
+        element.textContent =
+            value ?? "--";
+
+    }
+
+}
+
+
+function formatDate(
+    value
+) {
+
+    if (!value) {
+        return "--";
+    }
+
 
     const date =
-        new Date(dateValue);
+        new Date(value);
 
-    if (Number.isNaN(date.getTime())) {
-        return String(dateValue);
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+
+        return String(value);
+
     }
+
 
     return date.toLocaleDateString(
         "en-ZA",
@@ -795,127 +935,64 @@ function formatLeaveDate(dateValue) {
             year: "numeric"
         }
     );
+
 }
 
 
-// ============================================================
-// STATUS
-// ============================================================
-
-function formatStatus(status) {
-    if (!status) {
-        return "Pending";
-    }
-
-    return String(status)
-        .replace(/_/g, " ")
-        .replace(/\b\w/g, (letter) =>
-            letter.toUpperCase()
-        );
-}
-
-
-function getStatusClass(status) {
-    const value =
-        String(status || "")
-            .toLowerCase();
+function escapeHTML(value) {
 
     if (
-        value === "approved" ||
-        value === "accepted"
+        value === null ||
+        value === undefined
     ) {
-        return "approved";
-    }
-
-    if (
-        value === "rejected" ||
-        value === "declined"
-    ) {
-        return "rejected";
-    }
-
-    if (
-        value === "cancelled" ||
-        value === "canceled"
-    ) {
-        return "cancelled";
-    }
-
-    return "pending";
-}
-
-
-// ============================================================
-// MESSAGE / TOAST
-// ============================================================
-
-function showLeaveMessage(message, type = "info") {
-    if (
-        typeof showToast ===
-        "function"
-    ) {
-        showToast(message);
-        return;
-    }
-
-    let messageBox =
-        document.getElementById(
-            "leaveMessage"
-        );
-
-    if (!messageBox) {
-        messageBox =
-            document.createElement("div");
-
-        messageBox.id =
-            "leaveMessage";
-
-        messageBox.className =
-            "leave-message";
-
-        document.body.prepend(
-            messageBox
-        );
-    }
-
-    messageBox.textContent =
-        message;
-
-    messageBox.className =
-        `leave-message ${type}`;
-}
-
-
-// ============================================================
-// HTML ESCAPE
-// ============================================================
-
-function escapeHtml(value) {
-    if (value === null || value === undefined) {
         return "";
     }
 
+
     return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
 }
 
 
 // ============================================================
-// GLOBAL ACCESS
+// GLOBAL
 // ============================================================
 
-window.loadLeaveTypes =
-    loadLeaveTypes;
+window.loadLeaveData =
+    loadLeaveData;
 
-window.loadLeaveBalances =
-    loadLeaveBalances;
+window.renderLeaveBalances =
+    renderLeaveBalances;
 
-window.loadLeaveRequests =
-    loadLeaveRequests;
+window.renderLeaveRequests =
+    renderLeaveRequests;
 
-window.submitLeaveRequest =
-    submitLeaveRequest;
+
+// ============================================================
+// START MODAL
+// ============================================================
+
+document.addEventListener(
+    "DOMContentLoaded",
+    initializeLeaveModal
+);

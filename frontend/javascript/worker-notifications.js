@@ -1,131 +1,66 @@
 // ============================================================
 // ModernTech Worker Notifications
 // ============================================================
-//
-// Handles:
-// - Loading notifications
-// - Unread notification count
-// - Marking one notification as read
-// - Marking all notifications as read
-// - Opening/viewing a notification
-//
-// Authentication is handled by worker_api.js.
-// API endpoints:
-//
-// GET   /api/worker/notifications
-// GET   /api/worker/notifications/unread
-// GET   /api/worker/notifications/unread-count
-// GET   /api/worker/notifications/:id
-// PATCH /api/worker/notifications/:id/read
-// PATCH /api/worker/notifications/read-all
-//
-// ============================================================
 
-console.log("Worker Notifications JS connected.");
+console.log(
+    "Worker Notifications JS connected."
+);
 
 
-// ============================================================
-// DOM READY
-// ============================================================
+document.addEventListener(
+    "DOMContentLoaded",
+    async () => {
 
-document.addEventListener("DOMContentLoaded", () => {
-    initializeNotifications();
-});
-
-
-// ============================================================
-// INITIALIZE
-// ============================================================
-
-async function initializeNotifications() {
-
-    // --------------------------------------------------------
-    // Make sure the worker is logged in
-    // --------------------------------------------------------
-
-    if (typeof requireWorkerLogin === "function") {
-
-        if (!requireWorkerLogin()) {
+        if (
+            typeof requireWorkerLogin === "function" &&
+            !requireWorkerLogin()
+        ) {
             return;
         }
 
+
+        await loadNotifications();
+
+        await loadUnreadCount();
+
+        initializeNotificationEvents();
+
     }
-
-
-    // --------------------------------------------------------
-    // Load stored employee into sidebar
-    // --------------------------------------------------------
-
-    if (typeof initializeStoredEmployee === "function") {
-        initializeStoredEmployee();
-    }
-
-
-    // --------------------------------------------------------
-    // Load notifications
-    // --------------------------------------------------------
-
-    await loadNotifications();
-
-    await loadUnreadCount();
-
-
-    // --------------------------------------------------------
-    // Setup notification actions
-    // --------------------------------------------------------
-
-    initializeNotificationEvents();
-
-}
+);
 
 
 // ============================================================
-// LOAD ALL NOTIFICATIONS
+// LOAD
 // ============================================================
 
 async function loadNotifications() {
 
     try {
 
-        if (typeof getWorkerNotifications !== "function") {
-
-            console.error(
-                "getWorkerNotifications() is not available."
-            );
-
-            return;
-
-        }
-
-
         const response =
             await getWorkerNotifications();
 
 
-        console.log(
-            "Worker notifications response:",
-            response
-        );
-
-
         const notifications =
-            extractNotificationArray(response);
+            response?.data ||
+            [];
 
 
-        renderNotifications(notifications);
+        renderNotifications(
+            notifications
+        );
 
 
     } catch (error) {
 
         console.error(
-            "Could not load worker notifications:",
+            "Notifications error:",
             error
         );
 
 
         renderNotificationError(
-            error.message ||
-            "Could not load notifications."
+            error.message
         );
 
     }
@@ -134,44 +69,36 @@ async function loadNotifications() {
 
 
 // ============================================================
-// LOAD UNREAD COUNT
+// UNREAD COUNT
 // ============================================================
 
 async function loadUnreadCount() {
 
     try {
 
-        if (
-            typeof getUnreadWorkerNotificationCount !==
-            "function"
-        ) {
-
-            return;
-
-        }
-
-
         const response =
             await getUnreadWorkerNotificationCount();
 
 
-        console.log(
-            "Unread notification count:",
-            response
-        );
-
-
         const count =
-            extractUnreadCount(response);
+            Number(
+                response?.data?.count ??
+                response?.count ??
+                response?.data ??
+                response?.unreadCount ??
+                0
+            );
 
 
-        updateNotificationBadges(count);
+        updateNotificationBadges(
+            count
+        );
 
 
     } catch (error) {
 
         console.error(
-            "Could not load unread notification count:",
+            "Unread count error:",
             error
         );
 
@@ -181,159 +108,29 @@ async function loadUnreadCount() {
 
 
 // ============================================================
-// EXTRACT NOTIFICATION ARRAY
+// RENDER
 // ============================================================
 
-function extractNotificationArray(response) {
-
-    if (!response) {
-        return [];
-    }
-
-
-    // --------------------------------------------------------
-    // { data: [...] }
-    // --------------------------------------------------------
-
-    if (Array.isArray(response.data)) {
-        return response.data;
-    }
-
-
-    // --------------------------------------------------------
-    // { notifications: [...] }
-    // --------------------------------------------------------
-
-    if (Array.isArray(response.notifications)) {
-        return response.notifications;
-    }
-
-
-    // --------------------------------------------------------
-    // { data: { notifications: [...] } }
-    // --------------------------------------------------------
-
-    if (
-        response.data &&
-        Array.isArray(response.data.notifications)
-    ) {
-
-        return response.data.notifications;
-
-    }
-
-
-    // --------------------------------------------------------
-    // Direct array
-    // --------------------------------------------------------
-
-    if (Array.isArray(response)) {
-        return response;
-    }
-
-
-    return [];
-
-}
-
-
-// ============================================================
-// EXTRACT UNREAD COUNT
-// ============================================================
-
-function extractUnreadCount(response) {
-
-    if (!response) {
-        return 0;
-    }
-
-
-    // --------------------------------------------------------
-    // { data: { count: 5 } }
-    // --------------------------------------------------------
-
-    if (
-        response.data &&
-        typeof response.data.count === "number"
-    ) {
-
-        return response.data.count;
-
-    }
-
-
-    // --------------------------------------------------------
-    // { count: 5 }
-    // --------------------------------------------------------
-
-    if (
-        typeof response.count === "number"
-    ) {
-
-        return response.count;
-
-    }
-
-
-    // --------------------------------------------------------
-    // { data: 5 }
-    // --------------------------------------------------------
-
-    if (
-        typeof response.data === "number"
-    ) {
-
-        return response.data;
-
-    }
-
-
-    // --------------------------------------------------------
-    // { unreadCount: 5 }
-    // --------------------------------------------------------
-
-    if (
-        typeof response.unreadCount === "number"
-    ) {
-
-        return response.unreadCount;
-
-    }
-
-
-    // --------------------------------------------------------
-    // { data: { unreadCount: 5 } }
-    // --------------------------------------------------------
-
-    if (
-        response.data &&
-        typeof response.data.unreadCount === "number"
-    ) {
-
-        return response.data.unreadCount;
-
-    }
-
-
-    return 0;
-
-}
-
-
-// ============================================================
-// RENDER NOTIFICATIONS
-// ============================================================
-
-function renderNotifications(notifications) {
+function renderNotifications(
+    notifications
+) {
 
     const container =
-        findNotificationContainer();
+        document.getElementById(
+            "notificationsList"
+        ) ||
+        document.getElementById(
+            "notificationList"
+        ) ||
+        document.getElementById(
+            "notificationsContainer"
+        );
 
 
     if (!container) {
 
-        console.warn(
-            "Notification container was not found."
+        console.error(
+            "Notifications container not found."
         );
 
         return;
@@ -341,21 +138,21 @@ function renderNotifications(notifications) {
     }
 
 
-    // --------------------------------------------------------
-    // No notifications
-    // --------------------------------------------------------
-
     if (!notifications.length) {
 
         container.innerHTML = `
             <div class="notification-empty">
+
                 <i class="ti ti-bell-off"></i>
 
-                <h3>No notifications</h3>
+                <h3>
+                    No notifications
+                </h3>
 
                 <p>
                     You don't have any notifications right now.
                 </p>
+
             </div>
         `;
 
@@ -363,10 +160,6 @@ function renderNotifications(notifications) {
 
     }
 
-
-    // --------------------------------------------------------
-    // Render notifications
-    // --------------------------------------------------------
 
     container.innerHTML =
         notifications
@@ -382,97 +175,64 @@ function renderNotifications(notifications) {
 
 
 // ============================================================
-// FIND NOTIFICATION CONTAINER
+// NOTIFICATION HTML
 // ============================================================
 
-function findNotificationContainer() {
-
-    return (
-        document.getElementById(
-            "notificationsList"
-        ) ||
-
-        document.getElementById(
-            "notificationList"
-        ) ||
-
-        document.getElementById(
-            "notificationsContainer"
-        ) ||
-
-        document.querySelector(
-            ".notifications-list"
-        ) ||
-
-        document.querySelector(
-            ".notification-list"
-        )
-    );
-
-}
-
-
-// ============================================================
-// CREATE NOTIFICATION HTML
-// ============================================================
-
-function createNotificationHTML(notification) {
+function createNotificationHTML(
+    notification
+) {
 
     const id =
-        notification.id ??
+        notification.notificationId ??
         notification.notification_id ??
-        notification.notificationId;
+        notification.id;
 
 
     const title =
         notification.title ||
-        notification.subject ||
-        notification.type ||
         "Notification";
 
 
     const message =
         notification.message ||
-        notification.description ||
-        notification.body ||
         "";
 
 
     const createdAt =
-        notification.created_at ||
-        notification.createdAt ||
-        notification.date ||
-        notification.timestamp;
+        notification.createdAt ??
+        notification.created_at;
 
+
+    // IMPORTANT:
+    //
+    // MySQL TINYINT(1) normally comes through as:
+    //
+    // 0 = false
+    // 1 = true
+    //
+    // Therefore use Number().
+    //
 
     const isRead =
-        notification.is_read === true ||
-        notification.isRead === true ||
-        notification.read === true ||
-        notification.status === "read";
-
-
-    const unreadClass =
-        isRead
-            ? ""
-            : "unread";
-
-
-    const dateText =
-        formatNotificationDate(
-            createdAt
-        );
+        Number(
+            notification.isRead ??
+            notification.is_read ??
+            0
+        ) === 1;
 
 
     return `
         <article
-            class="notification-item ${unreadClass}"
+            class="notification-item ${
+                isRead ? "" : "unread"
+            }"
             data-notification-id="${escapeHTML(id)}"
         >
 
             <div class="notification-icon">
                 <i class="ti ti-bell"></i>
             </div>
+
 
             <div class="notification-content">
 
@@ -494,15 +254,22 @@ function createNotificationHTML(notification) {
 
                 </div>
 
+
                 <p>
                     ${escapeHTML(message)}
                 </p>
 
+
                 <div class="notification-meta">
 
                     <span>
-                        ${escapeHTML(dateText)}
+                        ${escapeHTML(
+                            formatNotificationDate(
+                                createdAt
+                            )
+                        )}
                     </span>
+
 
                     ${
                         !isRead
@@ -530,13 +297,37 @@ function createNotificationHTML(notification) {
 
 
 // ============================================================
-// INITIALIZE NOTIFICATION EVENTS
+// EVENTS
 // ============================================================
 
 function initializeNotificationEvents() {
 
     const container =
-        findNotificationContainer();
+        document.getElementById(
+            "notificationsList"
+        ) ||
+        document.getElementById(
+            "notificationList"
+        ) ||
+        document.getElementById(
+            "notificationsContainer"
+        );
+
+
+    const markAll =
+        document.getElementById(
+            "markAllReadBtn"
+        );
+
+
+    if (markAll) {
+
+        markAll.addEventListener(
+            "click",
+            markAllNotificationsRead
+        );
+
+    }
 
 
     if (!container) {
@@ -544,17 +335,13 @@ function initializeNotificationEvents() {
     }
 
 
-    // --------------------------------------------------------
-    // Event delegation
-    // --------------------------------------------------------
-
     container.addEventListener(
         "click",
         async (event) => {
 
             const button =
                 event.target.closest(
-                    "[data-action]"
+                    "[data-action='mark-read']"
                 );
 
 
@@ -563,24 +350,18 @@ function initializeNotificationEvents() {
             }
 
 
-            const action =
-                button.dataset.action;
-
-
-            const notificationId =
+            const id =
                 button.dataset.id;
 
 
-            if (
-                action === "mark-read" &&
-                notificationId
-            ) {
-
-                await markNotificationRead(
-                    notificationId
-                );
-
+            if (!id) {
+                return;
             }
+
+
+            await markNotificationRead(
+                id
+            );
 
         }
     );
@@ -589,7 +370,7 @@ function initializeNotificationEvents() {
 
 
 // ============================================================
-// MARK ONE NOTIFICATION AS READ
+// MARK ONE READ
 // ============================================================
 
 async function markNotificationRead(
@@ -598,74 +379,17 @@ async function markNotificationRead(
 
     try {
 
-        if (
-            typeof markWorkerNotificationAsRead !==
-            "function"
-        ) {
-
-            throw new Error(
-                "Notification API is unavailable."
-            );
-
-        }
-
-
         await markWorkerNotificationAsRead(
             notificationId
         );
 
 
-        // ----------------------------------------------------
-        // Update UI
-        // ----------------------------------------------------
-
-        const notification =
-            document.querySelector(
-                `[data-notification-id="${CSS.escape(
-                    String(notificationId)
-                )}"]`
-            );
-
-
-        if (notification) {
-
-            notification.classList.remove(
-                "unread"
-            );
-
-
-            const newBadge =
-                notification.querySelector(
-                    ".notification-unread"
-                );
-
-
-            if (newBadge) {
-                newBadge.remove();
-            }
-
-
-            const button =
-                notification.querySelector(
-                    '[data-action="mark-read"]'
-                );
-
-
-            if (button) {
-                button.remove();
-            }
-
-        }
-
-
-        // ----------------------------------------------------
-        // Refresh unread count
-        // ----------------------------------------------------
+        await loadNotifications();
 
         await loadUnreadCount();
 
 
-        showNotificationToast(
+        showToast(
             "Notification marked as read."
         );
 
@@ -673,12 +397,12 @@ async function markNotificationRead(
     } catch (error) {
 
         console.error(
-            "Could not mark notification as read:",
+            "Mark read error:",
             error
         );
 
 
-        showNotificationToast(
+        showToast(
             error.message ||
             "Could not mark notification as read."
         );
@@ -689,75 +413,22 @@ async function markNotificationRead(
 
 
 // ============================================================
-// MARK ALL NOTIFICATIONS AS READ
+// MARK ALL READ
 // ============================================================
 
 async function markAllNotificationsRead() {
 
     try {
 
-        if (
-            typeof markAllWorkerNotificationsAsRead !==
-            "function"
-        ) {
-
-            throw new Error(
-                "Notification API is unavailable."
-            );
-
-        }
-
-
         await markAllWorkerNotificationsAsRead();
 
 
-        // ----------------------------------------------------
-        // Update notification cards
-        // ----------------------------------------------------
+        await loadNotifications();
 
-        document
-            .querySelectorAll(
-                ".notification-item.unread"
-            )
-            .forEach((notification) => {
-
-                notification.classList.remove(
-                    "unread"
-                );
+        await loadUnreadCount();
 
 
-                const badge =
-                    notification.querySelector(
-                        ".notification-unread"
-                    );
-
-
-                if (badge) {
-                    badge.remove();
-                }
-
-
-                const button =
-                    notification.querySelector(
-                        '[data-action="mark-read"]'
-                    );
-
-
-                if (button) {
-                    button.remove();
-                }
-
-            });
-
-
-        // ----------------------------------------------------
-        // Update count
-        // ----------------------------------------------------
-
-        updateNotificationBadges(0);
-
-
-        showNotificationToast(
+        showToast(
             "All notifications marked as read."
         );
 
@@ -765,14 +436,14 @@ async function markAllNotificationsRead() {
     } catch (error) {
 
         console.error(
-            "Could not mark all notifications as read:",
+            "Mark all read error:",
             error
         );
 
 
-        showNotificationToast(
+        showToast(
             error.message ||
-            "Could not mark all notifications as read."
+            "Could not mark notifications as read."
         );
 
     }
@@ -781,21 +452,18 @@ async function markAllNotificationsRead() {
 
 
 // ============================================================
-// UPDATE NOTIFICATION BADGES
+// BADGES
 // ============================================================
 
-function updateNotificationBadges(count) {
+function updateNotificationBadges(
+    count
+) {
 
     const numericCount =
         Number(count) || 0;
 
 
-    // --------------------------------------------------------
-    // Common badge IDs
-    // --------------------------------------------------------
-
     const badges = [
-
         document.getElementById(
             "notificationBadge"
         ),
@@ -807,35 +475,26 @@ function updateNotificationBadges(count) {
         document.getElementById(
             "unreadNotificationCount"
         )
-
     ].filter(Boolean);
 
 
-    badges.forEach((badge) => {
-
-        if (numericCount > 0) {
+    badges.forEach(
+        badge => {
 
             badge.textContent =
                 numericCount > 99
                     ? "99+"
-                    : String(numericCount);
+                    : String(
+                        numericCount
+                    );
 
-            badge.hidden = false;
 
-        } else {
-
-            badge.textContent = "";
-
-            badge.hidden = true;
+            badge.hidden =
+                numericCount === 0;
 
         }
+    );
 
-    });
-
-
-    // --------------------------------------------------------
-    // Sidebar notification badge
-    // --------------------------------------------------------
 
     const notificationLink =
         document.querySelector(
@@ -843,43 +502,46 @@ function updateNotificationBadges(count) {
         );
 
 
-    if (notificationLink) {
-
-        let badge =
-            notificationLink.querySelector(
-                ".notification-badge"
-            );
+    if (!notificationLink) {
+        return;
+    }
 
 
-        if (numericCount > 0) {
+    let badge =
+        notificationLink.querySelector(
+            ".notification-badge"
+        );
 
-            if (!badge) {
 
-                badge =
-                    document.createElement(
-                        "span"
-                    );
+    if (numericCount > 0) {
 
-                badge.className =
-                    "notification-badge";
+        if (!badge) {
 
-                notificationLink.appendChild(
-                    badge
+            badge =
+                document.createElement(
+                    "span"
                 );
 
-            }
+            badge.className =
+                "notification-badge";
 
-
-            badge.textContent =
-                numericCount > 99
-                    ? "99+"
-                    : String(numericCount);
-
-        } else if (badge) {
-
-            badge.remove();
+            notificationLink.appendChild(
+                badge
+            );
 
         }
+
+
+        badge.textContent =
+            numericCount > 99
+                ? "99+"
+                : String(
+                    numericCount
+                );
+
+    } else if (badge) {
+
+        badge.remove();
 
     }
 
@@ -887,20 +549,20 @@ function updateNotificationBadges(count) {
 
 
 // ============================================================
-// FORMAT NOTIFICATION DATE
+// DATE
 // ============================================================
 
 function formatNotificationDate(
-    dateValue
+    value
 ) {
 
-    if (!dateValue) {
+    if (!value) {
         return "Recently";
     }
 
 
     const date =
-        new Date(dateValue);
+        new Date(value);
 
 
     if (
@@ -909,7 +571,7 @@ function formatNotificationDate(
         )
     ) {
 
-        return String(dateValue);
+        return String(value);
 
     }
 
@@ -929,7 +591,7 @@ function formatNotificationDate(
 
 
 // ============================================================
-// RENDER ERROR
+// ERROR
 // ============================================================
 
 function renderNotificationError(
@@ -937,7 +599,15 @@ function renderNotificationError(
 ) {
 
     const container =
-        findNotificationContainer();
+        document.getElementById(
+            "notificationsList"
+        ) ||
+        document.getElementById(
+            "notificationList"
+        ) ||
+        document.getElementById(
+            "notificationsContainer"
+        );
 
 
     if (!container) {
@@ -955,7 +625,10 @@ function renderNotificationError(
             </h3>
 
             <p>
-                ${escapeHTML(message)}
+                ${escapeHTML(
+                    message ||
+                    "Unknown error."
+                )}
             </p>
 
             <button
@@ -970,15 +643,11 @@ function renderNotificationError(
     `;
 
 
-    const retryButton =
-        document.getElementById(
+    document
+        .getElementById(
             "retryNotificationsBtn"
-        );
-
-
-    if (retryButton) {
-
-        retryButton.addEventListener(
+        )
+        ?.addEventListener(
             "click",
             async () => {
 
@@ -989,78 +658,11 @@ function renderNotificationError(
             }
         );
 
-    }
-
 }
 
 
 // ============================================================
-// TOAST
-// ============================================================
-
-function showNotificationToast(
-    message
-) {
-
-    if (
-        typeof showToast ===
-        "function"
-    ) {
-
-        showToast(message);
-
-        return;
-
-    }
-
-
-    // Fallback if shared showToast() isn't loaded
-
-    let toast =
-        document.querySelector(
-            ".toast"
-        );
-
-
-    if (!toast) {
-
-        toast =
-            document.createElement(
-                "div"
-            );
-
-        toast.className =
-            "toast";
-
-        document.body.appendChild(
-            toast
-        );
-
-    }
-
-
-    toast.textContent =
-        message;
-
-
-    toast.classList.add(
-        "show"
-    );
-
-
-    setTimeout(() => {
-
-        toast.classList.remove(
-            "show"
-        );
-
-    }, 2800);
-
-}
-
-
-// ============================================================
-// ESCAPE HTML
+// ESCAPE
 // ============================================================
 
 function escapeHTML(value) {
@@ -1069,9 +671,7 @@ function escapeHTML(value) {
         value === null ||
         value === undefined
     ) {
-
         return "";
-
     }
 
 
@@ -1101,7 +701,7 @@ function escapeHTML(value) {
 
 
 // ============================================================
-// GLOBAL FUNCTIONS
+// GLOBALS
 // ============================================================
 
 window.loadNotifications =
@@ -1110,14 +710,11 @@ window.loadNotifications =
 window.loadUnreadCount =
     loadUnreadCount;
 
+window.updateNotificationBadges =
+    updateNotificationBadges;
+
 window.markNotificationRead =
     markNotificationRead;
 
 window.markAllNotificationsRead =
     markAllNotificationsRead;
-
-window.updateNotificationBadges =
-    updateNotificationBadges;
-
-window.extractNotificationArray =
-    extractNotificationArray;
