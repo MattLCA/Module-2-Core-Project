@@ -8,6 +8,9 @@ import employeeRoutes from './routes/employeeRoutes.js';
 import payrollRoutes from './routes/payrollRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import performanceRoutes from './routes/performanceRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import goalRoutes from './routes/goalRoutes.js';
+import reviewCycleRoutes from './routes/reviewCycleRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -30,6 +33,9 @@ app.use('/api/employees', employeeRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/performance', performanceRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/goals', goalRoutes);
+app.use('/api/review-cycle', reviewCycleRoutes);
 // Mount attendanceRoutes / leaveRoutes here as your teammates build out
 // their controllers, following the same pattern.
 
