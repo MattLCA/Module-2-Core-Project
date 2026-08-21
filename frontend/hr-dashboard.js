@@ -86,96 +86,99 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })();
 
-  /* ================= Build employees from real data (+ localStorage overrides) ================= */
+  /* ================= Load real dashboard summary from the backend ================= */
+  // GET /api/dashboard/summary returns everything this page needs in one
+  // call: totalEmployees, onLeaveCount, pendingLeaveCount, attendance
+  // {date, present, absent, percentPresent}, recentEmployees (top 5 by
+  // start date), and leaveFeed (latest 8 leave requests). No more
+  // building this from employeeData.js/HRStorage locally.
 
-  function mapEmployee(e) {
-    const yearMatch = (e.employmentHistory || '').match(/\d{4}/);
-    const leaveRequests = e.leaveRequests || [];
-    const hasApprovedLeave = leaveRequests.some(lr => lr.status === 'Approved');
+  let summary = null;
 
-    return {
-      employeeId: e.employeeId,
-      name: e.name,
-      email: e.contact,
-      dept: e.department,
-      role: e.position,
-      start: yearMatch ? `${yearMatch[0]}-01-01` : '2020-01-01',
-      status: hasApprovedLeave ? 'leave' : 'active',
-      salary: e.payroll ? e.payroll.finalSalary : e.baseSalary,
-      attendance: e.attendance || [],
-      leaveRequests: leaveRequests
-    };
+  function loadDashboard() {
+    return apiFetch('/dashboard/summary')
+      .then(function(result) {
+        summary = result.data;
+        refreshStats();
+        renderRecentEmployees();
+        renderLeaveFeed();
+        renderAttendanceDonut();
+      })
+      .catch(function(err) {
+        showToast('Failed to load dashboard data from the server');
+        console.error(err);
+      });
   }
-
-  const employees = (typeof HRStorage !== 'undefined')
-    ? HRStorage.buildEmployees(typeof employeeData !== 'undefined' ? employeeData.employees : [], mapEmployee)
-    : (typeof employeeData !== 'undefined' ? employeeData.employees : []).map(mapEmployee);
 
   /* ================= Stat cards ================= */
 
   const totalEmployeesVal = document.getElementById('totalEmployeesVal');
   const newHiresVal = document.getElementById('newHiresVal');
   const onLeaveVal = document.getElementById('onLeaveVal');
-  const recentEmpSub = document.getElementById('recentEmpSub');
 
   function refreshStats() {
-    if (totalEmployeesVal) totalEmployeesVal.textContent = String(employees.length);
+    if (!summary) return;
 
-    const onboardingCount = employees.filter(e => e.status === 'onboarding').length;
-    if (newHiresVal) newHiresVal.textContent = String(onboardingCount);
+    if (totalEmployeesVal) totalEmployeesVal.textContent = String(summary.totalEmployees);
+    if (onLeaveVal) onLeaveVal.textContent = String(summary.onLeaveCount);
 
-    const onLeaveCount = employees.filter(e => e.status === 'leave').length;
-    if (onLeaveVal) onLeaveVal.textContent = String(onLeaveCount);
+    // NOTE: the schema has no real "onboarding" status on an employee —
+    // recentEmployees only distinguishes 'active' vs 'leave'. As a
+    // best-effort stand-in, this counts employees whose start date
+    // (inferred from employment_history) falls in the current calendar
+    // month. It's an approximation, not a tracked status — replace this
+    // if/when the schema gains a real onboarding flag.
+    if (newHiresVal) {
+      const now = new Date();
+      const onboardingCount = (summary.recentEmployees || []).filter(e => {
+        const d = new Date(e.startDate + 'T00:00:00');
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      }).length;
+      newHiresVal.textContent = String(onboardingCount);
+    }
+
+    // "Open positions" stat card stays as demo data — there's no
+    // recruitment/vacancies table in the schema to source it from.
   }
 
   /* ================= Recently added employees table ================= */
 
   const recentEmployeesTbody = document.getElementById('recentEmployeesTbody');
+  const recentEmpSub = document.getElementById('recentEmpSub');
 
   function renderRecentEmployees() {
-    if (!recentEmployeesTbody) return;
+    if (!recentEmployeesTbody || !summary) return;
 
-    const sorted = [...employees].sort((a, b) => new Date(b.start) - new Date(a.start));
-    const top = sorted.slice(0, 5);
+    const top = summary.recentEmployees || [];
+
+    if (!top.length) {
+      recentEmployeesTbody.innerHTML = '<tr><td colspan="4">No employees found.</td></tr>';
+      if (recentEmpSub) recentEmpSub.textContent = 'Showing 0 of 0 employees';
+      return;
+    }
 
     recentEmployeesTbody.innerHTML = top.map(e => {
-      const statusCls = e.status === 'onboarding' ? 'onboarding' : 'active';
-      const statusText = e.status === 'onboarding' ? 'Onboarding' : e.status === 'leave' ? 'On leave' : 'Active';
+      const statusCls = e.status === 'leave' ? 'leave' : 'active';
+      const statusText = e.status === 'leave' ? 'On leave' : 'Active';
       return `
-        <tr data-name="${e.name.toLowerCase()}" data-role="${e.role.toLowerCase()}" data-dept="${e.dept.toLowerCase()}">
-          <td><div class="emp-cell"><div class="emp-avatar">${initials(e.name)}</div><div><div class="emp-name">${e.name}</div><div class="emp-role">${e.role}</div></div></div></td>
-          <td>${e.dept}</td>
-          <td>${formatDate(e.start)}</td>
+        <tr data-name="${e.name.toLowerCase()}" data-role="${e.position.toLowerCase()}" data-dept="${e.department.toLowerCase()}">
+          <td><div class="emp-cell"><div class="emp-avatar">${initials(e.name)}</div><div><div class="emp-name">${e.name}</div><div class="emp-role">${e.position}</div></div></div></td>
+          <td>${e.department}</td>
+          <td>${formatDate(e.startDate)}</td>
           <td><span class="status-pill ${statusCls}">${statusText}</span></td>
         </tr>
       `;
     }).join('');
 
-    if (recentEmpSub) recentEmpSub.textContent = `Showing ${top.length} of ${employees.length} employees`;
+    if (recentEmpSub) recentEmpSub.textContent = `Showing ${top.length} of ${summary.totalEmployees} employees`;
   }
 
-  /* ================= Leave requests panel (from real leaveRequests) ================= */
+  /* ================= Leave requests panel ================= */
 
   const leaveListEl = document.getElementById('leaveList');
   const leaveRequestsSub = document.getElementById('leaveRequestsSub');
   const leavePendingTrendText = document.getElementById('leavePendingTrendText');
   const leaveNavBadge = document.getElementById('leaveNavBadge');
-
-  function buildLeaveFeed() {
-    const feed = [];
-    employees.forEach(e => {
-      (e.leaveRequests || []).forEach(lr => {
-        feed.push({
-          employeeName: e.name,
-          date: lr.date,
-          reason: lr.reason,
-          status: lr.status // 'Approved' | 'Pending' | 'Denied'
-        });
-      });
-    });
-    feed.sort((a, b) => new Date(b.date) - new Date(a.date));
-    return feed;
-  }
 
   function pendingCount() {
     if (!leaveListEl) return 0;
@@ -197,24 +200,30 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderLeaveFeed() {
-    if (!leaveListEl) return;
-    const feed = buildLeaveFeed().slice(0, 8);
+    if (!leaveListEl || !summary) return;
+    const feed = summary.leaveFeed || [];
+
+    if (!feed.length) {
+      leaveListEl.innerHTML = '<div class="leave-item-empty">No leave requests yet.</div>';
+      syncPendingCounters();
+      return;
+    }
 
     leaveListEl.innerHTML = feed.map(item => {
-      const statusLower = item.status.toLowerCase(); // approved | pending | denied
+      const statusLower = (item.status || '').toLowerCase(); // approved | pending | denied
       const showActions = statusLower === 'pending';
       return `
         <div class="leave-item" data-status="${statusLower}">
-          <div class="leave-avatar">${initials(item.employeeName)}</div>
+          <div class="leave-avatar">${initials(item.employee_name)}</div>
           <div class="leave-info">
-            <div class="name">${item.employeeName}</div>
-            <div class="meta"><i class="ti ti-beach leave-type-icon" aria-hidden="true"></i>${item.reason} · ${formatDate(item.date)}</div>
+            <div class="name">${item.employee_name}</div>
+            <div class="meta"><i class="ti ti-beach leave-type-icon" aria-hidden="true"></i>${item.leave_type} · ${formatDate(item.start_date)}</div>
           </div>
           <span class="leave-tag ${statusLower}">${item.status}</span>
           ${showActions ? `
           <div class="leave-actions">
-            <button class="leave-approve-btn" aria-label="Approve ${item.employeeName}'s leave request"><i class="ti ti-check" aria-hidden="true"></i></button>
-            <button class="leave-deny-btn" aria-label="Deny ${item.employeeName}'s leave request"><i class="ti ti-x" aria-hidden="true"></i></button>
+            <button class="leave-approve-btn" aria-label="Approve ${item.employee_name}'s leave request"><i class="ti ti-check" aria-hidden="true"></i></button>
+            <button class="leave-deny-btn" aria-label="Deny ${item.employee_name}'s leave request"><i class="ti ti-x" aria-hidden="true"></i></button>
           </div>` : ''}
         </div>
       `;
@@ -223,6 +232,11 @@ document.addEventListener('DOMContentLoaded', () => {
     syncPendingCounters();
   }
 
+  // NOTE: there's no leave-management backend endpoint yet (no
+  // leaveController/leaveModel/leaveRoutes exist) — approving or denying
+  // here only updates this page's DOM and does not persist. It'll revert
+  // on refresh until a real PATCH /api/leave-requests/:id endpoint (or
+  // similar) is built.
   if (leaveListEl) {
     leaveListEl.addEventListener('click', (e) => {
       const approveBtn = e.target.closest('.leave-approve-btn');
@@ -238,12 +252,12 @@ document.addEventListener('DOMContentLoaded', () => {
         tag.className = 'leave-tag approved';
         tag.textContent = 'Approved';
         item.dataset.status = 'approved';
-        showToast(`${name}'s leave request approved.`);
+        showToast(`${name}'s leave request approved (not yet saved \u2014 no backend endpoint for this exists yet).`);
       } else {
         tag.className = 'leave-tag denied';
         tag.textContent = 'Denied';
         item.dataset.status = 'denied';
-        showToast(`${name}'s leave request denied.`);
+        showToast(`${name}'s leave request denied (not yet saved \u2014 no backend endpoint for this exists yet).`);
       }
 
       if (actions) actions.remove();
@@ -251,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /* ================= Attendance donut (from real attendance records) ================= */
+  /* ================= Attendance donut ================= */
 
   const donutPresent = document.getElementById('donutPresent');
   const donutAbsent = document.getElementById('donutAbsent');
@@ -261,26 +275,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const attendanceDateSub = document.getElementById('attendanceDateSub');
 
   function renderAttendanceDonut() {
-    // Find the most recent date shared across employees' attendance records
-    const allDates = new Set();
-    employees.forEach(e => (e.attendance || []).forEach(a => allDates.add(a.date)));
-    const sortedDates = [...allDates].sort((a, b) => new Date(b) - new Date(a));
-    const latestDate = sortedDates[0];
+    if (!summary) return;
+    const att = summary.attendance || {};
 
-    if (!latestDate) {
+    if (!att.date) {
       if (attendanceDateSub) attendanceDateSub.textContent = 'No attendance data available';
       return;
     }
 
-    let present = 0, absent = 0;
-    employees.forEach(e => {
-      const rec = (e.attendance || []).find(a => a.date === latestDate);
-      if (rec) {
-        if (rec.status === 'Present') present++;
-        else if (rec.status === 'Absent') absent++;
-      }
-    });
-
+    const present = att.present || 0;
+    const absent = att.absent || 0;
     const total = present + absent;
     const circumference = 364.4;
     const presentLen = total ? (present / total) * circumference : 0;
@@ -294,18 +298,11 @@ document.addEventListener('DOMContentLoaded', () => {
       donutAbsent.setAttribute('stroke-dasharray', `${absentLen} ${circumference}`);
       donutAbsent.setAttribute('stroke-dashoffset', `-${presentLen}`);
     }
-    if (donutPct) donutPct.textContent = total ? `${Math.round((present / total) * 100)}%` : '–';
+    if (donutPct) donutPct.textContent = att.percentPresent !== null && att.percentPresent !== undefined ? `${att.percentPresent}%` : '\u2013';
     if (legendPresentVal) legendPresentVal.textContent = String(present);
     if (legendAbsentVal) legendAbsentVal.textContent = String(absent);
-    if (attendanceDateSub) attendanceDateSub.textContent = `${employees.length} employees · ${formatDate(latestDate)}`;
+    if (attendanceDateSub) attendanceDateSub.textContent = `${total} employees \u00b7 ${formatDate(att.date)}`;
   }
-
-  /* ================= Initial render from real data ================= */
-
-  refreshStats();
-  renderRecentEmployees();
-  renderLeaveFeed();
-  renderAttendanceDonut();
 
   /* ================= Sidebar (mobile) ================= */
 
@@ -376,90 +373,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /* ================= Add employee modal ================= */
-
+  /* ================= Add employee button ================= */
+  // Redirects to hr-employees.html instead of duplicating the create
+  // flow here. That page's modal already calls the real POST
+  // /api/employees endpoint (including the required password field) —
+  // this dashboard's old modal didn't collect a password at all and
+  // only wrote to localStorage, so keeping two separate/inconsistent
+  // "add employee" implementations isn't worth it.
   const addEmployeeBtn = document.getElementById('addEmployeeBtn');
-  const addEmployeeModal = document.getElementById('addEmployeeModal');
-  const closeAddEmployeeBtn = document.getElementById('closeAddEmployeeBtn');
-  const cancelAddEmployeeBtn = document.getElementById('cancelAddEmployeeBtn');
-  const addEmployeeForm = document.getElementById('addEmployeeForm');
-  const addEmployeeError = document.getElementById('addEmployeeError');
-
-  let lastFocusedBeforeModal = null;
-
-  function openAddEmployeeModal() {
-    lastFocusedBeforeModal = document.activeElement;
-    addEmployeeModal.hidden = false;
-    document.getElementById('empNameInput').focus();
-  }
-
-  function closeAddEmployeeModal() {
-    addEmployeeModal.hidden = true;
-    addEmployeeForm.reset();
-    addEmployeeError.hidden = true;
-    if (lastFocusedBeforeModal) lastFocusedBeforeModal.focus();
-  }
-
-  if (addEmployeeBtn) addEmployeeBtn.addEventListener('click', openAddEmployeeModal);
-  if (closeAddEmployeeBtn) closeAddEmployeeBtn.addEventListener('click', closeAddEmployeeModal);
-  if (cancelAddEmployeeBtn) cancelAddEmployeeBtn.addEventListener('click', closeAddEmployeeModal);
-
-  if (addEmployeeModal) {
-    addEmployeeModal.addEventListener('click', (e) => {
-      if (e.target === addEmployeeModal) closeAddEmployeeModal();
+  if (addEmployeeBtn) {
+    addEmployeeBtn.addEventListener('click', () => {
+      window.location.href = 'hr-employees.html';
     });
   }
 
-  if (addEmployeeForm) {
-    addEmployeeForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-
-      const name = document.getElementById('empNameInput').value.trim();
-      const role = document.getElementById('empRoleInput').value.trim();
-      const dept = document.getElementById('empDeptInput').value;
-      const start = document.getElementById('empStartInput').value;
-
-      const salaryInput = document.getElementById('empSalaryInput');
-      const salaryRaw = salaryInput ? salaryInput.value.trim() : '';
-      const salary = Number(salaryRaw);
-
-      if (!name || !role || !dept || !start || !salaryRaw || isNaN(salary) || salary <= 0) {
-        addEmployeeError.hidden = false;
-        return;
-      }
-      addEmployeeError.hidden = true;
-
-      const newEmployeeData = {
-        name, email: '', dept, role, start,
-        status: 'onboarding',
-        salary: salary,
-        baseSalary: salary,
-        payroll: {
-          hoursWorked: 160,
-          leaveDeductions: 0,
-          finalSalary: salary
-        },
-        attendance: [],
-        leaveRequests: []
-      };
-
-      // Persist to localStorage so it survives a refresh and shows up on every page
-      const newEmployee = (typeof HRStorage !== 'undefined')
-        ? HRStorage.addEmployee(newEmployeeData)
-        : newEmployeeData;
-
-      // Add to the in-memory employees array so stats/table stay consistent
-      employees.unshift(newEmployee);
-
-      refreshStats();
-      renderRecentEmployees();
-
-      showToast(`${name} was added to the team.`);
-      closeAddEmployeeModal();
-    });
-  }
-
-  /* ================= Global Escape handling (notif panel + modal + sidebar) ================= */
+  /* ================= Global Escape handling (notif panel + sidebar) ================= */
 
   window.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
@@ -467,10 +395,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (notifPanel && !notifPanel.hidden) {
       closeNotifPanel();
       notifBtn.focus();
-      return;
-    }
-    if (addEmployeeModal && !addEmployeeModal.hidden) {
-      closeAddEmployeeModal();
       return;
     }
     if (sidebar && sidebar.classList.contains('open')) {
@@ -511,6 +435,9 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+  /* Initial load */
+  loadDashboard();
 });
 
 const logoutBtn = document.getElementById("logoutBtn");
@@ -526,6 +453,7 @@ if(logoutBtn){
         if(confirmLogout){
 
             localStorage.removeItem("loggedInUser");
+            localStorage.removeItem("authToken");
 
             window.location.href = "index.html";
 
