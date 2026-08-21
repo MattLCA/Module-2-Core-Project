@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const identifierIcon = document.getElementById("loginIdentifierIcon");
     const roleInputs = document.querySelectorAll('input[name="role"]');
 
+
     // ============================================================
     // UPDATE IDENTIFIER FIELD WHEN ROLE CHANGES
     // ============================================================
@@ -15,13 +16,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
         roleInput.addEventListener("change", () => {
 
-            if (roleInput.value === "Employee" && roleInput.checked) {
+            if (
+                roleInput.value === "Employee" &&
+                roleInput.checked
+            ) {
 
                 identifierLabel.textContent = "Employee ID";
 
                 identifierInput.type = "text";
 
-                identifierInput.placeholder = "EMP001";
+                identifierInput.placeholder = "EMP-001";
 
                 identifierInput.value = "";
 
@@ -35,15 +39,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 identifierInput.type = "email";
 
-                identifierInput.placeholder = "Enter your email address";
+                identifierInput.placeholder =
+                    "Enter your email address";
 
                 identifierInput.value = "";
 
                 identifierInput.autocomplete = "username";
 
                 identifierIcon.className = "ti ti-mail";
+
             }
+
         });
+
     });
 
 
@@ -60,12 +68,29 @@ document.addEventListener("DOMContentLoaded", () => {
         // Get selected frontend role
         // --------------------------------------------------------
 
+        const selectedRoleInput =
+            document.querySelector(
+                'input[name="role"]:checked'
+            );
+
+        if (!selectedRoleInput) {
+
+            showMessage(
+                "Please select a login role.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
         const selectedRole =
-            document.querySelector('input[name="role"]:checked').value;
+            selectedRoleInput.value;
 
 
         // --------------------------------------------------------
-        // Convert frontend role to database/API role
+        // Convert frontend role to backend role
         // --------------------------------------------------------
 
         const role =
@@ -97,11 +122,12 @@ document.addEventListener("DOMContentLoaded", () => {
             );
 
             return;
+
         }
 
 
         // --------------------------------------------------------
-        // Disable button
+        // Disable login button
         // --------------------------------------------------------
 
         const loginButton =
@@ -121,6 +147,19 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
 
             // ----------------------------------------------------
+            // Clear old authentication information
+            // ----------------------------------------------------
+
+            localStorage.removeItem("token");
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("workerToken");
+            localStorage.removeItem("employee");
+            localStorage.removeItem("loggedInUser");
+            localStorage.removeItem("userRole");
+            localStorage.removeItem("workerProfile");
+
+
+            // ----------------------------------------------------
             // Send login request
             // ----------------------------------------------------
 
@@ -134,9 +173,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     },
 
                     body: JSON.stringify({
-                        role,
-                        identifier,
-                        password
+                        role: role,
+                        identifier: identifier,
+                        password: password
                     })
                 }
             );
@@ -146,7 +185,14 @@ document.addEventListener("DOMContentLoaded", () => {
             // Read response
             // ----------------------------------------------------
 
-            const result = await response.json();
+            const result =
+                await response.json();
+
+
+            console.log(
+                "Login response:",
+                result
+            );
 
 
             // ----------------------------------------------------
@@ -157,8 +203,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 throw new Error(
                     result.error ||
+                    result.message ||
                     "Login failed. Please check your details."
                 );
+
             }
 
 
@@ -167,10 +215,32 @@ document.addEventListener("DOMContentLoaded", () => {
             // ----------------------------------------------------
 
             const token =
-                result.data.token;
+                result?.data?.token;
 
             const employee =
-                result.data.employee;
+                result?.data?.employee;
+
+
+            // ----------------------------------------------------
+            // Validate response
+            // ----------------------------------------------------
+
+            if (!token) {
+
+                throw new Error(
+                    "Login succeeded but the server did not return an authentication token."
+                );
+
+            }
+
+
+            if (!employee) {
+
+                throw new Error(
+                    "Login succeeded but the server did not return employee information."
+                );
+
+            }
 
 
             // ----------------------------------------------------
@@ -182,16 +252,38 @@ document.addEventListener("DOMContentLoaded", () => {
                 throw new Error(
                     "You do not have permission to access this portal."
                 );
+
             }
 
 
-            // ----------------------------------------------------
-            // Store authentication information
-            // ----------------------------------------------------
+            // ====================================================
+            // STORE AUTHENTICATION
+            // ====================================================
+            //
+            // IMPORTANT:
+            //
+            // worker_api.js uses "token"
+            // script.js uses "employee"
+            //
+            // We store those exact keys.
+            //
+            // We also keep authToken/loggedInUser for compatibility
+            // with any existing HR/frontend code.
+            // ====================================================
+
+            localStorage.setItem(
+                "token",
+                token
+            );
 
             localStorage.setItem(
                 "authToken",
                 token
+            );
+
+            localStorage.setItem(
+                "employee",
+                JSON.stringify(employee)
             );
 
             localStorage.setItem(
@@ -215,7 +307,27 @@ document.addEventListener("DOMContentLoaded", () => {
                     "workerProfile",
                     JSON.stringify(employee)
                 );
+
             }
+
+
+            // ----------------------------------------------------
+            // Log authentication information
+            // ----------------------------------------------------
+
+            console.log(
+                "Authentication successful."
+            );
+
+            console.log(
+                "Authenticated employee:",
+                employee
+            );
+
+            console.log(
+                "Role:",
+                employee.role
+            );
 
 
             // ----------------------------------------------------
@@ -239,13 +351,23 @@ document.addEventListener("DOMContentLoaded", () => {
                     window.location.href =
                         "hr-dashboard.html";
 
-                } else if (employee.role === "worker") {
+                } else if (
+                    employee.role === "worker"
+                ) {
 
                     window.location.href =
                         "worker-dashboard.html";
+
+                } else {
+
+                    showMessage(
+                        "Your account does not have a valid portal role.",
+                        "error"
+                    );
+
                 }
 
-            }, 700);
+            }, 500);
 
 
         } catch (error) {
@@ -255,11 +377,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 error
             );
 
+
             showMessage(
                 error.message ||
                 "Unable to connect to the server.",
                 "error"
             );
+
 
         } finally {
 
@@ -267,7 +391,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             loginButton.innerHTML =
                 originalButtonText;
+
         }
+
     });
 
 
@@ -278,7 +404,9 @@ document.addEventListener("DOMContentLoaded", () => {
     function showMessage(message, type) {
 
         let messageBox =
-            document.querySelector(".login-message");
+            document.querySelector(
+                ".login-message"
+            );
 
 
         if (!messageBox) {
@@ -289,7 +417,10 @@ document.addEventListener("DOMContentLoaded", () => {
             messageBox.className =
                 "login-message";
 
-            loginForm.prepend(messageBox);
+            loginForm.prepend(
+                messageBox
+            );
+
         }
 
 
@@ -298,6 +429,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         messageBox.className =
             `login-message ${type}`;
+
     }
 
 });

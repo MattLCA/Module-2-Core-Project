@@ -6,25 +6,13 @@
 // This file contains ONLY functionality shared across
 // worker portal pages.
 //
-// Page-specific functionality belongs in:
+// Authentication:
+// - Login stores JWT under "authToken"
+// - Worker API also supports "token"
+// - This file accepts both so the worker portal does not
+//   immediately redirect back to the login page.
 //
-// worker-dashboard.js
-// worker-attendance.js
-// worker-leave.js
-// worker-payslip.js
-// worker-profile.js
-// worker-notifications.js
-//
-// API functionality belongs in:
-//
-// worker_api.js
-//
-// Logout functionality belongs in:
-//
-// logout.js
-//
-// Employee information should come from the API.
-// This file does NOT hard-code a worker.
+// Employee information comes from the API/login response.
 // ============================================================
 
 console.log("ModernTech shared script connected.");
@@ -38,6 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initializeSidebar();
     highlightCurrentPage();
     initializeToastButtons();
+    initializeStoredEmployee();
 });
 
 
@@ -139,14 +128,11 @@ function highlightCurrentPage() {
 // UPDATE SIDEBAR EMPLOYEE
 // ============================================================
 //
-// Call this function from a page-specific script when the
-// employee information has been retrieved from the API.
-//
-// Example:
+// Call:
 //
 // updateSidebarEmployee(employee);
 //
-// Supported employee formats:
+// Supported formats:
 //
 // {
 //     name: "Sibongile Nkosi",
@@ -219,9 +205,7 @@ function updateSidebarEmployee(employee) {
     // --------------------------------------------------------
 
     if (sidebarName) {
-
         sidebarName.textContent = name;
-
     }
 
 
@@ -230,9 +214,7 @@ function updateSidebarEmployee(employee) {
     // --------------------------------------------------------
 
     if (sidebarCode) {
-
         sidebarCode.textContent = employeeCode;
-
     }
 
 
@@ -241,9 +223,7 @@ function updateSidebarEmployee(employee) {
     // --------------------------------------------------------
 
     if (avatar) {
-
         avatar.textContent = getInitials(name);
-
     }
 
 
@@ -252,9 +232,7 @@ function updateSidebarEmployee(employee) {
     // --------------------------------------------------------
 
     if (welcomeName) {
-
         welcomeName.textContent = getFirstName(name);
-
     }
 
 }
@@ -269,7 +247,6 @@ function getInitials(name) {
     if (!name) {
         return "--";
     }
-
 
     return name
         .trim()
@@ -292,7 +269,6 @@ function getFirstName(name) {
         return "Worker";
     }
 
-
     return name
         .trim()
         .split(/\s+/)[0];
@@ -301,44 +277,109 @@ function getFirstName(name) {
 
 
 // ============================================================
-// PAGE PROTECTION
+// AUTHENTICATION TOKEN
 // ============================================================
 //
-// This is a shared helper.
-// Page-specific files can call:
+// IMPORTANT:
 //
-// requireWorkerLogin();
+// login.js stores the JWT as:
 //
-// or:
+//     authToken
 //
-// protectPage("worker");
+// worker_api.js historically looked for:
 //
-// The actual JWT is stored by worker_api.js under:
+//     token
 //
-// "token"
+// We support both here.
+//
+// ============================================================
+
+function getAuthToken() {
+
+    return (
+        localStorage.getItem("authToken") ||
+        localStorage.getItem("token") ||
+        localStorage.getItem("workerToken")
+    );
+
+}
+
+
+// ============================================================
+// PAGE PROTECTION
 // ============================================================
 
 function protectPage(requiredRole = null) {
 
-    const token =
-        localStorage.getItem("token") ||
-        localStorage.getItem("workerToken") ||
-        localStorage.getItem("authToken");
+    const token = getAuthToken();
 
-
-    const loggedInUser =
+    const loggedInUserRaw =
         localStorage.getItem("loggedInUser");
 
+    const employeeRaw =
+        localStorage.getItem("employee");
 
     // --------------------------------------------------------
     // No authentication information
     // --------------------------------------------------------
 
-    if (!token && !loggedInUser) {
+    if (!token) {
+
+        console.warn(
+            "No authentication token found. Redirecting to login."
+        );
 
         window.location.href = "index.html";
 
         return false;
+    }
+
+
+    // --------------------------------------------------------
+    // Get logged-in employee
+    // --------------------------------------------------------
+
+    let loggedInUser = null;
+
+    if (loggedInUserRaw) {
+
+        try {
+
+            loggedInUser =
+                JSON.parse(loggedInUserRaw);
+
+        } catch (error) {
+
+            console.error(
+                "Could not parse loggedInUser:",
+                error
+            );
+
+        }
+
+    }
+
+
+    // --------------------------------------------------------
+    // If there is no loggedInUser but there is an employee,
+    // use the employee object.
+    // --------------------------------------------------------
+
+    if (!loggedInUser && employeeRaw) {
+
+        try {
+
+            loggedInUser =
+                JSON.parse(employeeRaw);
+
+        } catch (error) {
+
+            console.error(
+                "Could not parse employee:",
+                error
+            );
+
+        }
 
     }
 
@@ -347,23 +388,118 @@ function protectPage(requiredRole = null) {
     // Optional role protection
     // --------------------------------------------------------
 
-    if (
-        requiredRole &&
-        loggedInUser &&
-        loggedInUser !== requiredRole
-    ) {
+    if (requiredRole && loggedInUser) {
 
-        if (loggedInUser === "hr") {
+        const actualRole =
+            loggedInUser.role ||
+            loggedInUser.user_role ||
+            loggedInUser.role_name;
 
-            window.location.href = "hr-dashboard.html";
 
-        } else {
+        if (
+            actualRole &&
+            actualRole !== requiredRole
+        ) {
 
-            window.location.href = "worker-dashboard.html";
+            if (actualRole === "hr") {
 
+                window.location.href =
+                    "hr-dashboard.html";
+
+            } else if (actualRole === "worker") {
+
+                window.location.href =
+                    "worker-dashboard.html";
+
+            }
+
+            return false;
         }
 
+    }
+
+
+    return true;
+
+}
+
+
+// ============================================================
+// WORKER LOGIN CHECK
+// ============================================================
+//
+// Worker pages call:
+//
+// requireWorkerLogin();
+//
+// The old problem was that login.js stored "authToken"
+// while worker_api.js only checked "token".
+//
+// This function accepts both.
+//
+// ============================================================
+
+function requireWorkerLogin() {
+
+    const token = getAuthToken();
+
+    if (!token) {
+
+        console.warn(
+            "Worker is not authenticated. Redirecting to login."
+        );
+
+        window.location.href =
+            "index.html";
+
         return false;
+    }
+
+
+    // --------------------------------------------------------
+    // Make sure the logged-in user is actually a worker
+    // when role information exists.
+    // --------------------------------------------------------
+
+    const loggedInUserRaw =
+        localStorage.getItem("loggedInUser");
+
+    if (loggedInUserRaw) {
+
+        try {
+
+            const employee =
+                JSON.parse(loggedInUserRaw);
+
+            const role =
+                employee?.role ||
+                employee?.user_role ||
+                employee?.role_name;
+
+
+            if (
+                role &&
+                role !== "worker"
+            ) {
+
+                if (role === "hr") {
+
+                    window.location.href =
+                        "hr-dashboard.html";
+
+                }
+
+                return false;
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Could not validate logged-in worker:",
+                error
+            );
+
+        }
 
     }
 
@@ -419,7 +555,7 @@ function showToast(message) {
 
 
     // --------------------------------------------------------
-    // Remove previous timeout if it exists
+    // Remove previous timeout
     // --------------------------------------------------------
 
     if (toast._timeout) {
@@ -433,28 +569,18 @@ function showToast(message) {
     // Hide after 2.8 seconds
     // --------------------------------------------------------
 
-    toast._timeout = setTimeout(() => {
+    toast._timeout =
+        setTimeout(() => {
 
-        toast.classList.remove("show");
+            toast.classList.remove("show");
 
-    }, 2800);
+        }, 2800);
 
 }
 
 
 // ============================================================
 // DATA-TOAST BUTTONS
-// ============================================================
-//
-// Any button can use:
-//
-// data-toast="Your message here"
-//
-// Example:
-//
-// <button data-toast="Saved successfully">
-//     Save
-// </button>
 // ============================================================
 
 function initializeToastButtons() {
@@ -485,7 +611,8 @@ function initializeToastButtons() {
 
 function formatCurrency(amount) {
 
-    const number = Number(amount);
+    const number =
+        Number(amount);
 
 
     if (Number.isNaN(number)) {
@@ -547,16 +674,11 @@ function timeLabel() {
 // ============================================================
 // SAFE TEXT HELPER
 // ============================================================
-//
-// Useful when page-specific JavaScript needs to display
-// optional API data.
-//
-// Example:
-//
-// element.textContent = safeText(employee.department);
-// ============================================================
 
-function safeText(value, fallback = "Not available") {
+function safeText(
+    value,
+    fallback = "Not available"
+) {
 
     if (
         value === null ||
@@ -577,14 +699,6 @@ function safeText(value, fallback = "Not available") {
 // ============================================================
 // FORMAT DATE FROM API
 // ============================================================
-//
-// Converts an API date into:
-//
-// 20 Aug 2026
-//
-// If the value cannot be parsed, the original value is
-// returned.
-// ============================================================
 
 function formatDate(dateValue) {
 
@@ -593,7 +707,8 @@ function formatDate(dateValue) {
     }
 
 
-    const date = new Date(dateValue);
+    const date =
+        new Date(dateValue);
 
 
     if (Number.isNaN(date.getTime())) {
@@ -626,7 +741,8 @@ function formatDateTime(dateValue) {
     }
 
 
-    const date = new Date(dateValue);
+    const date =
+        new Date(dateValue);
 
 
     if (Number.isNaN(date.getTime())) {
@@ -653,21 +769,6 @@ function formatDateTime(dateValue) {
 // ============================================================
 // API RESPONSE DATA HELPER
 // ============================================================
-//
-// Backend responses may sometimes look like:
-//
-// { data: {...} }
-//
-// or:
-//
-// { employee: {...} }
-//
-// or simply:
-//
-// {...}
-//
-// This helper makes page-specific code easier to write.
-// ============================================================
 
 function getResponseData(response) {
 
@@ -676,7 +777,9 @@ function getResponseData(response) {
     }
 
 
-    if (response.data !== undefined) {
+    if (
+        response.data !== undefined
+    ) {
 
         return response.data;
 
@@ -692,39 +795,157 @@ function getResponseData(response) {
 // LOGGED-IN EMPLOYEE HELPER
 // ============================================================
 //
-// The API layer stores the employee in localStorage under:
+// Login stores the employee as:
 //
-// "employee"
+//     loggedInUser
 //
-// This helper only reads that already-saved API result.
-// It does NOT create or hard-code employee information.
+// worker_api.js stores the employee as:
+//
+//     employee
+//
+// This helper supports both.
+//
 // ============================================================
 
 function getStoredEmployee() {
+
+    // --------------------------------------------------------
+    // First try the API worker employee key.
+    // --------------------------------------------------------
 
     const employee =
         localStorage.getItem("employee");
 
 
-    if (!employee) {
+    if (employee) {
 
-        return null;
+        try {
+
+            return JSON.parse(employee);
+
+        } catch (error) {
+
+            console.error(
+                "Could not parse stored employee:",
+                error
+            );
+
+        }
 
     }
 
 
-    try {
+    // --------------------------------------------------------
+    // Fall back to login's loggedInUser key.
+    // --------------------------------------------------------
 
-        return JSON.parse(employee);
+    const loggedInUser =
+        localStorage.getItem("loggedInUser");
 
-    } catch (error) {
 
-        console.error(
-            "Could not parse stored employee:",
-            error
+    if (loggedInUser) {
+
+        try {
+
+            return JSON.parse(loggedInUser);
+
+        } catch (error) {
+
+            console.error(
+                "Could not parse loggedInUser:",
+                error
+            );
+
+        }
+
+    }
+
+
+    return null;
+
+}
+
+
+// ============================================================
+// SYNCHRONIZE AUTH STORAGE
+// ============================================================
+//
+// This fixes the mismatch between login.js and worker_api.js.
+//
+// login.js:
+//
+//     authToken
+//     loggedInUser
+//
+// worker_api.js:
+//
+//     token
+//     employee
+//
+// We keep both copies synchronized.
+//
+// ============================================================
+
+function synchronizeAuthStorage() {
+
+    // --------------------------------------------------------
+    // TOKEN
+    // --------------------------------------------------------
+
+    const authToken =
+        localStorage.getItem("authToken");
+
+    const token =
+        localStorage.getItem("token");
+
+
+    if (authToken && !token) {
+
+        localStorage.setItem(
+            "token",
+            authToken
         );
 
-        return null;
+    }
+
+
+    if (token && !authToken) {
+
+        localStorage.setItem(
+            "authToken",
+            token
+        );
+
+    }
+
+
+    // --------------------------------------------------------
+    // EMPLOYEE
+    // --------------------------------------------------------
+
+    const loggedInUser =
+        localStorage.getItem("loggedInUser");
+
+    const employee =
+        localStorage.getItem("employee");
+
+
+    if (loggedInUser && !employee) {
+
+        localStorage.setItem(
+            "employee",
+            loggedInUser
+        );
+
+    }
+
+
+    if (employee && !loggedInUser) {
+
+        localStorage.setItem(
+            "loggedInUser",
+            employee
+        );
 
     }
 
@@ -732,17 +953,14 @@ function getStoredEmployee() {
 
 
 // ============================================================
-// INITIALIZE SIDEBAR FROM STORED API EMPLOYEE
-// ============================================================
-//
-// This does NOT replace backend API integration.
-//
-// It simply allows the sidebar to immediately display the
-// employee returned by login while page-specific API calls
-// are being made.
+// INITIALIZE SIDEBAR FROM STORED EMPLOYEE
 // ============================================================
 
 function initializeStoredEmployee() {
+
+    // Make sure both authentication storage systems agree.
+    synchronizeAuthStorage();
+
 
     const employee =
         getStoredEmployee();
@@ -761,11 +979,26 @@ function initializeStoredEmployee() {
 
 
 // ============================================================
-// EXPORT / GLOBAL ACCESS
+// LOGOUT / CLEAR AUTHENTICATION
 // ============================================================
-//
-// These functions are intentionally attached to window so
-// that page-specific JavaScript files can use them.
+
+function clearAuthentication() {
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("workerToken");
+
+    localStorage.removeItem("employee");
+    localStorage.removeItem("loggedInUser");
+
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("workerProfile");
+
+}
+
+
+// ============================================================
+// GLOBAL ACCESS
 // ============================================================
 
 window.updateSidebarEmployee =
@@ -777,8 +1010,14 @@ window.getInitials =
 window.getFirstName =
     getFirstName;
 
+window.getAuthToken =
+    getAuthToken;
+
 window.protectPage =
     protectPage;
+
+window.requireWorkerLogin =
+    requireWorkerLogin;
 
 window.showToast =
     showToast;
@@ -809,3 +1048,9 @@ window.getStoredEmployee =
 
 window.initializeStoredEmployee =
     initializeStoredEmployee;
+
+window.synchronizeAuthStorage =
+    synchronizeAuthStorage;
+
+window.clearAuthentication =
+    clearAuthentication;
