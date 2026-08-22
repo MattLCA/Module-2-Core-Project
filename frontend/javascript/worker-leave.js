@@ -4,8 +4,6 @@
 
 console.log("Worker Leave JS connected.");
 
-
-let workerLeaveTypes = [];
 let workerLeaveBalances = [];
 let workerLeaveRequests = [];
 
@@ -32,7 +30,9 @@ document.addEventListener(
 
         initializeLeaveFilters();
 
-        initializeLeaveClearButton();
+        initializeLeaveModal();
+
+        initializeLeaveDayValidation();
 
 
         await loadLeaveData();
@@ -42,7 +42,7 @@ document.addEventListener(
 
 
 // ============================================================
-// LOAD ALL LEAVE DATA
+// LOAD LEAVE DATA
 // ============================================================
 
 async function loadLeaveData() {
@@ -50,38 +50,61 @@ async function loadLeaveData() {
     try {
 
         const [
-            typesResponse,
             balancesResponse,
             requestsResponse
         ] = await Promise.all([
-            getWorkerLeaveTypes(),
+
             getWorkerLeaveBalances(),
+
             getWorkerLeaveRequests()
+
         ]);
 
 
-        workerLeaveTypes =
-            typesResponse?.data ||
-            [];
+        console.log(
+            "Leave balances response:",
+            balancesResponse
+        );
+
+
+        console.log(
+            "Leave requests response:",
+            requestsResponse
+        );
 
 
         workerLeaveBalances =
-            balancesResponse?.data ||
-            [];
+            extractResponseArray(
+                balancesResponse
+            );
 
 
         workerLeaveRequests =
-            requestsResponse?.data ||
-            [];
+            extractResponseArray(
+                requestsResponse
+            );
 
 
-        renderLeaveTypes();
+        console.log(
+            "Processed leave balances:",
+            workerLeaveBalances
+        );
+
+
+        console.log(
+            "Processed leave requests:",
+            workerLeaveRequests
+        );
+
 
         renderLeaveBalances();
 
         renderLeaveRequests(
             workerLeaveRequests
         );
+
+
+        updateLeaveDayLimit();
 
 
     } catch (error) {
@@ -103,120 +126,109 @@ async function loadLeaveData() {
 
 
 // ============================================================
-// LEAVE TYPES
+// EXTRACT ARRAY FROM API RESPONSE
 // ============================================================
 
-function renderLeaveTypes() {
+function extractResponseArray(
+    response
+) {
 
-    const select =
-        document.getElementById(
-            "leaveType"
-        );
+    if (
+        Array.isArray(response)
+    ) {
 
+        return response;
 
-    if (!select) {
-        return;
     }
 
 
-    select.innerHTML = `
-        <option value="">
-            Select Leave Type
-        </option>
-    `;
+    if (
+        Array.isArray(response?.data)
+    ) {
+
+        return response.data;
+
+    }
 
 
-    workerLeaveTypes.forEach(
-        (type) => {
+    if (
+        Array.isArray(response?.rows)
+    ) {
 
-            const option =
-                document.createElement(
-                    "option"
-                );
+        return response.rows;
 
-
-            option.value =
-                type.leaveTypeId;
+    }
 
 
-            option.textContent =
-                type.leaveTypeName;
+    if (
+        Array.isArray(response?.data?.rows)
+    ) {
+
+        return response.data.rows;
+
+    }
 
 
-            select.appendChild(
-                option
-            );
-
-        }
-    );
+    return [];
 
 }
 
 
 // ============================================================
-// BALANCES
+// LEAVE BALANCES
 // ============================================================
 
 function renderLeaveBalances() {
 
-    const map = {
+    const balanceMap = {
 
-        "Annual Leave":
+        "annual leave":
             "annualLeave",
 
-        "Sick Leave":
+        "sick leave":
             "sickLeave",
 
-        "Family Responsibility":
+        "family responsibility":
             "familyLeave",
 
-        "Study Leave":
+        "study leave":
             "studyLeave",
 
-        "Personal":
+        "personal":
             "personalLeave",
 
-        "Vacation":
+        "vacation":
             "vacationLeave",
 
-        "Medical Appointment":
+        "medical appointment":
             "medicalLeave",
 
-        "Bereavement":
+        "bereavement":
             "bereavementLeave",
 
-        "Childcare":
+        "childcare":
             "childcareLeave"
 
     };
 
 
-    workerLeaveBalances.forEach(
-        (balance) => {
+    // Reset everything first.
 
-            const id =
-                map[
-                    balance.leaveTypeName
-                ];
-
-
-            if (!id) {
-                return;
-            }
-
+    Object.values(
+        balanceMap
+    ).forEach(
+        (elementId) => {
 
             const element =
                 document.getElementById(
-                    id
+                    elementId
                 );
 
 
             if (element) {
 
                 element.textContent =
-                    `${Number(
-                        balance.remainingDays || 0
-                    )} days`;
+                    "0 days";
 
             }
 
@@ -224,13 +236,82 @@ function renderLeaveBalances() {
     );
 
 
-    const pending =
-        workerLeaveRequests.filter(
-            request =>
+    // Apply database values.
+
+    workerLeaveBalances.forEach(
+        (balance) => {
+
+            const typeName =
                 String(
-                    request.status
-                ).toLowerCase() ===
-                "pending"
+                    balance.leaveTypeName ??
+                    balance.leave_type_name ??
+                    ""
+                )
+                    .trim()
+                    .toLowerCase();
+
+
+            const elementId =
+                balanceMap[
+                    typeName
+                ];
+
+
+            if (!elementId) {
+
+                console.warn(
+                    "Could not map leave balance:",
+                    balance
+                );
+
+                return;
+
+            }
+
+
+            const element =
+                document.getElementById(
+                    elementId
+                );
+
+
+            if (!element) {
+
+                return;
+
+            }
+
+
+            const remaining =
+                Number(
+                    balance.remainingDays ??
+                    balance.remaining_days ??
+                    0
+                );
+
+
+            element.textContent =
+                `${formatDays(remaining)} days`;
+
+        }
+    );
+
+
+    // Pending requests.
+
+    const pendingCount =
+        workerLeaveRequests.filter(
+            (request) => {
+
+                return String(
+                    request.status ??
+                    ""
+                )
+                    .trim()
+                    .toLowerCase() ===
+                    "pending";
+
+            }
         ).length;
 
 
@@ -243,9 +324,511 @@ function renderLeaveBalances() {
     if (pendingElement) {
 
         pendingElement.textContent =
-            pending;
+            pendingCount;
 
     }
+
+}
+
+
+// ============================================================
+// GET BALANCE FOR SELECTED LEAVE TYPE
+// ============================================================
+
+function getSelectedLeaveBalance() {
+
+    const leaveType =
+        document.getElementById(
+            "leaveType"
+        );
+
+
+    if (
+        !leaveType ||
+        !leaveType.value
+    ) {
+
+        return null;
+
+    }
+
+
+    const leaveTypeId =
+        Number(
+            leaveType.value
+        );
+
+
+    const balance =
+        workerLeaveBalances.find(
+            (item) => {
+
+                const id =
+                    Number(
+                        item.leaveTypeId ??
+                        item.leave_type_id
+                    );
+
+
+                return id ===
+                    leaveTypeId;
+
+            }
+        );
+
+
+    if (!balance) {
+
+        return null;
+
+    }
+
+
+    return Number(
+        balance.remainingDays ??
+        balance.remaining_days ??
+        0
+    );
+
+}
+
+
+// ============================================================
+// GET SELECTED LEAVE TYPE NAME
+// ============================================================
+
+function getSelectedLeaveTypeName() {
+
+    const select =
+        document.getElementById(
+            "leaveType"
+        );
+
+
+    if (!select) {
+
+        return "";
+
+    }
+
+
+    return (
+        select.options[
+            select.selectedIndex
+        ]?.textContent ||
+        ""
+    ).trim();
+
+}
+
+
+// ============================================================
+// CALCULATE DAYS FROM DATES
+// ============================================================
+
+function calculateDaysFromDates(
+    startDate,
+    endDate
+) {
+
+    if (
+        !startDate ||
+        !endDate
+    ) {
+
+        return null;
+
+    }
+
+
+    const start =
+        new Date(
+            `${startDate}T00:00:00`
+        );
+
+
+    const end =
+        new Date(
+            `${endDate}T00:00:00`
+        );
+
+
+    if (
+        Number.isNaN(
+            start.getTime()
+        ) ||
+        Number.isNaN(
+            end.getTime()
+        )
+    ) {
+
+        return null;
+
+    }
+
+
+    if (
+        end < start
+    ) {
+
+        return null;
+
+    }
+
+
+    return Math.floor(
+        (
+            end.getTime() -
+            start.getTime()
+        ) /
+        (
+            1000 *
+            60 *
+            60 *
+            24
+        )
+    ) + 1;
+
+}
+
+
+// ============================================================
+// UPDATE MAXIMUM DAYS
+// ============================================================
+
+function updateLeaveDayLimit() {
+
+    const daysInput =
+        document.getElementById(
+            "leaveDays"
+        );
+
+
+    if (!daysInput) {
+
+        return;
+
+    }
+
+
+    const balance =
+        getSelectedLeaveBalance();
+
+
+    if (
+        balance === null
+    ) {
+
+        daysInput.removeAttribute(
+            "max"
+        );
+
+        return;
+
+    }
+
+
+    daysInput.max =
+        Math.floor(
+            Math.max(
+                0,
+                balance
+            )
+        );
+
+
+    const requested =
+        Number(
+            daysInput.value
+        );
+
+
+    if (
+        requested &&
+        requested >
+        balance
+    ) {
+
+        daysInput.setCustomValidity(
+            `You only have ${formatDays(balance)} day(s) of ${getSelectedLeaveTypeName()} remaining.`
+        );
+
+    } else {
+
+        daysInput.setCustomValidity(
+            ""
+        );
+
+    }
+
+}
+
+
+// ============================================================
+// LIVE DAYS VALIDATION
+// ============================================================
+
+function initializeLeaveDayValidation() {
+
+    const typeSelect =
+        document.getElementById(
+            "leaveType"
+        );
+
+
+    const daysInput =
+        document.getElementById(
+            "leaveDays"
+        );
+
+
+    const startDate =
+        document.getElementById(
+            "startDate"
+        );
+
+
+    const endDate =
+        document.getElementById(
+            "endDate"
+        );
+
+
+    if (typeSelect) {
+
+        typeSelect.addEventListener(
+            "change",
+            () => {
+
+                updateLeaveDayLimit();
+
+            }
+        );
+
+    }
+
+
+    if (daysInput) {
+
+        daysInput.addEventListener(
+            "input",
+            () => {
+
+                validateRequestedDays(
+                    false
+                );
+
+            }
+        );
+
+    }
+
+
+    if (startDate) {
+
+        startDate.addEventListener(
+            "change",
+            () => {
+
+                syncDaysWithDates();
+
+            }
+        );
+
+    }
+
+
+    if (endDate) {
+
+        endDate.addEventListener(
+            "change",
+            () => {
+
+                syncDaysWithDates();
+
+            }
+        );
+
+    }
+
+}
+
+
+// ============================================================
+// SYNC DAYS WITH DATE RANGE
+// ============================================================
+
+function syncDaysWithDates() {
+
+    const daysInput =
+        document.getElementById(
+            "leaveDays"
+        );
+
+
+    const start =
+        document.getElementById(
+            "startDate"
+        )?.value;
+
+
+    const end =
+        document.getElementById(
+            "endDate"
+        )?.value;
+
+
+    if (
+        !daysInput ||
+        !start ||
+        !end
+    ) {
+
+        return;
+
+    }
+
+
+    const calculated =
+        calculateDaysFromDates(
+            start,
+            end
+        );
+
+
+    if (
+        calculated === null
+    ) {
+
+        return;
+
+    }
+
+
+    // Automatically keep Total Days consistent
+    // with the selected date range.
+
+    daysInput.value =
+        calculated;
+
+
+    validateRequestedDays(
+        false
+    );
+
+}
+
+
+// ============================================================
+// VALIDATE REQUESTED DAYS
+// ============================================================
+
+function validateRequestedDays(
+    showMessage = true
+) {
+
+    const daysInput =
+        document.getElementById(
+            "leaveDays"
+        );
+
+
+    if (!daysInput) {
+
+        return false;
+
+    }
+
+
+    const requested =
+        Number(
+            daysInput.value
+        );
+
+
+    const balance =
+        getSelectedLeaveBalance();
+
+
+    // No category selected yet.
+
+    if (
+        balance === null
+    ) {
+
+        daysInput.setCustomValidity(
+            ""
+        );
+
+        return true;
+
+    }
+
+
+    // Must be whole number >= 1.
+
+    if (
+        !Number.isInteger(
+            requested
+        ) ||
+        requested < 1
+    ) {
+
+        daysInput.setCustomValidity(
+            "Please enter at least 1 leave day."
+        );
+
+
+        if (showMessage) {
+
+            showToast(
+                "Please enter a valid number of leave days."
+            );
+
+        }
+
+
+        return false;
+
+    }
+
+
+    // Must not exceed balance.
+
+    if (
+        requested >
+        balance
+    ) {
+
+        const message =
+            `You only have ${formatDays(balance)} day(s) of ${getSelectedLeaveTypeName()} remaining.`;
+
+
+        daysInput.setCustomValidity(
+            message
+        );
+
+
+        if (showMessage) {
+
+            showToast(
+                message
+            );
+
+        }
+
+
+        return false;
+
+    }
+
+
+    daysInput.setCustomValidity(
+        ""
+    );
+
+
+    return true;
 
 }
 
@@ -263,7 +846,9 @@ function initializeLeaveForm() {
 
 
     if (!form) {
+
         return;
+
     }
 
 
@@ -274,134 +859,250 @@ function initializeLeaveForm() {
             event.preventDefault();
 
 
-            try {
-
-                const leaveTypeId =
+            const leaveTypeId =
+                Number(
                     document.getElementById(
                         "leaveType"
-                    )?.value;
+                    )?.value
+                );
 
 
-                const startDate =
+            const startDate =
+                document.getElementById(
+                    "startDate"
+                )?.value;
+
+
+            const endDate =
+                document.getElementById(
+                    "endDate"
+                )?.value;
+
+
+            const leaveDays =
+                Number(
                     document.getElementById(
-                        "startDate"
-                    )?.value;
+                        "leaveDays"
+                    )?.value
+                );
 
 
-                const endDate =
-                    document.getElementById(
-                        "endDate"
-                    )?.value;
+            const reason =
+                document.getElementById(
+                    "leaveReason"
+                )?.value.trim();
 
 
-                const reason =
-                    document.getElementById(
-                        "leaveReason"
-                    )?.value.trim();
+            // ----------------------------------------------------
+            // Required fields.
+            // ----------------------------------------------------
+
+            if (!leaveTypeId) {
+
+                showToast(
+                    "Please select a leave type."
+                );
+
+                return;
+
+            }
 
 
-                if (!leaveTypeId) {
+            if (!startDate) {
 
-                    showToast(
-                        "Please select a leave type."
-                    );
+                showToast(
+                    "Please select a start date."
+                );
 
-                    return;
-                }
+                return;
 
-
-                if (!startDate) {
-
-                    showToast(
-                        "Please select a start date."
-                    );
-
-                    return;
-                }
+            }
 
 
-                if (!endDate) {
+            if (!endDate) {
 
-                    showToast(
-                        "Please select an end date."
-                    );
+                showToast(
+                    "Please select an end date."
+                );
 
-                    return;
-                }
+                return;
 
-
-                if (!reason) {
-
-                    showToast(
-                        "Please provide a reason."
-                    );
-
-                    return;
-                }
+            }
 
 
-                const start =
-                    new Date(
-                        `${startDate}T00:00:00`
-                    );
+            if (!reason) {
+
+                showToast(
+                    "Please provide a reason for your leave."
+                );
+
+                return;
+
+            }
 
 
-                const end =
-                    new Date(
-                        `${endDate}T00:00:00`
-                    );
+            // ----------------------------------------------------
+            // Date calculation.
+            // ----------------------------------------------------
+
+            const calculatedDays =
+                calculateDaysFromDates(
+                    startDate,
+                    endDate
+                );
 
 
-                if (end < start) {
+            if (
+                calculatedDays === null
+            ) {
 
-                    showToast(
-                        "End date cannot be before start date."
-                    );
+                showToast(
+                    "Please enter a valid leave date range."
+                );
 
-                    return;
-                }
+                return;
+
+            }
 
 
-                const totalDays =
-                    Math.floor(
-                        (
-                            end -
-                            start
-                        ) /
-                        (
-                            1000 *
-                            60 *
-                            60 *
-                            24
-                        )
-                    ) + 1;
+            // ----------------------------------------------------
+            // Make sure Total Days agrees with dates.
+            // ----------------------------------------------------
 
+            if (
+                leaveDays !==
+                calculatedDays
+            ) {
+
+                showToast(
+                    `The selected dates equal ${calculatedDays} day(s). Please enter ${calculatedDays} in Total Days.`
+                );
+
+                return;
+
+            }
+
+
+            // ----------------------------------------------------
+            // Check selected category balance.
+            // ----------------------------------------------------
+
+            const balance =
+                getSelectedLeaveBalance();
+
+
+            if (
+                balance === null
+            ) {
+
+                showToast(
+                    "The balance for this leave category could not be loaded. Please refresh the page and try again."
+                );
+
+                return;
+
+            }
+
+
+            if (
+                leaveDays >
+                balance
+            ) {
+
+                showToast(
+                    `You only have ${formatDays(balance)} day(s) of ${getSelectedLeaveTypeName()} remaining.`
+                );
+
+                return;
+
+            }
+
+
+            // ----------------------------------------------------
+            // Disable submit button.
+            // ----------------------------------------------------
+
+            const submitButton =
+                form.querySelector(
+                    'button[type="submit"]'
+                );
+
+
+            if (submitButton) {
+
+                submitButton.disabled =
+                    true;
+
+                submitButton.textContent =
+                    "Submitting...";
+
+            }
+
+
+            try {
+
+                // ------------------------------------------------
+                // Submit to database through API.
+                // ------------------------------------------------
 
                 const response =
                     await createWorkerLeaveRequest({
-                        leaveTypeId:
-                            Number(
-                                leaveTypeId
-                            ),
+
+                        leaveTypeId,
 
                         startDate,
 
                         endDate,
 
+                        totalDays:
+                            leaveDays,
+
                         reason
+
                     });
 
 
-                showLeaveModal(
-                    response?.data
+                console.log(
+                    "Leave submission response:",
+                    response
                 );
 
+
+                const request =
+                    response?.data ||
+                    response;
+
+
+                if (!request) {
+
+                    throw new Error(
+                        "The server did not return the submitted request."
+                    );
+
+                }
+
+
+                // ------------------------------------------------
+                // Show confirmation.
+                // ------------------------------------------------
+
+                showLeaveModal(
+                    request
+                );
+
+
+                // ------------------------------------------------
+                // Clear form.
+                // ------------------------------------------------
 
                 form.reset();
 
 
-                await loadLeaveData();
+                // ------------------------------------------------
+                // Refresh DB data.
+                // ------------------------------------------------
 
+                await loadLeaveData();
 
             } catch (error) {
 
@@ -416,6 +1117,18 @@ function initializeLeaveForm() {
                     "Could not submit leave request."
                 );
 
+            } finally {
+
+                if (submitButton) {
+
+                    submitButton.disabled =
+                        false;
+
+                    submitButton.textContent =
+                        "Submit Request";
+
+                }
+
             }
 
         }
@@ -425,40 +1138,28 @@ function initializeLeaveForm() {
 
 
 // ============================================================
-// MODAL
+// SHOW MODAL
 // ============================================================
 
 function showLeaveModal(
     request
 ) {
 
-    if (!request) {
-        return;
-    }
-
-
-    const leaveType =
-        workerLeaveTypes.find(
-            type =>
-                Number(
-                    type.leaveTypeId
-                ) ===
-                Number(
-                    request.leaveTypeId
-                )
-        );
+    const selectedType =
+        getSelectedLeaveTypeName();
 
 
     setText(
         "summaryType",
-        leaveType?.leaveTypeName ||
+        request.leaveTypeName ||
+        selectedType ||
         "Leave"
     );
 
 
     setText(
         "summaryDays",
-        request.totalDays
+        `${request.totalDays ?? "--"} days`
     );
 
 
@@ -494,6 +1195,10 @@ function showLeaveModal(
     if (modal) {
 
         modal.classList.add(
+            "show"
+        );
+
+        modal.classList.add(
             "active"
         );
 
@@ -502,7 +1207,38 @@ function showLeaveModal(
 }
 
 
+// ============================================================
+// MODAL
+// ============================================================
+
 function initializeLeaveModal() {
+
+    const closeButton =
+        document.getElementById(
+            "closeModal"
+        );
+
+
+    if (!closeButton) {
+
+        return;
+
+    }
+
+
+    closeButton.addEventListener(
+        "click",
+        closeLeaveModal
+    );
+
+}
+
+
+// ============================================================
+// CLOSE MODAL
+// ============================================================
+
+function closeLeaveModal() {
 
     const modal =
         document.getElementById(
@@ -510,24 +1246,121 @@ function initializeLeaveModal() {
         );
 
 
-    const close =
-        document.getElementById(
-            "closeModal"
+    if (modal) {
+
+        modal.classList.remove(
+            "show"
         );
 
+        modal.classList.remove(
+            "active"
+        );
 
-    if (close) {
+    }
 
-        close.addEventListener(
-            "click",
-            () => {
 
-                modal?.classList.remove(
-                    "active"
+    activateLeaveTab(
+        "history"
+    );
+
+
+    renderLeaveRequests(
+        workerLeaveRequests
+    );
+
+}
+
+
+// ============================================================
+// TABS
+// ============================================================
+
+function initializeLeaveTabs() {
+
+    document
+        .querySelectorAll(
+            ".leave-tab"
+        )
+        .forEach(
+            (tab) => {
+
+                tab.addEventListener(
+                    "click",
+                    () => {
+
+                        activateLeaveTab(
+                            tab.dataset.tab
+                        );
+
+                    }
                 );
 
             }
         );
+
+}
+
+
+// ============================================================
+// ACTIVATE TAB
+// ============================================================
+
+function activateLeaveTab(
+    target
+) {
+
+    document
+        .querySelectorAll(
+            ".leave-tab"
+        )
+        .forEach(
+            (tab) => {
+
+                tab.classList.toggle(
+                    "active",
+                    tab.dataset.tab ===
+                    target
+                );
+
+            }
+        );
+
+
+    document
+        .querySelectorAll(
+            ".leave-content"
+        )
+        .forEach(
+            (content) => {
+
+                content.classList.toggle(
+                    "active",
+                    content.id ===
+                    target
+                );
+
+            }
+        );
+
+
+    if (
+        target ===
+        "history"
+    ) {
+
+        renderLeaveRequests(
+            workerLeaveRequests
+        );
+
+    }
+
+
+    if (
+        target ===
+        "balance"
+    ) {
+
+        renderLeaveBalances();
 
     }
 
@@ -535,7 +1368,7 @@ function initializeLeaveModal() {
 
 
 // ============================================================
-// REQUEST HISTORY
+// HISTORY
 // ============================================================
 
 function renderLeaveRequests(
@@ -549,11 +1382,16 @@ function renderLeaveRequests(
 
 
     if (!table) {
+
         return;
+
     }
 
 
-    if (!requests.length) {
+    if (
+        !Array.isArray(requests) ||
+        requests.length === 0
+    ) {
 
         table.innerHTML = `
             <tr>
@@ -564,64 +1402,75 @@ function renderLeaveRequests(
         `;
 
         return;
+
     }
 
 
     table.innerHTML =
         requests
             .map(
-                request => `
+                (request) => {
 
-                <tr
-                    data-leave-type="${escapeHTML(
-                        request.leaveTypeName
-                    )}"
-                    data-status="${escapeHTML(
-                        request.status
-                    )}"
-                    data-start="${escapeHTML(
-                        request.startDate
-                    )}"
-                >
+                    const type =
+                        request.leaveTypeName ??
+                        request.leave_type_name ??
+                        "Leave";
 
-                    <td>
-                        ${escapeHTML(
-                            request.leaveTypeName
-                        )}
-                    </td>
 
-                    <td>
-                        ${escapeHTML(
-                            formatDate(
-                                request.startDate
-                            )
-                        )}
-                    </td>
+                    const start =
+                        request.startDate ??
+                        request.start_date;
 
-                    <td>
-                        ${escapeHTML(
-                            formatDate(
-                                request.endDate
-                            )
-                        )}
-                    </td>
 
-                    <td>
-                        ${escapeHTML(
-                            request.totalDays
-                        )}
-                    </td>
+                    const end =
+                        request.endDate ??
+                        request.end_date;
 
-                    <td>
-                        <span class="status">
-                            ${escapeHTML(
-                                request.status
-                            )}
-                        </span>
-                    </td>
 
-                </tr>
-            `
+                    const days =
+                        request.totalDays ??
+                        request.total_days ??
+                        0;
+
+
+                    const status =
+                        request.status ??
+                        "Pending";
+
+
+                    return `
+                        <tr>
+
+                            <td>
+                                ${escapeHTML(type)}
+                            </td>
+
+                            <td>
+                                ${escapeHTML(
+                                    formatDate(start)
+                                )}
+                            </td>
+
+                            <td>
+                                ${escapeHTML(
+                                    formatDate(end)
+                                )}
+                            </td>
+
+                            <td>
+                                ${escapeHTML(days)}
+                            </td>
+
+                            <td>
+                                <span class="status">
+                                    ${escapeHTML(status)}
+                                </span>
+                            </td>
+
+                        </tr>
+                    `;
+
+                }
             )
             .join("");
 
@@ -634,61 +1483,112 @@ function renderLeaveRequests(
 
 function initializeLeaveFilters() {
 
-    [
-        "filterType",
-        "filterStatus",
-        "fromDate",
-        "toDate"
-    ]
-        .forEach(
-            id => {
-
-                const element =
-                    document.getElementById(
-                        id
-                    );
-
-
-                if (element) {
-
-                    element.addEventListener(
-                        "change",
-                        applyLeaveFilters
-                    );
-
-                }
-
-            }
+    const filterType =
+        document.getElementById(
+            "filterType"
         );
 
 
-    const clear =
+    const filterStatus =
+        document.getElementById(
+            "filterStatus"
+        );
+
+
+    const fromDate =
+        document.getElementById(
+            "fromDate"
+        );
+
+
+    const toDate =
+        document.getElementById(
+            "toDate"
+        );
+
+
+    if (filterType) {
+
+        filterType.addEventListener(
+            "change",
+            applyLeaveFilters
+        );
+
+    }
+
+
+    if (filterStatus) {
+
+        filterStatus.addEventListener(
+            "change",
+            applyLeaveFilters
+        );
+
+    }
+
+
+    if (fromDate) {
+
+        fromDate.addEventListener(
+            "change",
+            applyLeaveFilters
+        );
+
+    }
+
+
+    if (toDate) {
+
+        toDate.addEventListener(
+            "change",
+            applyLeaveFilters
+        );
+
+    }
+
+
+    const clearFilters =
         document.getElementById(
             "clearFilters"
         );
 
 
-    if (clear) {
+    if (clearFilters) {
 
-        clear.addEventListener(
+        clearFilters.addEventListener(
             "click",
             () => {
 
-                document.getElementById(
-                    "filterType"
-                ).value = "All";
+                if (filterType) {
 
-                document.getElementById(
-                    "filterStatus"
-                ).value = "All";
+                    filterType.value =
+                        "All";
 
-                document.getElementById(
-                    "fromDate"
-                ).value = "";
+                }
 
-                document.getElementById(
-                    "toDate"
-                ).value = "";
+
+                if (filterStatus) {
+
+                    filterStatus.value =
+                        "All";
+
+                }
+
+
+                if (fromDate) {
+
+                    fromDate.value =
+                        "";
+
+                }
+
+
+                if (toDate) {
+
+                    toDate.value =
+                        "";
+
+                }
 
 
                 renderLeaveRequests(
@@ -703,65 +1603,98 @@ function initializeLeaveFilters() {
 }
 
 
+// ============================================================
+// APPLY FILTERS
+// ============================================================
+
 function applyLeaveFilters() {
 
     const type =
         document.getElementById(
             "filterType"
-        )?.value || "All";
+        )?.value ||
+        "All";
 
 
     const status =
         document.getElementById(
             "filterStatus"
-        )?.value || "All";
+        )?.value ||
+        "All";
 
 
     const from =
         document.getElementById(
             "fromDate"
-        )?.value || "";
+        )?.value ||
+        "";
 
 
     const to =
         document.getElementById(
             "toDate"
-        )?.value || "";
+        )?.value ||
+        "";
 
 
     const filtered =
         workerLeaveRequests.filter(
-            request => {
+            (request) => {
+
+                const requestType =
+                    request.leaveTypeName ??
+                    request.leave_type_name ??
+                    "";
+
+
+                const requestStatus =
+                    request.status ??
+                    "";
+
+
+                const requestStart =
+                    request.startDate ??
+                    request.start_date ??
+                    "";
+
 
                 if (
                     type !== "All" &&
-                    request.leaveTypeName !== type
+                    requestType !== type
                 ) {
+
                     return false;
+
                 }
 
 
                 if (
                     status !== "All" &&
-                    request.status !== status
+                    requestStatus !== status
                 ) {
+
                     return false;
+
                 }
 
 
                 if (
                     from &&
-                    request.startDate < from
+                    requestStart < from
                 ) {
+
                     return false;
+
                 }
 
 
                 if (
                     to &&
-                    request.startDate > to
+                    requestStart > to
                 ) {
+
                     return false;
+
                 }
 
 
@@ -779,108 +1712,6 @@ function applyLeaveFilters() {
 
 
 // ============================================================
-// TABS
-// ============================================================
-
-function initializeLeaveTabs() {
-
-    const tabs =
-        document.querySelectorAll(
-            ".leave-tab"
-        );
-
-
-    const contents =
-        document.querySelectorAll(
-            ".leave-content"
-        );
-
-
-    tabs.forEach(
-        tab => {
-
-            tab.addEventListener(
-                "click",
-                () => {
-
-                    const target =
-                        tab.dataset.tab;
-
-
-                    tabs.forEach(
-                        item =>
-                            item.classList.remove(
-                                "active"
-                            )
-                    );
-
-
-                    contents.forEach(
-                        content =>
-                            content.classList.remove(
-                                "active"
-                            )
-                    );
-
-
-                    tab.classList.add(
-                        "active"
-                    );
-
-
-                    document
-                        .getElementById(
-                            target
-                        )
-                        ?.classList.add(
-                            "active"
-                        );
-
-                }
-            );
-
-        }
-    );
-
-}
-
-
-// ============================================================
-// CLEAR BUTTON
-// ============================================================
-
-function initializeLeaveClearButton() {
-
-    const button =
-        document.getElementById(
-            "clearLeaveBtn"
-        );
-
-
-    if (!button) {
-        return;
-    }
-
-
-    button.addEventListener(
-        "click",
-        () => {
-
-            renderLeaveRequests(
-                workerLeaveRequests
-            );
-
-            showToast(
-                "Leave requests are stored in the database and cannot be deleted from this page."
-            );
-
-        }
-    );
-
-}
-
-
-// ============================================================
 // HELPERS
 // ============================================================
 
@@ -890,13 +1721,16 @@ function setText(
 ) {
 
     const element =
-        document.getElementById(id);
+        document.getElementById(
+            id
+        );
 
 
     if (element) {
 
         element.textContent =
-            value ?? "--";
+            value ??
+            "--";
 
     }
 
@@ -908,12 +1742,24 @@ function formatDate(
 ) {
 
     if (!value) {
+
         return "--";
+
     }
 
 
+    const text =
+        String(value)
+            .substring(
+                0,
+                10
+            );
+
+
     const date =
-        new Date(value);
+        new Date(
+            `${text}T00:00:00`
+        );
 
 
     if (
@@ -922,7 +1768,9 @@ function formatDate(
         )
     ) {
 
-        return String(value);
+        return String(
+            value
+        );
 
     }
 
@@ -930,22 +1778,53 @@ function formatDate(
     return date.toLocaleDateString(
         "en-ZA",
         {
-            day: "2-digit",
-            month: "short",
-            year: "numeric"
+            day:
+                "2-digit",
+
+            month:
+                "short",
+
+            year:
+                "numeric"
         }
     );
 
 }
 
 
-function escapeHTML(value) {
+function formatDays(
+    value
+) {
+
+    const number =
+        Number(value);
+
+
+    if (
+        Number.isInteger(number)
+    ) {
+
+        return String(number);
+
+    }
+
+
+    return number.toFixed(2);
+
+}
+
+
+function escapeHTML(
+    value
+) {
 
     if (
         value === null ||
         value === undefined
     ) {
+
         return "";
+
     }
 
 
@@ -975,7 +1854,7 @@ function escapeHTML(value) {
 
 
 // ============================================================
-// GLOBAL
+// GLOBALS
 // ============================================================
 
 window.loadLeaveData =
@@ -986,13 +1865,3 @@ window.renderLeaveBalances =
 
 window.renderLeaveRequests =
     renderLeaveRequests;
-
-
-// ============================================================
-// START MODAL
-// ============================================================
-
-document.addEventListener(
-    "DOMContentLoaded",
-    initializeLeaveModal
-);
