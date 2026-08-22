@@ -77,13 +77,34 @@ async function getRoleId(roleName) {
   return rows[0].role_id;
 }
 
+// Positions are open-ended job titles typed by HR in the "Add employee"
+// form, unlike departments (a fixed dropdown). Find-or-create rather than
+// throwing on an unrecognized title.
 async function getPositionId(positionName) {
   const [rows] = await pool.query(
     `SELECT position_id FROM positions WHERE position_name = ?`,
     [positionName]
   );
-  if (!rows[0]) throw new Error(`Unknown position: ${positionName}`);
-  return rows[0].position_id;
+  if (rows[0]) return rows[0].position_id;
+
+  const [result] = await pool.query(
+    `INSERT INTO positions (position_name) VALUES (?)`,
+    [positionName]
+  );
+  return result.insertId;
+}
+
+// Generates the next sequential employee_code (EMP001, EMP002, ...).
+// employee_code is NOT NULL UNIQUE, so a code must exist before insert.
+async function getNextEmployeeCode() {
+  const [rows] = await pool.query(
+    `SELECT employee_code FROM employees
+     WHERE employee_code REGEXP '^EMP[0-9]+$'
+     ORDER BY CAST(SUBSTRING(employee_code, 4) AS UNSIGNED) DESC
+     LIMIT 1`
+  );
+  const lastNum = rows[0] ? parseInt(rows[0].employee_code.slice(3), 10) : 0;
+  return 'EMP' + String(lastNum + 1).padStart(3, '0');
 }
 
 async function getDepartmentId(departmentName) {
@@ -155,4 +176,4 @@ async function remove(employeeId) {
   return result.affectedRows > 0;
 }
 
-export { findAll, findById, findByLoginIdentifier, create, update, remove };
+export { findAll, findById, findByLoginIdentifier, create, update, remove, getNextEmployeeCode };

@@ -21,8 +21,8 @@ router.post(
     body('baseSalary').isFloat({ min: 0 }).withMessage('baseSalary must be a positive number'),
     body('email').optional({ nullable: true }).isEmail().withMessage('Invalid email'),
     body('employeeCode').optional({ nullable: true }).trim(),
-    body('passwordHash').notEmpty().withMessage('passwordHash is required'),
-    body('role').isIn(['hr', 'worker']).withMessage('role must be hr or worker'),
+    body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+    body('role').optional().isIn(['hr', 'worker']).withMessage('role must be hr or worker'),
   ],
   controller.create
 );

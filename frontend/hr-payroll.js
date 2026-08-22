@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
     =====================================================*/
 
     const searchInput = document.getElementById("payrollSearch");
+    const generatePayrollBtn = document.getElementById("generatePayrollBtn");
     const processBatchBtn = document.getElementById("processBatchBtn");
     const recalcBtn = document.getElementById("recalcBtn");
 
@@ -373,6 +374,42 @@ document.addEventListener("DOMContentLoaded", () => {
 
       confirmDisburseBtn.addEventListener('click', doDisburse);
       cancelConfirmBtn.addEventListener('click', doCancel);
+    });
+  }
+
+  // Calls the backend's bulk-generate endpoint (POST /api/payroll/generate),
+  // which creates one payroll record per active employee for the given pay
+  // period, skipping anyone who already has one. This is what actually gets
+  // a newly-added employee onto this page — until a record is generated for
+  // them, they have no payroll row to show.
+  if (generatePayrollBtn) {
+    generatePayrollBtn.addEventListener('click', () => {
+      const now = new Date();
+      const payPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+      generatePayrollBtn.disabled = true;
+      apiFetch('/payroll/generate', {
+        method: 'POST',
+        body: JSON.stringify({ payPeriod })
+      })
+        .then(result => {
+          const count = result.count || 0;
+          showToast(count > 0
+            ? `Generated ${count} payroll record(s) for ${payPeriod}.`
+            : `Everyone already has a payroll record for ${payPeriod}.`);
+          return loadPayrollRecords();
+        })
+        .then(records => {
+          renderRows(records);
+          attachRowHandlers();
+          updatePayrollCalculations();
+        })
+        .catch(err => {
+          showToast('Failed to generate payroll: ' + err.message);
+        })
+        .finally(() => {
+          generatePayrollBtn.disabled = false;
+        });
     });
   }
 

@@ -1298,6 +1298,15 @@ body.page-employees .modal-overlay{
 }
 body.page-employees .modal-overlay.open{display:flex;}
 
+.profile-view{display:flex;flex-direction:column;gap:0;}
+.profile-row{
+  display:flex;justify-content:space-between;gap:16px;
+  padding:10px 0;border-bottom:1px solid var(--border,#eceaf5);
+  font-size:14px;
+}
+.profile-row:last-child{border-bottom:none;}
+.profile-label{color:var(--text-mid,#6b6580);font-weight:600;}
+
 body.page-payroll .modal-overlay{
   display:none;
   background:rgba(29,26,58,.4);

@@ -228,8 +228,12 @@
       var employee = visibleRows[idx];
       closeAllDropdowns();
       if (!employee) return;
-      if (action === 'view') showToast('Viewing ' + employee.name + '\u2019s profile');
-      if (action === 'edit') showToast('Editing ' + employee.name + ' isn\u2019t wired up to the backend yet');
+      if (action === 'view'){
+        openViewModal(employee.employeeId);
+      }
+      if (action === 'edit'){
+        openEditModal(employee.employeeId);
+      }
       if (action === 'remove'){
         if (!confirm('Remove ' + employee.name + ' from the directory? This can be undone by an admin later (soft delete).')) return;
 
@@ -270,39 +274,156 @@
     if (e.target === modalOverlay) closeModal();
   });
 
-  // NOTE: "Add employee" is not yet wired to the real API. The backend's
-  // POST /api/employees currently requires an already-hashed password
-  // (passwordHash) from the caller — there's no server-side hashing for
-  // employee creation like there is for login. Hashing in the browser
-  // isn't safe practice, so this needs a backend change (accept a plain
-  // `password` field and hash it server-side) before this form can call
-  // the real endpoint. Until then, submitting here only updates the
-  // in-memory list for this page load and does not persist.
   addEmployeeForm.addEventListener('submit', function(e){
     e.preventDefault();
     var name = document.getElementById('fieldName').value.trim();
     var email = document.getElementById('fieldEmail').value.trim();
     var dept = document.getElementById('fieldDept').value;
-    var role = document.getElementById('fieldRole').value.trim();
+    var position = document.getElementById('fieldRole').value.trim();
     var salary = Number(document.getElementById('fieldSalary').value);
-    if (!name || !email || !role) return;
+    var password = document.getElementById('fieldPassword').value;
+    if (!name || !email || !position || !password) return;
 
-    var today = new Date().toISOString().slice(0, 10);
-    employees.unshift({
-      employeeId: 'TEMP' + Date.now(),
-      name: name,
-      email: email,
-      dept: dept,
-      role: role,
-      start: today,
-      status: 'onboarding',
-      salary: salary
-    });
+    var submitBtn = addEmployeeForm.querySelector('.primary-btn');
+    submitBtn.disabled = true;
 
-    closeModal();
-    state.page = 1;
-    render();
-    showToast(name + ' added locally \u2014 not yet saved to the server (see note in hr-employees.js)');
+    apiFetch('/employees', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: name,
+        email: email,
+        department: dept,
+        position: position,
+        baseSalary: salary,
+        password: password
+      })
+    })
+      .then(function(){
+        closeModal();
+        showToast(name + ' added');
+        loadEmployees();
+      })
+      .catch(function(err){
+        showToast('Failed to add ' + name + ': ' + err.message);
+      })
+      .finally(function(){
+        submitBtn.disabled = false;
+      });
+  });
+
+  /* ================= View employee (profile modal) ================= */
+
+  var viewModalOverlay = document.getElementById('viewModalOverlay');
+  var viewModalBody = document.getElementById('viewModalBody');
+
+  function closeViewModal(){
+    viewModalOverlay.classList.remove('open');
+  }
+
+  function escapeHtml(str){
+    var div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  function openViewModal(employeeId){
+    viewModalBody.innerHTML = '<p>Loading…</p>';
+    viewModalOverlay.classList.add('open');
+
+    apiFetch('/employees/' + employeeId)
+      .then(function(result){
+        var e = result.data;
+        viewModalBody.innerHTML =
+          '<div class="profile-row"><span class="profile-label">Name</span><span>' + escapeHtml(e.name) + '</span></div>' +
+          '<div class="profile-row"><span class="profile-label">Email</span><span>' + escapeHtml(e.email || '—') + '</span></div>' +
+          '<div class="profile-row"><span class="profile-label">Employee code</span><span>' + escapeHtml(e.employee_code) + '</span></div>' +
+          '<div class="profile-row"><span class="profile-label">Department</span><span>' + escapeHtml(e.department) + '</span></div>' +
+          '<div class="profile-row"><span class="profile-label">Role</span><span>' + escapeHtml(e.position) + '</span></div>' +
+          '<div class="profile-row"><span class="profile-label">Base salary</span><span>R ' + Number(e.base_salary).toLocaleString('en-ZA') + '</span></div>' +
+          '<div class="profile-row"><span class="profile-label">Contact</span><span>' + escapeHtml(e.contact || '—') + '</span></div>' +
+          '<div class="profile-row"><span class="profile-label">Status</span><span>' + (e.is_active ? 'Active' : 'Inactive') + '</span></div>';
+      })
+      .catch(function(err){
+        viewModalBody.innerHTML = '<p>Couldn\u2019t load profile: ' + escapeHtml(err.message) + '</p>';
+      });
+  }
+
+  document.getElementById('viewModalClose').addEventListener('click', closeViewModal);
+  document.getElementById('viewModalCloseBtn').addEventListener('click', closeViewModal);
+  viewModalOverlay.addEventListener('click', function(e){
+    if (e.target === viewModalOverlay) closeViewModal();
+  });
+
+  /* ================= Edit employee ================= */
+
+  var editModalOverlay = document.getElementById('editModalOverlay');
+  var editEmployeeForm = document.getElementById('editEmployeeForm');
+  var editingEmployeeId = null;
+
+  function closeEditModal(){
+    editModalOverlay.classList.remove('open');
+    editEmployeeForm.reset();
+    editingEmployeeId = null;
+  }
+
+  function openEditModal(employeeId){
+    apiFetch('/employees/' + employeeId)
+      .then(function(result){
+        var e = result.data;
+        editingEmployeeId = employeeId;
+        document.getElementById('fieldEditName').value = e.name || '';
+        document.getElementById('fieldEditEmail').value = e.email || '';
+        document.getElementById('fieldEditDept').value = e.department || '';
+        document.getElementById('fieldEditRole').value = e.position || '';
+        document.getElementById('fieldEditSalary').value = e.base_salary || 0;
+        editModalOverlay.classList.add('open');
+      })
+      .catch(function(err){
+        showToast('Couldn\u2019t load employee: ' + err.message);
+      });
+  }
+
+  document.getElementById('editModalClose').addEventListener('click', closeEditModal);
+  document.getElementById('editModalCancel').addEventListener('click', closeEditModal);
+  editModalOverlay.addEventListener('click', function(e){
+    if (e.target === editModalOverlay) closeEditModal();
+  });
+
+  editEmployeeForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    if (!editingEmployeeId) return;
+
+    var name = document.getElementById('fieldEditName').value.trim();
+    var email = document.getElementById('fieldEditEmail').value.trim();
+    var dept = document.getElementById('fieldEditDept').value;
+    var position = document.getElementById('fieldEditRole').value.trim();
+    var salary = Number(document.getElementById('fieldEditSalary').value);
+    if (!name || !email || !position) return;
+
+    var submitBtn = editEmployeeForm.querySelector('.primary-btn');
+    submitBtn.disabled = true;
+
+    apiFetch('/employees/' + editingEmployeeId, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        name: name,
+        email: email,
+        department: dept,
+        position: position,
+        base_salary: salary
+      })
+    })
+      .then(function(){
+        closeEditModal();
+        showToast(name + ' updated');
+        loadEmployees();
+      })
+      .catch(function(err){
+        showToast('Failed to update ' + name + ': ' + err.message);
+      })
+      .finally(function(){
+        submitBtn.disabled = false;
+      });
   });
 
   var toastEl = document.getElementById('toast');
@@ -391,6 +512,14 @@
     if (notifPanel && !notifPanel.hidden) {
       closeNotifPanel();
       notifBtn.focus();
+      return;
+    }
+    if (viewModalOverlay && viewModalOverlay.classList.contains('open')) {
+      closeViewModal();
+      return;
+    }
+    if (editModalOverlay && editModalOverlay.classList.contains('open')) {
+      closeEditModal();
       return;
     }
     if (modalOverlay && modalOverlay.classList.contains('open')) {

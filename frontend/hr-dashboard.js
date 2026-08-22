@@ -373,20 +373,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /* ================= Add employee button ================= */
-  // Redirects to hr-employees.html instead of duplicating the create
-  // flow here. That page's modal already calls the real POST
-  // /api/employees endpoint (including the required password field) —
-  // this dashboard's old modal didn't collect a password at all and
-  // only wrote to localStorage, so keeping two separate/inconsistent
-  // "add employee" implementations isn't worth it.
-  const addEmployeeBtn = document.getElementById('addEmployeeBtn');
-  if (addEmployeeBtn) {
-    addEmployeeBtn.addEventListener('click', () => {
-      window.location.href = 'hr-employees.html';
-    });
-  }
-
   /* ================= Global Escape handling (notif panel + sidebar) ================= */
 
   window.addEventListener('keydown', (e) => {
