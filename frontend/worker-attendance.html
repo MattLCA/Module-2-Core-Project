@@ -5,29 +5,18 @@
 
   <meta charset="UTF-8">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>Attendance | ModernTech</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link
-    rel="preconnect"
-    href="https://fonts.gstatic.com"
-    crossorigin
-  >
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@600;700&display=swap"
-    rel="stylesheet"
-  >
+    rel="stylesheet">
 
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"
-  >
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 
   <link rel="stylesheet" href="style.css">
 
@@ -45,14 +34,8 @@
        SIDEBAR TOGGLE
   ============================================================ -->
 
-  <button
-    class="sidebar-toggle"
-    id="sidebarToggle"
-    type="button"
-    aria-label="Toggle navigation menu"
-    aria-expanded="false"
-    aria-controls="sidebar"
-  >
+  <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Toggle navigation menu"
+    aria-expanded="false" aria-controls="sidebar">
     <i class="ti ti-menu-2" aria-hidden="true"></i>
   </button>
 
@@ -65,38 +48,15 @@
 
     <div class="brand">
 
-      <svg
-        width="34"
-        height="34"
-        viewBox="0 0 34 34"
-        xmlns="http://www.w3.org/2000/svg"
-        role="img"
-        aria-label="ModernTech icon"
-        style="flex-shrink:0;"
-      >
+      <svg width="34" height="34" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" role="img"
+        aria-label="ModernTech icon" style="flex-shrink:0;">
 
-        <rect
-          x="0"
-          y="0"
-          width="34"
-          height="34"
-          rx="9"
-          fill="#27187e"
-        />
+        <rect x="0" y="0" width="34" height="34" rx="9" fill="#27187e" />
 
-        <path
-          d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25"
-          fill="none"
-          stroke="#ffffff"
-          stroke-width="3.2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
+        <path d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25" fill="none" stroke="#ffffff" stroke-width="3.2"
+          stroke-linecap="round" stroke-linejoin="round" />
 
-        <path
-          d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z"
-          fill="#ff8600"
-        />
+        <path d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z" fill="#ff8600" />
 
       </svg>
 
@@ -123,42 +83,32 @@
 
     <nav class="primary-nav" aria-label="Primary">
 
-      <a
-        href="worker-dashboard.html"
-        class="nav-item"
-      >
+      <a href="worker-dashboard.html" class="nav-item">
         <i class="ti ti-layout-grid" aria-hidden="true"></i>
         Dashboard
       </a>
 
-      <a
-        href="worker-attendance.html"
-        class="nav-item"
-      >
+      <a href="worker-attendance.html" class="nav-item">
         <i class="ti ti-calendar-check" aria-hidden="true"></i>
         Attendance
       </a>
 
-      <a
-        href="worker-leave.html"
-        class="nav-item"
-      >
+      <a href="worker-leave.html" class="nav-item">
         <i class="ti ti-beach" aria-hidden="true"></i>
         Leave
       </a>
 
-      <a
-        href="worker-payslip.html"
-        class="nav-item"
-      >
+      <a href="worker-payslip.html" class="nav-item">
         <i class="ti ti-file-dollar" aria-hidden="true"></i>
         Payslips
       </a>
 
-      <a
-        href="worker-profile.html"
-        class="nav-item"
-      >
+      <a href="worker-notifications.html" class="nav-item">
+        <i class="ti ti-bell" aria-hidden="true"></i>
+        Notifications
+      </a>
+
+      <a href="worker-profile.html" class="nav-item">
         <i class="ti ti-user-circle" aria-hidden="true"></i>
         My Profile
       </a>
@@ -168,58 +118,32 @@
 
     <div class="sidebar-footer">
 
-      <button
-        class="user-chip"
-        id="userMenuBtn"
-        type="button"
-        aria-haspopup="true"
-        aria-expanded="false"
-      >
+      <button class="user-chip" id="userMenuBtn" type="button" aria-haspopup="true" aria-expanded="false">
 
-        <div
-          class="avatar"
-          id="sidebarAvatar"
-          aria-hidden="true"
-        >
+        <div class="avatar" id="sidebarAvatar" aria-hidden="true">
           --
         </div>
 
         <div>
 
-          <div
-            class="name"
-            id="sidebarWorkerName"
-          >
+          <div class="name" id="sidebarWorkerName">
             Loading...
           </div>
 
-          <div
-            class="role"
-            id="sidebarEmployeeCode"
-          >
+          <div class="role" id="sidebarEmployeeCode">
             --
           </div>
 
         </div>
 
-        <i
-          class="ti ti-chevron-down"
-          aria-hidden="true"
-        ></i>
+        <i class="ti ti-chevron-down" aria-hidden="true"></i>
 
       </button>
 
 
-      <button
-        id="logoutBtn"
-        class="logout-btn"
-        type="button"
-      >
+      <button id="logoutBtn" class="logout-btn" type="button">
 
-        <i
-          class="ti ti-logout"
-          aria-hidden="true"
-        ></i>
+        <i class="ti ti-logout" aria-hidden="true"></i>
 
         Logout
 
@@ -234,10 +158,7 @@
        MAIN
   ============================================================ -->
 
-  <main
-    class="main"
-    id="mainContent"
-  >
+  <main class="main" id="mainContent">
 
     <section class="page-hero">
 
@@ -257,21 +178,13 @@
 
       <div class="hero-actions">
 
-        <button
-          class="btn"
-          data-attendance="Clock In"
-          type="button"
-        >
+        <button class="btn" data-attendance="Clock In" type="button">
           <i class="ti ti-login-2"></i>
           Clock In
         </button>
 
 
-        <button
-          class="btn secondary"
-          data-attendance="Clock Out"
-          type="button"
-        >
+        <button class="btn secondary" data-attendance="Clock Out" type="button">
           <i class="ti ti-logout-2"></i>
           Clock Out
         </button>

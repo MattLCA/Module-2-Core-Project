@@ -1,321 +1,311 @@
 <!DOCTYPE html>
 
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-```
-<title>Notifications | ModernTech</title>
+    ```
+    <title>Notifications | ModernTech</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-<link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-    rel="stylesheet"
->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<!-- Notifications CSS -->
-<link
-    rel="stylesheet"
-    href="../css/worker-notifications.css"
->
-```
+    <!-- Notifications CSS -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="styles1.css">
+    <!-- <link rel="stylesheet" href="../css/worker-notifications.css"> -->
 
 </head>
 
 <body>
 
-```
-<!-- ======================================================
-     SIDEBAR
-======================================================= -->
+    <a href="#mainContent" class="skip-link">
+        Skip to main content
+    </a>
 
-<aside class="sidebar" id="sidebar">
 
-    <div class="sidebar-brand">
-        <h2>ModernTech</h2>
-        <span>Worker Portal</span>
-    </div>
+    <!-- ============================================================
+       SIDEBAR TOGGLE
+  ============================================================ -->
 
-    <nav class="sidebar-nav">
-
-        <a href="worker-dashboard.html" class="nav-item">
-            <span class="nav-icon">⌂</span>
-            <span>Dashboard</span>
-        </a>
-
-        <a href="worker-attendance.html" class="nav-item">
-            <span class="nav-icon">◷</span>
-            <span>Attendance</span>
-        </a>
-
-        <a href="worker-leave.html" class="nav-item">
-            <span class="nav-icon">▣</span>
-            <span>Leave</span>
-        </a>
-
-        <a href="worker-payslip.html" class="nav-item">
-            <span class="nav-icon">▤</span>
-            <span>Payslips</span>
-        </a>
-
-        <!-- Notifications MUST be between Payslips and My Profile -->
-        <a
-            href="worker-notifications.html"
-            class="nav-item active"
-            id="notificationsNav"
-        >
-            <span class="nav-icon">🔔</span>
-
-            <span>Notifications</span>
-
-            <span
-                class="notification-badge"
-                id="sidebarNotificationBadge"
-                hidden
-            >
-                0
-            </span>
-        </a>
-
-        <a href="worker-profile.html" class="nav-item">
-            <span class="nav-icon">👤</span>
-            <span>My Profile</span>
-        </a>
-
-    </nav>
-
-    <!-- ==================================================
-         SIDEBAR EMPLOYEE
-    =================================================== -->
-
-    <div class="sidebar-user">
-
-        <div
-            class="sidebar-avatar"
-            id="sidebarAvatar"
-        >
-            W
-        </div>
-
-        <div class="sidebar-user-info">
-
-            <strong id="sidebarEmployeeName">
-                Worker
-            </strong>
-
-            <span id="sidebarEmployeeCode">
-                EMP001
-            </span>
-
-        </div>
-
-    </div>
-
-    <button
-        type="button"
-        class="logout-btn"
-        id="logoutBtn"
-    >
-        Logout
+    <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Toggle navigation menu"
+        aria-expanded="false" aria-controls="sidebar">
+        <i class="ti ti-menu-2" aria-hidden="true"></i>
     </button>
 
-</aside>
 
+    <!-- ============================================================
+       SIDEBAR
+  ============================================================ -->
 
-<!-- ======================================================
-     MAIN CONTENT
-======================================================= -->
+    <aside class="sidebar" id="sidebar">
 
-<main class="main-content">
+        <div class="brand">
 
-    <!-- TOP BAR -->
+            <svg width="34" height="34" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" role="img"
+                aria-label="ModernTech icon" style="flex-shrink:0;">
 
-    <header class="topbar">
+                <rect x="0" y="0" width="34" height="34" rx="9" fill="#27187e" />
 
-        <div>
+                <path d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25" fill="none" stroke="#ffffff" stroke-width="3.2"
+                    stroke-linecap="round" stroke-linejoin="round" />
 
-            <p class="page-eyebrow">
-                Worker Portal
-            </p>
+                <path d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z" fill="#ff8600" />
 
-            <h1>
-                Notifications
-            </h1>
+            </svg>
 
-            <p class="page-description">
-                Stay up to date with your ModernTech account.
-            </p>
-
-        </div>
-
-        <div class="topbar-profile">
-
-            <div
-                class="topbar-avatar"
-                id="topbarAvatar"
-            >
-                W
-            </div>
 
             <div>
 
-                <strong id="topbarEmployeeName">
-                    Worker
-                </strong>
+                <div class="brand-name">
+                    ModernTech
+                </div>
 
-                <span id="topbarEmployeeCode">
-                    EMP001
+                <div class="brand-sub">
+                    Workspace overview
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="nav-section-label">
+            Workspace
+        </div>
+
+
+        <nav class="primary-nav" aria-label="Primary">
+
+            <a href="worker-dashboard.html" class="nav-item">
+                <i class="ti ti-layout-grid" aria-hidden="true"></i>
+                Dashboard
+            </a>
+
+            <a href="worker-attendance.html" class="nav-item">
+                <i class="ti ti-calendar-check" aria-hidden="true"></i>
+                Attendance
+            </a>
+
+            <a href="worker-leave.html" class="nav-item">
+                <i class="ti ti-beach" aria-hidden="true"></i>
+                Leave
+            </a>
+
+            <a href="worker-payslip.html" class="nav-item">
+                <i class="ti ti-file-dollar" aria-hidden="true"></i>
+                Payslips
+            </a>
+
+            <a href="worker-notifications.html" class="nav-item">
+                <i class="ti ti-bell" aria-hidden="true"></i>
+                Notifications
+            </a>
+
+            <a href="worker-profile.html" class="nav-item">
+                <i class="ti ti-user-circle" aria-hidden="true"></i>
+                My Profile
+            </a>
+
+        </nav>
+
+
+        <div class="sidebar-footer">
+
+            <button class="user-chip" id="userMenuBtn" type="button" aria-haspopup="true" aria-expanded="false">
+
+                <div class="avatar" id="sidebarAvatar" aria-hidden="true">
+                    --
+                </div>
+
+                <div>
+
+                    <div class="name" id="sidebarWorkerName">
+                        Loading...
+                    </div>
+
+                    <div class="role" id="sidebarEmployeeCode">
+                        --
+                    </div>
+
+                </div>
+
+                <i class="ti ti-chevron-down" aria-hidden="true"></i>
+
+            </button>
+
+
+            <button id="logoutBtn" class="logout-btn" type="button">
+
+                <i class="ti ti-logout" aria-hidden="true"></i>
+
+                Logout
+
+            </button>
+
+        </div>
+
+    </aside>
+
+
+    <!-- ======================================================
+     MAIN CONTENT
+======================================================= -->
+
+    <main class="main-content">
+
+        <!-- TOP BAR -->
+
+        <header class="topbar">
+
+            <div>
+
+                <p class="page-eyebrow">
+                    Worker Portal
+                </p>
+
+                <h1>
+                    Notifications
+                </h1>
+
+                <p class="page-description">
+                    Stay up to date with your ModernTech account.
+                </p>
+
+            </div>
+
+            <div class="topbar-profile">
+
+                <div class="topbar-avatar" id="topbarAvatar">
+                    W
+                </div>
+
+                <div>
+
+                    <strong id="topbarEmployeeName">
+                        Worker
+                    </strong>
+
+                    <span id="topbarEmployeeCode">
+                        EMP001
+                    </span>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <!-- ==================================================
+         NOTIFICATION CONTROLS
+    =================================================== -->
+
+        <section class="notification-controls">
+
+            <div class="notification-summary">
+
+                <span class="unread-count" id="unreadCount">
+                    0 unread
                 </span>
 
             </div>
 
-        </div>
+            <div class="notification-actions">
 
-    </header>
+                <button type="button" class="secondary-btn" id="markAllReadBtn">
+                    Mark all as read
+                </button>
 
+                <button type="button" class="secondary-btn" id="refreshNotificationsBtn">
+                    Refresh
+                </button>
 
-    <!-- ==================================================
-         NOTIFICATION CONTROLS
-    =================================================== -->
+            </div>
 
-    <section class="notification-controls">
-
-        <div class="notification-summary">
-
-            <span
-                class="unread-count"
-                id="unreadCount"
-            >
-                0 unread
-            </span>
-
-        </div>
-
-        <div class="notification-actions">
-
-            <button
-                type="button"
-                class="secondary-btn"
-                id="markAllReadBtn"
-            >
-                Mark all as read
-            </button>
-
-            <button
-                type="button"
-                class="secondary-btn"
-                id="refreshNotificationsBtn"
-            >
-                Refresh
-            </button>
-
-        </div>
-
-    </section>
+        </section>
 
 
-    <!-- ==================================================
+        <!-- ==================================================
          NOTIFICATION LIST
     =================================================== -->
 
-    <section class="notifications-section">
+        <section class="notifications-section">
 
-        <div
-            id="notificationsLoading"
-            class="notifications-state"
-        >
-            <div class="loading-spinner"></div>
+            <div id="notificationsLoading" class="notifications-state">
+                <div class="loading-spinner"></div>
 
-            <p>
-                Loading notifications...
-            </p>
-        </div>
-
-
-        <div
-            id="notificationsError"
-            class="notifications-state error-state"
-            hidden
-        >
-            <div class="state-icon">
-                !
+                <p>
+                    Loading notifications...
+                </p>
             </div>
 
-            <h3>
-                Unable to load notifications
-            </h3>
 
-            <p id="notificationsErrorMessage">
-                Something went wrong while loading your notifications.
-            </p>
+            <div id="notificationsError" class="notifications-state error-state" hidden>
+                <div class="state-icon">
+                    !
+                </div>
 
-            <button
-                type="button"
-                class="primary-btn"
-                id="retryNotificationsBtn"
-            >
-                Try Again
-            </button>
-        </div>
+                <h3>
+                    Unable to load notifications
+                </h3>
 
+                <p id="notificationsErrorMessage">
+                    Something went wrong while loading your notifications.
+                </p>
 
-        <div
-            id="notificationsEmpty"
-            class="notifications-state empty-state"
-            hidden
-        >
-            <div class="state-icon">
-                ✓
+                <button type="button" class="primary-btn" id="retryNotificationsBtn">
+                    Try Again
+                </button>
             </div>
 
-            <h3>
-                No notifications
-            </h3>
 
-            <p>
-                You are all caught up. New notifications will appear here.
-            </p>
-        </div>
+            <div id="notificationsEmpty" class="notifications-state empty-state" hidden>
+                <div class="state-icon">
+                    ✓
+                </div>
 
+                <h3>
+                    No notifications
+                </h3>
 
-        <div
-            id="notificationsList"
-            class="notifications-list"
-        >
-            <!-- Notifications are inserted by worker-notifications.js -->
-        </div>
-
-    </section>
-
-</main>
+                <p>
+                    You are all caught up. New notifications will appear here.
+                </p>
+            </div>
 
 
-<!-- ======================================================
+            <div id="notificationsList" class="notifications-list">
+                <!-- Notifications are inserted by worker-notifications.js -->
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- ======================================================
      TOAST
 ======================================================= -->
 
-<div
-    id="toast"
-    class="toast"
-    role="alert"
-    aria-live="polite"
-    hidden
->
-    <span id="toastMessage"></span>
-</div>
+    <div id="toast" class="toast" role="alert" aria-live="polite" hidden>
+        <span id="toastMessage"></span>
+    </div>
 
 
-<!-- ======================================================
+    <!-- ======================================================
      JAVASCRIPT
 ======================================================= -->
 
-<script src="javascript/script.js"></script>
-<script src="javascript/worker_api.js"></script>
-<script src="javascript/worker-notifications.js"></script>
-<script src="javascript/logout.js"></script>
+    <script src="javascript/script.js"></script>
+    <script src="javascript/worker_api.js"></script>
+    <script src="javascript/worker-notifications.js"></script>
+    <script src="javascript/logout.js"></script>
 
 </body>
+
 </html>

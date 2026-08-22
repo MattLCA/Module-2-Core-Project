@@ -32,6 +32,7 @@ async function loadAttendance() {
   try {
     const [statusResponse, historyResponse] = await Promise.all([
       getWorkerClockStatus(),
+
       getWorkerAttendanceHistory(),
     ]);
 
@@ -90,6 +91,8 @@ async function handleAttendanceAction(action) {
 
     showToast(response?.message || `${action} successful.`);
 
+    // Reload attendance directly from the database.
+
     await loadAttendance();
   } catch (error) {
     console.error(`${action} error:`, error);
@@ -113,6 +116,10 @@ function renderClockStatus(response) {
 
   const state = response.state;
 
+  // --------------------------------------------------------
+  // CURRENT STATUS
+  // --------------------------------------------------------
+
   let status = "Not clocked in";
 
   if (state === "WORKING") {
@@ -125,13 +132,33 @@ function renderClockStatus(response) {
     statusElement.textContent = status;
   }
 
+  // --------------------------------------------------------
+  // LAST ACTION
+  // --------------------------------------------------------
+  //
+  // Use today's database record.
+  //
+  // If clocked out:
+  //     Clock Out 17:02
+  //
+  // If still working:
+  //     Clock In 08:05
+  //
+  // --------------------------------------------------------
+
   const record = response.activeRecord || response.todayAttendance;
 
   if (record && lastActionElement) {
-    if (record.clockOut) {
-      lastActionElement.textContent = "Clock Out";
-    } else if (record.clockIn) {
-      lastActionElement.textContent = "Clock In";
+    const clockIn = record.clockIn ?? record.clock_in ?? null;
+
+    const clockOut = record.clockOut ?? record.clock_out ?? null;
+
+    if (clockOut) {
+      lastActionElement.textContent = `Clock Out ${formatTime(clockOut)}`;
+    } else if (clockIn) {
+      lastActionElement.textContent = `Clock In ${formatTime(clockIn)}`;
+    } else {
+      lastActionElement.textContent = "None";
     }
   }
 }
@@ -153,9 +180,24 @@ function renderAttendanceHistory(records) {
     records = [];
   }
 
+  // --------------------------------------------------------
+  // COUNT
+  // --------------------------------------------------------
+  //
+  // This counts attendance records, not individual actions.
+  //
+  // Example:
+  // One day with Clock In + Clock Out = 1 log.
+  //
+  // --------------------------------------------------------
+
   if (count) {
     count.textContent = `${records.length} logs`;
   }
+
+  // --------------------------------------------------------
+  // NO RECORDS
+  // --------------------------------------------------------
 
   if (!records.length) {
     table.innerHTML = `
@@ -171,13 +213,33 @@ function renderAttendanceHistory(records) {
 
   const rows = [];
 
+  // --------------------------------------------------------
+  // BUILD HISTORY
+  // --------------------------------------------------------
+
   records.forEach((record) => {
-    const date = formatDate(record.attendanceDate);
+    const date = formatDate(record.attendanceDate ?? record.attendance_date);
 
-    addAttendanceRow(rows, date, record.clockIn, "Clock In");
+    const clockIn = record.clockIn ?? record.clock_in ?? null;
 
-    addAttendanceRow(rows, date, record.clockOut, "Clock Out");
+    const clockOut = record.clockOut ?? record.clock_out ?? null;
+
+    // ------------------------------------------------
+    // CLOCK IN
+    // ------------------------------------------------
+
+    addAttendanceRow(rows, date, clockIn, "Clock In");
+
+    // ------------------------------------------------
+    // CLOCK OUT
+    // ------------------------------------------------
+
+    addAttendanceRow(rows, date, clockOut, "Clock Out");
   });
+
+  // --------------------------------------------------------
+  // NO ACTIONS FOUND
+  // --------------------------------------------------------
 
   if (!rows.length) {
     table.innerHTML = `
@@ -195,31 +257,102 @@ function renderAttendanceHistory(records) {
 }
 
 // ============================================================
-// ADD ROW
+// ADD ATTENDANCE ROW
 // ============================================================
 
 function addAttendanceRow(rows, date, timestamp, action) {
+  // Do not display a Clock Out row if the worker
+  // has not clocked out yet.
+
   if (!timestamp) {
     return;
   }
 
-  const time = new Date(timestamp);
-
-  const timeText = Number.isNaN(time.getTime())
-    ? String(timestamp)
-    : time.toLocaleTimeString("en-ZA", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+  const timeText = formatTime(timestamp);
 
   rows.push(`
         <tr>
-            <td>${escapeHTML(date)}</td>
-            <td>${escapeHTML(timeText)}</td>
-            <td>${escapeHTML(action)}</td>
-            <td>Present</td>
+
+            <td>
+                ${escapeHTML(date)}
+            </td>
+
+            <td>
+                ${escapeHTML(timeText)}
+            </td>
+
+            <td>
+                ${escapeHTML(action)}
+            </td>
+
+            <td>
+                <span class="status approved">
+                    Present
+                </span>
+            </td>
+
         </tr>
     `);
+}
+
+// ============================================================
+// FORMAT DATE
+// ============================================================
+
+function formatDate(value) {
+  if (!value) {
+    return "--";
+  }
+
+  const dateString = String(value).substring(0, 10);
+
+  const date = new Date(`${dateString}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return date.toLocaleDateString("en-ZA", {
+    day: "2-digit",
+
+    month: "short",
+
+    year: "numeric",
+  });
+}
+
+// ============================================================
+// FORMAT TIME
+// ============================================================
+//
+// The timestamp comes from MySQL through the API.
+//
+// Example:
+//     2026-08-22T08:05:00.000Z
+//
+// Display:
+//     10:05
+//
+// Uses the browser's local timezone, which is appropriate for
+// the worker's local display.
+// ============================================================
+
+function formatTime(value) {
+  if (!value) {
+    return "--";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return date.toLocaleTimeString("en-ZA", {
+    hour: "2-digit",
+
+    minute: "2-digit",
+  });
 }
 
 // ============================================================
@@ -233,8 +366,12 @@ function escapeHTML(value) {
 
   return String(value)
     .replace(/&/g, "&amp;")
+
     .replace(/</g, "&lt;")
+
     .replace(/>/g, "&gt;")
+
     .replace(/"/g, "&quot;")
+
     .replace(/'/g, "&#039;");
 }
