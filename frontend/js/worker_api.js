@@ -18,7 +18,8 @@
 
 console.log("ModernTech Worker API connected.");
 
-const WORKER_API_BASE_URL = "http://localhost:4000/api";
+const WORKER_API_BASE_URL =
+    "http://localhost:4000/api";
 
 
 // ============================================================
@@ -26,11 +27,13 @@ const WORKER_API_BASE_URL = "http://localhost:4000/api";
 // ============================================================
 
 function getWorkerToken() {
+
     return (
         localStorage.getItem("authToken") ||
         localStorage.getItem("token") ||
         localStorage.getItem("workerToken")
     );
+
 }
 
 
@@ -40,22 +43,55 @@ function saveWorkerToken(token) {
         return;
     }
 
-    localStorage.setItem("authToken", token);
-    localStorage.setItem("token", token);
-    localStorage.setItem("workerToken", token);
+
+    localStorage.setItem(
+        "authToken",
+        token
+    );
+
+    localStorage.setItem(
+        "token",
+        token
+    );
+
+    localStorage.setItem(
+        "workerToken",
+        token
+    );
+
 }
 
 
 function clearWorkerToken() {
 
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("token");
-    localStorage.removeItem("workerToken");
+    localStorage.removeItem(
+        "authToken"
+    );
 
-    localStorage.removeItem("employee");
-    localStorage.removeItem("loggedInUser");
-    localStorage.removeItem("workerProfile");
-    localStorage.removeItem("userRole");
+    localStorage.removeItem(
+        "token"
+    );
+
+    localStorage.removeItem(
+        "workerToken"
+    );
+
+    localStorage.removeItem(
+        "employee"
+    );
+
+    localStorage.removeItem(
+        "loggedInUser"
+    );
+
+    localStorage.removeItem(
+        "workerProfile"
+    );
+
+    localStorage.removeItem(
+        "userRole"
+    );
+
 }
 
 
@@ -71,18 +107,23 @@ function getLoggedInWorker() {
         "workerProfile"
     ];
 
+
     for (const key of keys) {
 
         const stored =
             localStorage.getItem(key);
 
+
         if (!stored) {
             continue;
         }
 
+
         try {
 
-            return JSON.parse(stored);
+            return JSON.parse(
+                stored
+            );
 
         } catch (error) {
 
@@ -95,7 +136,9 @@ function getLoggedInWorker() {
 
     }
 
+
     return null;
+
 }
 
 
@@ -105,8 +148,10 @@ function saveLoggedInWorker(employee) {
         return;
     }
 
+
     const json =
         JSON.stringify(employee);
+
 
     localStorage.setItem(
         "employee",
@@ -122,6 +167,7 @@ function saveLoggedInWorker(employee) {
         "workerProfile",
         json
     );
+
 }
 
 
@@ -137,13 +183,20 @@ async function workerApiRequest(
     const token =
         getWorkerToken();
 
+
     const config = {
+
         ...options,
 
         headers: {
-            "Content-Type": "application/json",
+
+            "Content-Type":
+                "application/json",
+
             ...(options.headers || {})
+
         }
+
     };
 
 
@@ -165,6 +218,7 @@ async function workerApiRequest(
 
 
     let response;
+
 
     try {
 
@@ -190,6 +244,7 @@ async function workerApiRequest(
 
     let data = null;
 
+
     const contentType =
         response.headers.get(
             "content-type"
@@ -198,7 +253,9 @@ async function workerApiRequest(
 
     if (
         contentType &&
-        contentType.includes("application/json")
+        contentType.includes(
+            "application/json"
+        )
     ) {
 
         try {
@@ -237,6 +294,7 @@ async function workerApiRequest(
             "index.html";
 
         return null;
+
     }
 
 
@@ -271,6 +329,7 @@ async function workerApiRequest(
 
 
     return data;
+
 }
 
 
@@ -290,9 +349,15 @@ async function workerLogin(
                 method: "POST",
 
                 body: JSON.stringify({
+
                     role: "worker",
-                    identifier: employeeCode,
-                    password: password
+
+                    identifier:
+                        employeeCode,
+
+                    password:
+                        password
+
                 })
             }
         );
@@ -327,6 +392,7 @@ async function workerLogin(
 
 
     return response;
+
 }
 
 
@@ -340,6 +406,7 @@ function workerLogout() {
 
     window.location.href =
         "index.html";
+
 }
 
 
@@ -352,6 +419,7 @@ async function getWorkerDashboard() {
     return workerApiRequest(
         "/worker/dashboard"
     );
+
 }
 
 
@@ -364,20 +432,8 @@ async function getWorkerProfile() {
     return workerApiRequest(
         "/worker/profile"
     );
+
 }
-
-
-// IMPORTANT:
-//
-// Your current backend ONLY exposes:
-// GET /api/worker/profile
-//
-// There is currently NO PUT endpoint.
-//
-// Therefore DO NOT call updateWorkerProfile()
-// until the backend has a PUT route.
-//
-// ============================================================
 
 
 // ============================================================
@@ -389,6 +445,7 @@ async function getWorkerClockStatus() {
     return workerApiRequest(
         "/worker/attendance/clock-status"
     );
+
 }
 
 
@@ -400,28 +457,7 @@ async function workerClockIn() {
             method: "POST"
         }
     );
-}
 
-
-async function workerStartBreak() {
-
-    return workerApiRequest(
-        "/worker/attendance/break/start",
-        {
-            method: "PUT"
-        }
-    );
-}
-
-
-async function workerEndBreak() {
-
-    return workerApiRequest(
-        "/worker/attendance/break/end",
-        {
-            method: "PUT"
-        }
-    );
 }
 
 
@@ -433,6 +469,7 @@ async function workerClockOut() {
             method: "PUT"
         }
     );
+
 }
 
 
@@ -441,12 +478,14 @@ async function getWorkerAttendanceHistory() {
     return workerApiRequest(
         "/worker/attendance/history"
     );
+
 }
 
 
 async function getWorkerAttendance() {
 
     return getWorkerAttendanceHistory();
+
 }
 
 
@@ -459,6 +498,7 @@ async function getWorkerLeaveTypes() {
     return workerApiRequest(
         "/worker/leave/types"
     );
+
 }
 
 
@@ -467,6 +507,7 @@ async function getWorkerLeaveBalances() {
     return workerApiRequest(
         "/worker/leave/balances"
     );
+
 }
 
 
@@ -475,6 +516,7 @@ async function getWorkerLeaveRequests() {
     return workerApiRequest(
         "/worker/leave/requests"
     );
+
 }
 
 
@@ -492,6 +534,7 @@ async function createWorkerLeaveRequest(
             )
         }
     );
+
 }
 
 
@@ -504,6 +547,7 @@ async function getWorkerPayslips() {
     return workerApiRequest(
         "/worker/payslips"
     );
+
 }
 
 
@@ -514,6 +558,7 @@ async function getWorkerPayslip(
     return workerApiRequest(
         `/worker/payslips/${payslipId}`
     );
+
 }
 
 
@@ -567,10 +612,15 @@ async function downloadWorkerPayslip(
                 message;
 
         } catch (error) {
+
             // Ignore JSON parsing failure.
+
         }
 
-        throw new Error(message);
+
+        throw new Error(
+            message
+        );
 
     }
 
@@ -580,24 +630,40 @@ async function downloadWorkerPayslip(
 
 
     const url =
-        window.URL.createObjectURL(blob);
+        window.URL.createObjectURL(
+            blob
+        );
 
 
     const link =
-        document.createElement("a");
+        document.createElement(
+            "a"
+        );
 
-    link.href = url;
+
+    link.href =
+        url;
+
 
     link.download =
         `Payslip-${payslipId}.pdf`;
 
-    document.body.appendChild(link);
+
+    document.body.appendChild(
+        link
+    );
+
 
     link.click();
 
+
     link.remove();
 
-    window.URL.revokeObjectURL(url);
+
+    window.URL.revokeObjectURL(
+        url
+    );
+
 }
 
 
@@ -610,6 +676,7 @@ async function getWorkerNotifications() {
     return workerApiRequest(
         "/worker/notifications"
     );
+
 }
 
 
@@ -618,6 +685,7 @@ async function getUnreadWorkerNotifications() {
     return workerApiRequest(
         "/worker/notifications/unread"
     );
+
 }
 
 
@@ -626,6 +694,7 @@ async function getUnreadWorkerNotificationCount() {
     return workerApiRequest(
         "/worker/notifications/unread-count"
     );
+
 }
 
 
@@ -636,6 +705,7 @@ async function getWorkerNotification(
     return workerApiRequest(
         `/worker/notifications/${notificationId}`
     );
+
 }
 
 
@@ -649,6 +719,7 @@ async function markWorkerNotificationAsRead(
             method: "PATCH"
         }
     );
+
 }
 
 
@@ -660,6 +731,7 @@ async function markAllWorkerNotificationsAsRead() {
             method: "PATCH"
         }
     );
+
 }
 
 
@@ -672,6 +744,7 @@ function isWorkerLoggedIn() {
     return Boolean(
         getWorkerToken()
     );
+
 }
 
 
@@ -687,10 +760,12 @@ function requireWorkerLogin() {
             "index.html";
 
         return false;
+
     }
 
 
     return true;
+
 }
 
 
@@ -733,12 +808,6 @@ window.getWorkerClockStatus =
 
 window.workerClockIn =
     workerClockIn;
-
-window.workerStartBreak =
-    workerStartBreak;
-
-window.workerEndBreak =
-    workerEndBreak;
 
 window.workerClockOut =
     workerClockOut;

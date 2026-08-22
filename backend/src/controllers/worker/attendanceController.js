@@ -1,8 +1,7 @@
 import {
     getActiveAttendance,
+    getTodayAttendance,
     createClockIn,
-    updateBreakStart,
-    updateBreakEnd,
     updateClockOut,
     getHistoryByEmployeeId
 } from '../../models/worker/attendanceModel.js';
@@ -11,251 +10,346 @@ import {
 // ============================================================
 // GET CURRENT CLOCK STATUS
 // ============================================================
+// GET /api/worker/attendance/clock-status
+//
+// Possible states:
+//
+// CLOCKED_OUT
+// WORKING
+//
+// The database determines the state.
+// ============================================================
 
 export const getClockStatus = async (req, res) => {
+
     try {
+
         const employeeId = req.user.employeeId;
 
-        const activeRecord = await getActiveAttendance(employeeId);
+        const todayAttendance =
+            await getTodayAttendance(employeeId);
 
-        if (!activeRecord) {
+
+        // --------------------------------------------------------
+        // No attendance record today
+        // --------------------------------------------------------
+
+        if (!todayAttendance) {
+
             return res.status(200).json({
+
                 isClockedIn: false,
+
                 state: 'CLOCKED_OUT',
-                activeRecord: null
+
+                activeRecord: null,
+
+                todayAttendance: null
+
             });
+
         }
 
-        let state = 'WORKING';
 
-        if (activeRecord.breakStart && !activeRecord.breakEnd) {
-            state = 'ON_BREAK';
+        // --------------------------------------------------------
+        // Already clocked out today
+        // --------------------------------------------------------
+
+        if (todayAttendance.clockOut) {
+
+            return res.status(200).json({
+
+                isClockedIn: false,
+
+                state: 'CLOCKED_OUT',
+
+                activeRecord: null,
+
+                todayAttendance
+
+            });
+
         }
+
+
+        // --------------------------------------------------------
+        // Clocked in and still working
+        // --------------------------------------------------------
 
         return res.status(200).json({
+
             isClockedIn: true,
-            state,
-            activeRecord
+
+            state: 'WORKING',
+
+            activeRecord: todayAttendance,
+
+            todayAttendance
+
         });
 
     } catch (error) {
-        console.error('getClockStatus error:', error);
+
+        console.error(
+            'getClockStatus error:',
+            error
+        );
 
         return res.status(500).json({
-            error: 'Failed to retrieve clock status.'
+
+            error:
+                'Failed to retrieve clock status.'
+
         });
+
     }
+
 };
 
 
 // ============================================================
 // CLOCK IN
 // ============================================================
+// POST /api/worker/attendance/clock-in
+//
+// Worker can only clock in once per day.
+// ============================================================
 
 export const clockIn = async (req, res) => {
+
     try {
+
         const employeeId = req.user.employeeId;
 
-        const existing = await getActiveAttendance(employeeId);
+
+        // --------------------------------------------------------
+        // Check whether today's attendance already exists
+        // --------------------------------------------------------
+
+        const existing =
+            await getTodayAttendance(employeeId);
+
 
         if (existing) {
+
+            if (existing.clockOut) {
+
+                return res.status(400).json({
+
+                    message:
+                        'You have already clocked in and clocked out today.'
+
+                });
+
+            }
+
             return res.status(400).json({
-                message: 'You are already clocked in.'
+
+                message:
+                    'You have already clocked in today.'
+
             });
+
         }
+
+
+        // --------------------------------------------------------
+        // Create today's attendance record
+        // --------------------------------------------------------
 
         await createClockIn(employeeId);
 
+
         return res.status(201).json({
-            message: 'Clocked in successfully.'
+
+            message:
+                'Clocked in successfully.'
+
         });
 
     } catch (error) {
-        console.error('clockIn error:', error);
 
-        return res.status(500).json({
-            error: 'Failed to clock in.'
-        });
-    }
-};
-
-
-// ============================================================
-// START BREAK
-// ============================================================
-
-export const startBreak = async (req, res) => {
-    try {
-        const employeeId = req.user.employeeId;
-
-        const activeRecord = await getActiveAttendance(employeeId);
-
-        if (!activeRecord) {
-            return res.status(400).json({
-                message: 'You must clock in before starting a break.'
-            });
-        }
-
-        if (activeRecord.breakStart && !activeRecord.breakEnd) {
-            return res.status(400).json({
-                message: 'Your break has already started.'
-            });
-        }
-
-        if (activeRecord.clockOut) {
-            return res.status(400).json({
-                message: 'You have already clocked out.'
-            });
-        }
-
-        const result = await updateBreakStart(
-            activeRecord.attendanceId
+        console.error(
+            'clockIn error:',
+            error
         );
 
-        if (result.affectedRows === 0) {
+
+        // --------------------------------------------------------
+        // Duplicate daily attendance protection
+        // --------------------------------------------------------
+
+        if (error.code === 'ER_DUP_ENTRY') {
+
             return res.status(400).json({
-                message: 'Unable to start break.'
+
+                message:
+                    'You have already clocked in today.'
+
             });
+
         }
 
-        return res.status(200).json({
-            message: 'Break started successfully.'
-        });
-
-    } catch (error) {
-        console.error('startBreak error:', error);
 
         return res.status(500).json({
-            error: 'Failed to start break.'
+
+            error:
+                'Failed to clock in.'
+
         });
+
     }
-};
 
-
-// ============================================================
-// END BREAK
-// ============================================================
-
-export const endBreak = async (req, res) => {
-    try {
-        const employeeId = req.user.employeeId;
-
-        const activeRecord = await getActiveAttendance(employeeId);
-
-        if (!activeRecord) {
-            return res.status(400).json({
-                message: 'No active clock-in session found.'
-            });
-        }
-
-        if (!activeRecord.breakStart) {
-            return res.status(400).json({
-                message: 'You have not started a break.'
-            });
-        }
-
-        if (activeRecord.breakEnd) {
-            return res.status(400).json({
-                message: 'Your break has already ended.'
-            });
-        }
-
-        const result = await updateBreakEnd(
-            activeRecord.attendanceId
-        );
-
-        if (result.affectedRows === 0) {
-            return res.status(400).json({
-                message: 'Unable to end break.'
-            });
-        }
-
-        return res.status(200).json({
-            message: 'Break ended successfully.'
-        });
-
-    } catch (error) {
-        console.error('endBreak error:', error);
-
-        return res.status(500).json({
-            error: 'Failed to end break.'
-        });
-    }
 };
 
 
 // ============================================================
 // CLOCK OUT
 // ============================================================
+// PUT /api/worker/attendance/clock-out
+//
+// Worker can only clock out after clocking in.
+// Once clocked out, another clock-out is rejected.
+// ============================================================
 
 export const clockOut = async (req, res) => {
+
     try {
+
         const employeeId = req.user.employeeId;
 
-        const activeRecord = await getActiveAttendance(employeeId);
+
+        // --------------------------------------------------------
+        // Find today's active attendance record
+        // --------------------------------------------------------
+
+        const activeRecord =
+            await getActiveAttendance(employeeId);
+
 
         if (!activeRecord) {
+
+            // Check whether the worker already clocked out today
+            const todayAttendance =
+                await getTodayAttendance(employeeId);
+
+
+            if (todayAttendance?.clockOut) {
+
+                return res.status(400).json({
+
+                    message:
+                        'You have already clocked out today.'
+
+                });
+
+            }
+
+
             return res.status(400).json({
-                message: 'No active clock-in session found.'
+
+                message:
+                    'You are not currently clocked in.'
+
             });
+
         }
 
-        if (activeRecord.breakStart && !activeRecord.breakEnd) {
-            return res.status(400).json({
-                message: 'Please end your break before clocking out.'
-            });
-        }
 
-        if (activeRecord.clockOut) {
-            return res.status(400).json({
-                message: 'You have already clocked out.'
-            });
-        }
+        // --------------------------------------------------------
+        // Close today's attendance record
+        // --------------------------------------------------------
 
-        const result = await updateClockOut(
-            activeRecord.attendanceId
-        );
+        const result =
+            await updateClockOut(
+                activeRecord.attendanceId
+            );
+
 
         if (result.affectedRows === 0) {
+
             return res.status(400).json({
-                message: 'Unable to clock out.'
+
+                message:
+                    'Unable to clock out.'
+
             });
+
         }
 
+
         return res.status(200).json({
-            message: 'Clocked out successfully.'
+
+            message:
+                'Clocked out successfully.'
+
         });
 
     } catch (error) {
-        console.error('clockOut error:', error);
+
+        console.error(
+            'clockOut error:',
+            error
+        );
+
 
         return res.status(500).json({
-            error: 'Failed to clock out.'
+
+            error:
+                'Failed to clock out.'
+
         });
+
     }
+
 };
 
 
 // ============================================================
 // ATTENDANCE HISTORY
 // ============================================================
+// GET /api/worker/attendance/history
+// ============================================================
 
-export const getAttendanceHistory = async (req, res) => {
+export const getAttendanceHistory = async (
+    req,
+    res
+) => {
+
     try {
-        const employeeId = req.user.employeeId;
+
+        const employeeId =
+            req.user.employeeId;
+
 
         const history =
-            await getHistoryByEmployeeId(employeeId);
+            await getHistoryByEmployeeId(
+                employeeId
+            );
+
 
         return res.status(200).json({
-            data: history
+
+            data:
+                history
+
         });
 
     } catch (error) {
-        console.error('getAttendanceHistory error:', error);
+
+        console.error(
+            'getAttendanceHistory error:',
+            error
+        );
+
 
         return res.status(500).json({
-            error: 'Failed to retrieve attendance history.'
+
+            error:
+                'Failed to retrieve attendance history.'
+
         });
+
     }
+
 };

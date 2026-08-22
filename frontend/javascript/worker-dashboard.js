@@ -4,2164 +4,717 @@
 
 console.log("Worker Dashboard JS connected.");
 
-
 // ============================================================
 // PAGE INITIALIZATION
 // ============================================================
 
 document.addEventListener("DOMContentLoaded", async () => {
+  console.log("Initializing Worker Dashboard...");
 
-    console.log("Initializing Worker Dashboard...");
+  // --------------------------------------------------------
+  // Authentication
+  // --------------------------------------------------------
 
-    // ----------------------------------------------------------
-    // Authentication
-    // ----------------------------------------------------------
+  if (typeof requireWorkerLogin !== "function") {
+    console.error("requireWorkerLogin() is not available.");
 
-    if (typeof requireWorkerLogin === "function") {
+    return;
+  }
 
-        if (!requireWorkerLogin()) {
-            return;
-        }
+  if (!requireWorkerLogin()) {
+    return;
+  }
 
-    } else {
+  // --------------------------------------------------------
+  // Sidebar
+  // --------------------------------------------------------
 
-        console.error(
-            "requireWorkerLogin() is not available."
-        );
+  if (typeof initializeSidebar === "function") {
+    initializeSidebar();
+  }
 
-        return;
-    }
+  // --------------------------------------------------------
+  // Dashboard button
+  // --------------------------------------------------------
 
+  initializeDashboardButtons();
 
-    // ----------------------------------------------------------
-    // Sidebar
-    // ----------------------------------------------------------
+  // --------------------------------------------------------
+  // Load dashboard from database
+  // --------------------------------------------------------
 
-    if (typeof initializeSidebar === "function") {
-
-        initializeSidebar();
-
-    }
-
-
-    // ----------------------------------------------------------
-    // Dashboard
-    // ----------------------------------------------------------
-
-    await initializeWorkerDashboard();
-
-
-    // ----------------------------------------------------------
-    // Buttons
-    // ----------------------------------------------------------
-
-    initializeDashboardButtons();
-
+  await initializeWorkerDashboard();
 });
-
 
 // ============================================================
 // INITIALIZE DASHBOARD
 // ============================================================
 
 async function initializeWorkerDashboard() {
+  console.log("Loading worker dashboard...");
 
-    console.log("Loading worker dashboard...");
+  await loadDashboardData();
 
+  await loadDashboardAttendanceHistory();
 
-    // We deliberately load each section separately.
-    // If one API fails, the rest of the dashboard still loads.
-
-    await loadDashboardProfile();
-
-    await loadDashboardAttendance();
-
-    await loadDashboardLeave();
-
-    await loadDashboardPayslips();
-
-    await loadDashboardLeaveRequests();
-
-
-    console.log(
-        "Worker Dashboard loaded successfully."
-    );
+  console.log("Worker Dashboard loaded successfully.");
 }
 
+// ============================================================
+// LOAD DASHBOARD DATA
+// ============================================================
+// Uses:
+//
+// GET /api/worker/dashboard
+//
+// The backend already returns:
+//
+// - employee
+// - attendance
+// - leaveBalances
+// - recentLeaveRequests
+// - latestPayslip
+// - unreadNotifications
+// ============================================================
+
+async function loadDashboardData() {
+  try {
+    if (typeof getWorkerDashboard !== "function") {
+      console.error("getWorkerDashboard() is not available.");
+
+      return;
+    }
+
+    const response = await getWorkerDashboard();
+
+    console.log("Dashboard API response:", response);
+
+    const dashboard = extractDashboardData(response);
+
+    if (!dashboard) {
+      console.warn("No dashboard data returned.");
+
+      return;
+    }
+
+    // --------------------------------------------------------
+    // Employee
+    // --------------------------------------------------------
+
+    renderDashboardProfile(dashboard.employee);
+
+    // --------------------------------------------------------
+    // Today's attendance
+    // --------------------------------------------------------
+
+    renderTodayAttendance(dashboard.attendance);
+
+    // --------------------------------------------------------
+    // Leave balance
+    // --------------------------------------------------------
+
+    renderLeaveBalance(dashboard.leaveBalances);
+
+    // --------------------------------------------------------
+    // Latest payslip
+    // --------------------------------------------------------
+
+    renderLatestPayslip(dashboard.latestPayslip);
+
+    // --------------------------------------------------------
+    // Notification count
+    // --------------------------------------------------------
+
+    setTextIfExists("notificationCount", dashboard.unreadNotifications ?? 0);
+  } catch (error) {
+    console.error("Could not load dashboard data:", error);
+
+    setText("todayStatus", "Unable to load");
+
+    setText("leaveBalanceDash", "Unavailable");
+
+    setText("netPayDash", "Unavailable");
+  }
+}
+
+// ============================================================
+// EXTRACT DASHBOARD DATA
+// ============================================================
+
+function extractDashboardData(response) {
+  if (!response) {
+    return null;
+  }
+
+  if (
+    response.data &&
+    typeof response.data === "object" &&
+    !Array.isArray(response.data)
+  ) {
+    return response.data;
+  }
+
+  if (response.dashboard && typeof response.dashboard === "object") {
+    return response.dashboard;
+  }
+
+  if (typeof response === "object") {
+    return response;
+  }
+
+  return null;
+}
 
 // ============================================================
 // PROFILE
 // ============================================================
 
-async function loadDashboardProfile() {
-
-    try {
-
-        if (typeof getWorkerProfile !== "function") {
-
-            console.error(
-                "getWorkerProfile() is not available."
-            );
-
-            return;
-        }
-
-
-        const response =
-            await getWorkerProfile();
-
-
-        console.log(
-            "Profile API response:",
-            response
-        );
-
-
-        const profile =
-            extractProfile(response);
-
-
-        if (!profile) {
-
-            console.warn(
-                "No worker profile returned from API."
-            );
-
-            return;
-        }
-
-
-        console.log(
-            "Worker profile:",
-            profile
-        );
-
-
-        // Save latest database information
-
-        if (
-            typeof saveLoggedInWorker ===
-            "function"
-        ) {
-
-            saveLoggedInWorker(profile);
-
-        }
-
-
-        renderDashboardProfile(profile);
-
-
-    } catch (error) {
-
-        console.error(
-            "Could not load worker profile:",
-            error
-        );
-
-    }
-}
-
-
-// ============================================================
-// EXTRACT PROFILE
-// ============================================================
-
-function extractProfile(response) {
-
-    if (!response) {
-        return null;
-    }
-
-
-    // { data: {...} }
-
-    if (
-        response.data &&
-        typeof response.data === "object" &&
-        !Array.isArray(response.data)
-    ) {
-
-        return response.data;
-
-    }
-
-
-    // { employee: {...} }
-
-    if (
-        response.employee &&
-        typeof response.employee === "object"
-    ) {
-
-        return response.employee;
-
-    }
-
-
-    // { profile: {...} }
-
-    if (
-        response.profile &&
-        typeof response.profile === "object"
-    ) {
-
-        return response.profile;
-
-    }
-
-
-    // Direct object
-
-    if (
-        typeof response === "object" &&
-        !Array.isArray(response)
-    ) {
-
-        return response;
-
-    }
-
-
-    return null;
-}
-
-
-// ============================================================
-// RENDER PROFILE
-// ============================================================
-
 function renderDashboardProfile(profile) {
+  if (!profile) {
+    return;
+  }
 
-    if (!profile) {
-        return;
-    }
+  const fullName = profile.name ?? "Worker";
 
+  const employeeCode = profile.employeeCode ?? profile.employee_code ?? "--";
 
-    console.log(
-        "Rendering worker profile:",
-        profile
-    );
+  const firstName = String(fullName).trim().split(/\s+/)[0] || "Worker";
 
+  setText("welcomeName", firstName);
 
-    // ----------------------------------------------------------
-    // FIRST NAME
-    // ----------------------------------------------------------
+  setText("sidebarWorkerName", fullName);
 
-    const firstName =
-        profile.first_name ??
-        profile.firstName ??
-        "";
+  setText("sidebarEmployeeCode", employeeCode);
 
+  const avatar = document.getElementById("sidebarAvatar");
 
-    // ----------------------------------------------------------
-    // LAST NAME
-    // ----------------------------------------------------------
+  if (avatar) {
+    avatar.textContent = getInitials(fullName);
+  }
 
-    const lastName =
-        profile.last_name ??
-        profile.lastName ??
-        "";
+  // Save profile information only.
+  // Attendance state is NOT stored here.
 
-
-    // ----------------------------------------------------------
-    // FULL NAME
-    // ----------------------------------------------------------
-
-    const fullName =
-        profile.name ??
-        profile.fullName ??
-        `${firstName} ${lastName}`.trim() ??
-        "Worker";
-
-
-    const displayName =
-        fullName.trim() ||
-        "Worker";
-
-
-    // ----------------------------------------------------------
-    // EMPLOYEE CODE
-    // ----------------------------------------------------------
-
-    const employeeCode =
-        profile.employee_code ??
-        profile.employeeCode ??
-        profile.employee_id ??
-        profile.employeeId ??
-        "--";
-
-
-    // ----------------------------------------------------------
-    // WELCOME NAME
-    // ----------------------------------------------------------
-
-    setText(
-        "welcomeName",
-        firstName || displayName
-    );
-
-
-    // ----------------------------------------------------------
-    // SIDEBAR NAME
-    // ----------------------------------------------------------
-
-    setText(
-        "sidebarWorkerName",
-        displayName
-    );
-
-
-    // ----------------------------------------------------------
-    // SIDEBAR EMPLOYEE CODE
-    // ----------------------------------------------------------
-
-    setText(
-        "sidebarEmployeeCode",
-        employeeCode
-    );
-
-
-    // ----------------------------------------------------------
-    // AVATAR
-    // ----------------------------------------------------------
-
-    const avatar =
-        document.getElementById(
-            "sidebarAvatar"
-        );
-
-
-    if (avatar) {
-
-        avatar.textContent =
-            getInitials(displayName);
-
-    }
-
-
-    // ----------------------------------------------------------
-    // OPTIONAL PROFILE ELEMENTS
-    // ----------------------------------------------------------
-
-    setTextIfExists(
-        "employeeName",
-        displayName
-    );
-
-    setTextIfExists(
-        "employeeCode",
-        employeeCode
-    );
-
-    setTextIfExists(
-        "employeeEmail",
-        profile.email
-    );
-
-    setTextIfExists(
-        "employeeDepartment",
-        profile.department_name ??
-        profile.departmentName ??
-        getNestedName(profile.department)
-    );
-
-    setTextIfExists(
-        "employeePosition",
-        profile.position_name ??
-        profile.positionName ??
-        getNestedName(profile.position)
-    );
-
+  if (typeof saveLoggedInWorker === "function") {
+    saveLoggedInWorker(profile);
+  }
 }
 
-
 // ============================================================
-// INITIALS
+// TODAY'S ATTENDANCE
 // ============================================================
 
-function getInitials(name) {
+function renderTodayAttendance(attendance) {
+  // --------------------------------------------------------
+  // No attendance record for today
+  // --------------------------------------------------------
 
-    if (!name) {
-        return "--";
-    }
+  if (!attendance) {
+    setText("todayStatus", "Not clocked in");
 
+    updateQuickClockButton({
+      state: "CLOCKED_OUT",
+    });
 
-    const parts =
-        String(name)
-            .trim()
-            .split(/\s+/);
+    return;
+  }
 
+  const clockIn = attendance.clockIn ?? attendance.clock_in ?? null;
 
-    if (parts.length === 1) {
+  const clockOut = attendance.clockOut ?? attendance.clock_out ?? null;
 
-        return parts[0]
-            .substring(0, 2)
-            .toUpperCase();
+  // --------------------------------------------------------
+  // Already clocked out
+  // --------------------------------------------------------
 
-    }
+  if (clockOut) {
+    setText("todayStatus", "Clocked out");
 
+    updateQuickClockButton({
+      state: "CLOCKED_OUT",
+    });
 
-    return (
-        parts[0][0] +
-        parts[parts.length - 1][0]
-    ).toUpperCase();
+    return;
+  }
 
+  // --------------------------------------------------------
+  // Currently working
+  // --------------------------------------------------------
+
+  if (clockIn) {
+    setText("todayStatus", "Clocked in");
+
+    updateQuickClockButton({
+      state: "WORKING",
+    });
+
+    return;
+  }
+
+  // --------------------------------------------------------
+  // Fallback
+  // --------------------------------------------------------
+
+  setText("todayStatus", "Not clocked in");
+
+  updateQuickClockButton({
+    state: "CLOCKED_OUT",
+  });
 }
-
-
-// ============================================================
-// ATTENDANCE
-// ============================================================
-
-async function loadDashboardAttendance() {
-
-    try {
-
-        if (
-            typeof getWorkerAttendanceHistory !==
-            "function"
-        ) {
-
-            console.error(
-                "getWorkerAttendanceHistory() is not available."
-            );
-
-            return;
-        }
-
-
-        // ------------------------------------------------------
-        // Get history
-        // ------------------------------------------------------
-
-        const historyResponse =
-            await getWorkerAttendanceHistory();
-
-
-        console.log(
-            "Attendance history response:",
-            historyResponse
-        );
-
-
-        const attendance =
-            extractArray(historyResponse);
-
-
-        console.log(
-            "Attendance records:",
-            attendance
-        );
-
-
-        renderTodayStatus(
-            attendance
-        );
-
-        renderAttendanceActivity(
-            attendance
-        );
-
-
-        // ------------------------------------------------------
-        // Get current clock status
-        // ------------------------------------------------------
-
-        if (
-            typeof getWorkerClockStatus ===
-            "function"
-        ) {
-
-            const statusResponse =
-                await getWorkerClockStatus();
-
-
-            console.log(
-                "Clock status response:",
-                statusResponse
-            );
-
-
-            renderClockStatus(
-                statusResponse
-            );
-
-        }
-
-
-    } catch (error) {
-
-        console.error(
-            "Could not load attendance:",
-            error
-        );
-
-
-        setText(
-            "todayStatus",
-            "Not clocked in"
-        );
-
-    }
-}
-
-
-// ============================================================
-// TODAY STATUS
-// ============================================================
-
-function renderTodayStatus(attendance) {
-
-    if (!Array.isArray(attendance)) {
-
-        setText(
-            "todayStatus",
-            "Not clocked in"
-        );
-
-        return;
-    }
-
-
-    const today =
-        getTodayDateString();
-
-
-    console.log(
-        "Looking for today's attendance:",
-        today
-    );
-
-
-    const todayRecord =
-        attendance.find(
-            record => {
-
-                const date =
-                    record.attendanceDate ??
-                    record.attendance_date ??
-                    record.workDate ??
-                    record.work_date ??
-                    record.date;
-
-
-                return (
-                    normalizeDate(date) ===
-                    today
-                );
-
-            }
-        );
-
-
-    if (!todayRecord) {
-
-        setText(
-            "todayStatus",
-            "Not clocked in"
-        );
-
-        return;
-    }
-
-
-    console.log(
-        "Today's attendance record:",
-        todayRecord
-    );
-
-
-    const clockIn =
-        todayRecord.clockIn ??
-        todayRecord.clock_in ??
-        todayRecord.timeIn ??
-        todayRecord.time_in;
-
-
-    const clockOut =
-        todayRecord.clockOut ??
-        todayRecord.clock_out ??
-        todayRecord.timeOut ??
-        todayRecord.time_out;
-
-
-    const breakStart =
-        todayRecord.breakStart ??
-        todayRecord.break_start;
-
-
-    const breakEnd =
-        todayRecord.breakEnd ??
-        todayRecord.break_end;
-
-
-    const status =
-        todayRecord.attendanceStatus ??
-        todayRecord.attendance_status ??
-        todayRecord.status;
-
-
-    // ----------------------------------------------------------
-    // Determine status
-    // ----------------------------------------------------------
-
-    if (clockOut) {
-
-        setText(
-            "todayStatus",
-            "Clocked out"
-        );
-
-    } else if (
-        breakStart &&
-        !breakEnd
-    ) {
-
-        setText(
-            "todayStatus",
-            "On break"
-        );
-
-    } else if (clockIn) {
-
-        setText(
-            "todayStatus",
-            "Clocked in"
-        );
-
-    } else if (status) {
-
-        setText(
-            "todayStatus",
-            status
-        );
-
-    } else {
-
-        setText(
-            "todayStatus",
-            "Not clocked in"
-        );
-
-    }
-
-}
-
-
-// ============================================================
-// CURRENT CLOCK STATUS
-// ============================================================
-
-function renderClockStatus(response) {
-
-    if (!response) {
-        return;
-    }
-
-
-    console.log(
-        "Rendering clock status:",
-        response
-    );
-
-
-    /*
-        Backend response:
-
-        {
-            isClockedIn: true,
-            state: "WORKING",
-            activeRecord: {
-                attendanceId,
-                employeeId,
-                attendanceDate,
-                clockIn,
-                breakStart,
-                breakEnd,
-                clockOut,
-                attendanceStatus
-            }
-        }
-    */
-
-
-    const state =
-        response.state;
-
-
-    const activeRecord =
-        response.activeRecord;
-
-
-    // ----------------------------------------------------------
-    // ON BREAK
-    // ----------------------------------------------------------
-
-    if (
-        state === "ON_BREAK"
-    ) {
-
-        setText(
-            "todayStatus",
-            "On break"
-        );
-
-    }
-
-
-    // ----------------------------------------------------------
-    // WORKING
-    // ----------------------------------------------------------
-
-    else if (
-        state === "WORKING"
-    ) {
-
-        setText(
-            "todayStatus",
-            "Clocked in"
-        );
-
-    }
-
-
-    // ----------------------------------------------------------
-    // CLOCKED OUT
-    // ----------------------------------------------------------
-
-    else if (
-        state === "CLOCKED_OUT"
-    ) {
-
-        setText(
-            "todayStatus",
-            "Clocked out"
-        );
-
-    }
-
-
-    // ----------------------------------------------------------
-    // FALLBACK
-    // ----------------------------------------------------------
-
-    else if (
-        response.isClockedIn === true
-    ) {
-
-        setText(
-            "todayStatus",
-            "Clocked in"
-        );
-
-    }
-
-
-    // ----------------------------------------------------------
-    // Update quick clock button
-    // ----------------------------------------------------------
-
-    updateQuickClockButton(
-        response
-    );
-
-
-    // ----------------------------------------------------------
-    // Optional dashboard clock information
-    // ----------------------------------------------------------
-
-    if (activeRecord) {
-
-        setTextIfExists(
-            "todayClockIn",
-            formatTime(
-                activeRecord.clockIn
-            )
-        );
-
-        setTextIfExists(
-            "todayBreakStart",
-            formatTime(
-                activeRecord.breakStart
-            )
-        );
-
-        setTextIfExists(
-            "todayBreakEnd",
-            formatTime(
-                activeRecord.breakEnd
-            )
-        );
-
-        setTextIfExists(
-            "todayClockOut",
-            formatTime(
-                activeRecord.clockOut
-            )
-        );
-
-    }
-
-}
-
 
 // ============================================================
 // QUICK CLOCK BUTTON
 // ============================================================
 
 function updateQuickClockButton(status) {
+  const button = document.getElementById("quickClockBtn");
 
-    const button =
-        document.getElementById(
-            "quickClockBtn"
-        );
+  if (!button) {
+    return;
+  }
 
+  const state = status?.state;
 
-    if (!button) {
-        return;
-    }
+  // --------------------------------------------------------
+  // WORKING
+  // --------------------------------------------------------
+  // After Clock In:
+  //
+  // [ Clock Out ]
+  // --------------------------------------------------------
 
-
-    const state =
-        status?.state;
-
-
-    // ----------------------------------------------------------
-    // Currently working
-    // ----------------------------------------------------------
-
-    if (
-        state === "WORKING"
-    ) {
-
-        button.disabled = true;
-
-        button.innerHTML =
-            '<i class="ti ti-check"></i> Clocked In';
-
-        return;
-    }
-
-
-    // ----------------------------------------------------------
-    // On break
-    // ----------------------------------------------------------
-
-    if (
-        state === "ON_BREAK"
-    ) {
-
-        button.disabled = true;
-
-        button.innerHTML =
-            '<i class="ti ti-coffee"></i> On Break';
-
-        return;
-    }
-
-
-    // ----------------------------------------------------------
-    // Clocked out
-    // ----------------------------------------------------------
-
-    if (
-        state === "CLOCKED_OUT"
-    ) {
-
-        button.disabled = false;
-
-        button.innerHTML =
-            '<i class="ti ti-login-2"></i> Clock In';
-
-        return;
-    }
-
-
-    // ----------------------------------------------------------
-    // Default
-    // ----------------------------------------------------------
-
+  if (state === "WORKING") {
     button.disabled = false;
 
-    button.innerHTML =
-        '<i class="ti ti-login-2"></i> Clock In';
+    button.innerHTML = `
+            <i class="ti ti-logout-2"></i>
+            Clock Out
+            `;
 
+    return;
+  }
+
+  // --------------------------------------------------------
+  // CLOCKED OUT
+  // --------------------------------------------------------
+  // Before Clock In or after Clock Out:
+  //
+  // [ Clock In ]
+  // --------------------------------------------------------
+
+  if (state === "CLOCKED_OUT") {
+    button.disabled = false;
+
+    button.innerHTML = `
+            <i class="ti ti-login-2"></i>
+            Clock In
+            `;
+
+    return;
+  }
+
+  // --------------------------------------------------------
+  // Unknown / loading state
+  // --------------------------------------------------------
+
+  button.disabled = true;
+
+  button.innerHTML = `
+        <i class="ti ti-clock"></i>
+        Loading...
+        `;
 }
 
-
 // ============================================================
-// ATTENDANCE ACTIVITY
+// DASHBOARD BUTTON
 // ============================================================
 
-function renderAttendanceActivity(
-    attendance
-) {
+function initializeDashboardButtons() {
+  const quickClockButton = document.getElementById("quickClockBtn");
 
-    const tbody =
-        document.getElementById(
-            "dashboardActivity"
-        );
+  if (!quickClockButton) {
+    return;
+  }
 
-
-    if (!tbody) {
-        return;
-    }
-
-
-    if (
-        !Array.isArray(attendance) ||
-        attendance.length === 0
-    ) {
-
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="3">
-                    No activity yet.
-                </td>
-            </tr>
-        `;
-
-        return;
-    }
-
-
-    const activities = [];
-
-
-    attendance.forEach(
-        record => {
-
-            const date =
-                record.attendanceDate ??
-                record.attendance_date ??
-                record.date;
-
-
-            if (!date) {
-                return;
-            }
-
-
-            const clockIn =
-                record.clockIn ??
-                record.clock_in;
-
-
-            const breakStart =
-                record.breakStart ??
-                record.break_start;
-
-
-            const breakEnd =
-                record.breakEnd ??
-                record.break_end;
-
-
-            const clockOut =
-                record.clockOut ??
-                record.clock_out;
-
-
-            if (clockIn) {
-
-                activities.push({
-                    date,
-                    activity: "Clocked in",
-                    status: formatTime(clockIn)
-                });
-
-            }
-
-
-            if (breakStart) {
-
-                activities.push({
-                    date,
-                    activity: "Break started",
-                    status: formatTime(breakStart)
-                });
-
-            }
-
-
-            if (breakEnd) {
-
-                activities.push({
-                    date,
-                    activity: "Break ended",
-                    status: formatTime(breakEnd)
-                });
-
-            }
-
-
-            if (clockOut) {
-
-                activities.push({
-                    date,
-                    activity: "Clocked out",
-                    status: formatTime(clockOut)
-                });
-
-            }
-
-        }
-    );
-
-
-    activities.sort(
-        (a, b) => {
-
-            const dateA =
-                new Date(a.date).getTime();
-
-            const dateB =
-                new Date(b.date).getTime();
-
-            return dateB - dateA;
-
-        }
-    );
-
-
-    const recent =
-        activities.slice(0, 5);
-
-
-    if (!recent.length) {
-
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="3">
-                    No activity yet.
-                </td>
-            </tr>
-        `;
-
-        return;
-    }
-
-
-    tbody.innerHTML =
-        recent.map(
-            item => `
-                <tr>
-                    <td>
-                        ${escapeHtml(
-                            formatDisplayDate(
-                                item.date
-                            )
-                        )}
-                    </td>
-
-                    <td>
-                        ${escapeHtml(
-                            item.activity
-                        )}
-                    </td>
-
-                    <td>
-                        ${escapeHtml(
-                            item.status
-                        )}
-                    </td>
-                </tr>
-            `
-        ).join("");
-
+  quickClockButton.addEventListener("click", async () => {
+    await handleQuickClock();
+  });
 }
 
-
 // ============================================================
-// LEAVE
+// HANDLE QUICK CLOCK
 // ============================================================
 
-async function loadDashboardLeave() {
+async function handleQuickClock() {
+  const button = document.getElementById("quickClockBtn");
+
+  if (!button) {
+    return;
+  }
+
+  try {
+    button.disabled = true;
+
+    // --------------------------------------------------------
+    // Always check MySQL-backed status first.
+    // --------------------------------------------------------
+
+    const currentStatus = await getWorkerClockStatus();
+
+    console.log("Current attendance status:", currentStatus);
+
+    const state = currentStatus?.state;
+
+    // --------------------------------------------------------
+    // CLOCKED OUT → CLOCK IN
+    // --------------------------------------------------------
+
+    if (state === "CLOCKED_OUT") {
+      const response = await workerClockIn();
+
+      showToast(response?.message || "Clocked in successfully.");
+    }
+
+    // --------------------------------------------------------
+    // WORKING → CLOCK OUT
+    // --------------------------------------------------------
+    else if (state === "WORKING") {
+      const response = await workerClockOut();
+
+      showToast(response?.message || "Clocked out successfully.");
+    }
+
+    // --------------------------------------------------------
+    // Unknown state
+    // --------------------------------------------------------
+    else {
+      throw new Error("Unable to determine your attendance status.");
+    }
+
+    // --------------------------------------------------------
+    // Reload dashboard data from database
+    // --------------------------------------------------------
+
+    await loadDashboardData();
+
+    await loadDashboardAttendanceHistory();
+  } catch (error) {
+    console.error("Quick clock error:", error);
+
+    showToast(error.message || "Attendance action failed.");
+  } finally {
+    // --------------------------------------------------------
+    // Get the final state from the database.
+    //
+    // This is what determines whether the button says
+    // Clock In or Clock Out.
+    // --------------------------------------------------------
 
     try {
+      const refreshedStatus = await getWorkerClockStatus();
 
-        if (
-            typeof getWorkerLeaveBalances !==
-            "function"
-        ) {
-
-            return;
-        }
-
-
-        const response =
-            await getWorkerLeaveBalances();
-
-
-        console.log(
-            "Leave balance response:",
-            response
-        );
-
-
-        const balances =
-            extractArray(response);
-
-
-        renderLeaveBalance(
-            balances
-        );
-
-
+      updateQuickClockButton(refreshedStatus);
     } catch (error) {
+      console.error("Could not refresh clock button:", error);
 
-        console.error(
-            "Could not load leave balance:",
-            error
-        );
-
-
-        setText(
-            "leaveBalanceDash",
-            "0 days"
-        );
-
+      button.disabled = false;
     }
-
+  }
 }
-
 
 // ============================================================
 // LEAVE BALANCE
 // ============================================================
 
-function renderLeaveBalance(
-    balances
-) {
+function renderLeaveBalance(balances) {
+  if (!Array.isArray(balances)) {
+    setText("leaveBalanceDash", "0 days");
 
-    if (
-        !Array.isArray(balances) ||
-        balances.length === 0
-    ) {
+    return;
+  }
 
-        setText(
-            "leaveBalanceDash",
-            "0 days"
-        );
+  let totalRemaining = 0;
 
-        return;
+  balances.forEach((balance) => {
+    const value = Number(balance.remainingDays ?? balance.remaining_days ?? 0);
+
+    if (Number.isFinite(value)) {
+      totalRemaining += value;
     }
+  });
 
+  const formatted = Number.isInteger(totalRemaining)
+    ? totalRemaining
+    : totalRemaining.toFixed(2);
 
-    let balance =
-        balances.find(
-            item => {
-
-                const type =
-                    String(
-                        item.leave_type_name ??
-                        item.leaveTypeName ??
-                        item.leave_type ??
-                        item.leaveType ??
-                        ""
-                    ).toLowerCase();
-
-
-                return (
-                    type.includes("annual") ||
-                    type.includes("vacation")
-                );
-
-            }
-        );
-
-
-    if (!balance) {
-        balance = balances[0];
-    }
-
-
-    let remaining;
-
-
-    if (
-        balance.remaining_days !== undefined
-    ) {
-
-        remaining =
-            Number(
-                balance.remaining_days
-            );
-
-    } else if (
-        balance.remainingDays !== undefined
-    ) {
-
-        remaining =
-            Number(
-                balance.remainingDays
-            );
-
-    } else {
-
-        const allocated =
-            Number(
-                balance.allocated_days ??
-                balance.allocatedDays ??
-                balance.total_days ??
-                balance.totalDays ??
-                0
-            );
-
-
-        const used =
-            Number(
-                balance.used_days ??
-                balance.usedDays ??
-                0
-            );
-
-
-        remaining =
-            allocated - used;
-
-    }
-
-
-    if (!Number.isFinite(remaining)) {
-        remaining = 0;
-    }
-
-
-    setText(
-        "leaveBalanceDash",
-        `${remaining} days`
-    );
-
+  setText("leaveBalanceDash", `${formatted} days`);
 }
-
-
-// ============================================================
-// PAYSLIPS
-// ============================================================
-
-async function loadDashboardPayslips() {
-
-    try {
-
-        if (
-            typeof getWorkerPayslips !==
-            "function"
-        ) {
-
-            return;
-        }
-
-
-        const response =
-            await getWorkerPayslips();
-
-
-        console.log(
-            "Payslips response:",
-            response
-        );
-
-
-        const payslips =
-            extractArray(response);
-
-
-        renderLatestPayslip(
-            payslips
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Could not load payslips:",
-            error
-        );
-
-
-        setText(
-            "netPayDash",
-            "R0.00"
-        );
-
-    }
-
-}
-
 
 // ============================================================
 // LATEST PAYSLIP
 // ============================================================
 
-function renderLatestPayslip(
-    payslips
-) {
+function renderLatestPayslip(payslip) {
+  if (!payslip) {
+    setText("netPayDash", "No payslip");
 
-    if (
-        !Array.isArray(payslips) ||
-        payslips.length === 0
-    ) {
+    return;
+  }
 
-        setText(
-            "netPayDash",
-            "R0.00"
-        );
+  const finalSalary = payslip.finalSalary ?? payslip.final_salary ?? null;
 
-        return;
-    }
+  if (finalSalary === null || finalSalary === undefined) {
+    setText("netPayDash", "Unavailable");
 
+    return;
+  }
 
-    const sorted =
-        [...payslips].sort(
-            (a, b) => {
-
-                const dateA =
-                    a.pay_period ??
-                    a.payPeriod ??
-                    a.created_at ??
-                    a.createdAt ??
-                    "";
-
-                const dateB =
-                    b.pay_period ??
-                    b.payPeriod ??
-                    b.created_at ??
-                    b.createdAt ??
-                    "";
-
-
-                return String(dateB)
-                    .localeCompare(
-                        String(dateA)
-                    );
-
-            }
-        );
-
-
-    const latest =
-        sorted[0];
-
-
-    const netPay =
-        latest.net_salary ??
-        latest.netSalary ??
-        latest.final_salary ??
-        latest.finalSalary ??
-        latest.net_pay ??
-        latest.netPay ??
-        0;
-
-
-    setText(
-        "netPayDash",
-        formatCurrency(netPay)
-    );
-
+  setText("netPayDash", formatCurrency(finalSalary));
 }
 
-
 // ============================================================
-// LEAVE REQUESTS
+// ATTENDANCE HISTORY
 // ============================================================
 
-async function loadDashboardLeaveRequests() {
-
-    try {
-
-        if (
-            typeof getWorkerLeaveRequests !==
-            "function"
-        ) {
-
-            return;
-        }
-
-
-        const response =
-            await getWorkerLeaveRequests();
-
-
-        console.log(
-            "Leave requests response:",
-            response
-        );
-
-
-        const requests =
-            extractArray(response);
-
-
-        renderLeaveActivity(
-            requests
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Could not load leave requests:",
-            error
-        );
-
+async function loadDashboardAttendanceHistory() {
+  try {
+    if (typeof getWorkerAttendanceHistory !== "function") {
+      return;
     }
 
+    const response = await getWorkerAttendanceHistory();
+
+    const attendance = extractArray(response);
+
+    renderAttendanceActivity(attendance);
+  } catch (error) {
+    console.error("Could not load attendance history:", error);
+
+    const tbody = document.getElementById("dashboardActivity");
+
+    if (tbody) {
+      tbody.innerHTML = `
+                <tr>
+                    <td colspan="3">
+                        Unable to load activity.
+                    </td>
+                </tr>
+                `;
+    }
+  }
 }
 
-
 // ============================================================
-// LEAVE ACTIVITY
+// ATTENDANCE ACTIVITY
 // ============================================================
 
-function renderLeaveActivity(
-    requests
-) {
+function renderAttendanceActivity(attendance) {
+  const tbody = document.getElementById("dashboardActivity");
 
-    const tbody =
-        document.getElementById(
-            "dashboardActivity"
-        );
+  if (!tbody) {
+    return;
+  }
 
+  if (!Array.isArray(attendance) || attendance.length === 0) {
+    tbody.innerHTML = `
+            <tr>
+                <td colspan="3">
+                    No attendance activity yet.
+                </td>
+            </tr>
+            `;
 
-    if (!tbody) {
-        return;
+    return;
+  }
+
+  const activities = [];
+
+  attendance.forEach((record) => {
+    const date = record.attendanceDate ?? record.attendance_date ?? record.date;
+
+    const clockIn = record.clockIn ?? record.clock_in;
+
+    const clockOut = record.clockOut ?? record.clock_out;
+
+    if (clockIn) {
+      activities.push({
+        date: date,
+
+        time: clockIn,
+
+        activity: "Clock In",
+
+        status: "Present",
+      });
     }
 
+    if (clockOut) {
+      activities.push({
+        date: date,
 
-    if (
-        !Array.isArray(requests) ||
-        requests.length === 0
-    ) {
+        time: clockOut,
 
-        return;
+        activity: "Clock Out",
+
+        status: "Present",
+      });
     }
+  });
 
+  activities.sort((a, b) => {
+    const first = parseActivityDateTime(a.date, a.time);
 
-    // Do not overwrite attendance activity.
+    const second = parseActivityDateTime(b.date, b.time);
 
-    if (
-        tbody.children.length > 0 &&
-        !tbody.textContent.includes(
-            "No activity yet"
-        )
-    ) {
+    return second - first;
+  });
 
-        return;
-    }
+  const recentActivities = activities.slice(0, 5);
 
+  if (recentActivities.length === 0) {
+    tbody.innerHTML = `
+            <tr>
+                <td colspan="3">
+                    No attendance activity yet.
+                </td>
+            </tr>
+            `;
 
-    const recent =
-        requests.slice(0, 5);
+    return;
+  }
 
-
-    tbody.innerHTML =
-        recent.map(
-            request => {
-
-                const date =
-                    request.start_date ??
-                    request.startDate ??
-                    request.created_at ??
-                    request.createdAt;
-
-
-                const leaveType =
-                    request.leave_type_name ??
-                    request.leaveTypeName ??
-                    request.leave_type ??
-                    "Leave";
-
-
-                const status =
-                    request.status ??
-                    "Pending";
-
-
-                return `
+  tbody.innerHTML = recentActivities
+    .map((activity) => {
+      return `
                     <tr>
 
                         <td>
-                            ${escapeHtml(
-                                formatDisplayDate(
-                                    date
-                                )
-                            )}
+                            ${escapeHTML(formatActivityDate(activity.date))}
                         </td>
 
                         <td>
-                            ${escapeHtml(
-                                leaveType
-                            )}
+                            ${escapeHTML(activity.activity)}
                         </td>
 
                         <td>
-                            ${escapeHtml(
-                                status
-                            )}
+                            ${escapeHTML(activity.status)}
                         </td>
 
                     </tr>
-                `;
-
-            }
-        ).join("");
-
+                    `;
+    })
+    .join("");
 }
 
-
 // ============================================================
-// DASHBOARD BUTTONS
-// ============================================================
-
-function initializeDashboardButtons() {
-
-    console.log(
-        "Initializing dashboard buttons..."
-    );
-
-
-    const quickClockBtn =
-        document.getElementById(
-            "quickClockBtn"
-        );
-
-
-    if (quickClockBtn) {
-
-        quickClockBtn.addEventListener(
-            "click",
-            handleClockButton
-        );
-
-    }
-
-}
-
-
-// ============================================================
-// QUICK CLOCK IN
-// ============================================================
-
-async function handleClockButton(
-    event
-) {
-
-    event.preventDefault();
-
-
-    const button =
-        event.currentTarget;
-
-
-    if (!button) {
-        return;
-    }
-
-
-    try {
-
-        button.disabled = true;
-
-        button.innerHTML =
-            '<i class="ti ti-loader-2"></i> Clocking in...';
-
-
-        if (
-            typeof workerClockIn !==
-            "function"
-        ) {
-
-            throw new Error(
-                "workerClockIn() is not available."
-            );
-
-        }
-
-
-        console.log(
-            "Sending clock-in request..."
-        );
-
-
-        const response =
-            await workerClockIn();
-
-
-        console.log(
-            "Clock-in response:",
-            response
-        );
-
-
-        showDashboardToast(
-            response?.message ||
-            "You have been clocked in successfully."
-        );
-
-
-        // Refresh everything from database
-
-        await loadDashboardAttendance();
-
-
-    } catch (error) {
-
-        console.error(
-            "Clock-in failed:",
-            error
-        );
-
-
-        button.disabled = false;
-
-        button.innerHTML =
-            '<i class="ti ti-login-2"></i> Clock In';
-
-
-        showDashboardToast(
-            error.message ||
-            "Could not clock in."
-        );
-
-    }
-
-}
-
-
-// ============================================================
-// RESPONSE HELPERS
+// HELPERS
 // ============================================================
 
 function extractArray(response) {
+  if (Array.isArray(response)) {
+    return response;
+  }
 
-    if (!response) {
-        return [];
-    }
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
 
+  if (Array.isArray(response?.data?.rows)) {
+    return response.data.rows;
+  }
 
-    if (Array.isArray(response)) {
-        return response;
-    }
+  if (Array.isArray(response?.rows)) {
+    return response.rows;
+  }
 
-
-    if (
-        Array.isArray(response.data)
-    ) {
-
-        return response.data;
-    }
-
-
-    if (
-        Array.isArray(response.rows)
-    ) {
-
-        return response.rows;
-    }
-
-
-    if (
-        Array.isArray(response.results)
-    ) {
-
-        return response.results;
-    }
-
-
-    if (
-        Array.isArray(response.attendance)
-    ) {
-
-        return response.attendance;
-    }
-
-
-    if (
-        Array.isArray(response.balances)
-    ) {
-
-        return response.balances;
-    }
-
-
-    if (
-        Array.isArray(response.requests)
-    ) {
-
-        return response.requests;
-    }
-
-
-    if (
-        Array.isArray(response.payslips)
-    ) {
-
-        return response.payslips;
-    }
-
-
-    return [];
+  return [];
 }
 
+function setText(elementId, value) {
+  const element = document.getElementById(elementId);
 
-// ============================================================
-// GENERIC TEXT
-// ============================================================
-
-function setText(
-    id,
-    value
-) {
-
-    const element =
-        document.getElementById(id);
-
-
-    if (!element) {
-
-        console.warn(
-            `Element #${id} not found.`
-        );
-
-        return;
-    }
-
-
-    element.textContent =
-        value === undefined ||
-        value === null ||
-        value === ""
-            ? "-"
-            : value;
-
+  if (element) {
+    element.textContent = value ?? "";
+  }
 }
 
+function setTextIfExists(elementId, value) {
+  const element = document.getElementById(elementId);
 
-// ============================================================
-// OPTIONAL TEXT
-// ============================================================
-
-function setTextIfExists(
-    id,
-    value
-) {
-
-    const element =
-        document.getElementById(id);
-
-
-    if (!element) {
-        return;
-    }
-
-
-    if (
-        value === undefined ||
-        value === null ||
-        value === ""
-    ) {
-
-        return;
-    }
-
-
-    element.textContent =
-        value;
-
+  if (element && value !== undefined && value !== null) {
+    element.textContent = value;
+  }
 }
 
+function getInitials(name) {
+  if (!name) {
+    return "--";
+  }
 
-// ============================================================
-// NESTED NAME
-// ============================================================
+  const parts = String(name).trim().split(/\s+/);
 
-function getNestedName(
-    value
-) {
+  if (parts.length === 1) {
+    return parts[0].substring(0, 2).toUpperCase();
+  }
 
-    if (!value) {
-        return "";
-    }
-
-
-    if (
-        typeof value ===
-        "string"
-    ) {
-
-        return value;
-    }
-
-
-    return (
-        value.name ??
-        value.title ??
-        value.department_name ??
-        value.departmentName ??
-        value.position_name ??
-        value.positionName ??
-        ""
-    );
-
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+function parseActivityDateTime(date, time) {
+  if (!date) {
+    return 0;
+  }
 
-// ============================================================
-// DATE
-// ============================================================
+  const timestamp = new Date(`${date} ${time || ""}`).getTime();
 
-function getTodayDateString() {
-
-    const now =
-        new Date();
-
-
-    return [
-        now.getFullYear(),
-        String(
-            now.getMonth() + 1
-        ).padStart(2, "0"),
-        String(
-            now.getDate()
-        ).padStart(2, "0")
-    ].join("-");
-
+  return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
+function formatActivityDate(value) {
+  if (!value) {
+    return "--";
+  }
 
-function normalizeDate(
-    value
-) {
+  const date = new Date(`${String(value).substring(0, 10)}T00:00:00`);
 
-    if (!value) {
-        return "";
-    }
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
 
+  return date.toLocaleDateString("en-ZA", {
+    day: "2-digit",
 
-    // YYYY-MM-DD or YYYY-MM-DD HH:mm:ss
+    month: "short",
 
-    if (
-        typeof value === "string" &&
-        /^\d{4}-\d{2}-\d{2}/.test(value)
-    ) {
-
-        return value.substring(
-            0,
-            10
-        );
-
-    }
-
-
-    const date =
-        new Date(value);
-
-
-    if (
-        Number.isNaN(
-            date.getTime()
-        )
-    ) {
-
-        return String(value)
-            .substring(0, 10);
-
-    }
-
-
-    return [
-        date.getFullYear(),
-        String(
-            date.getMonth() + 1
-        ).padStart(2, "0"),
-        String(
-            date.getDate()
-        ).padStart(2, "0")
-    ].join("-");
-
+    year: "numeric",
+  });
 }
 
+function formatCurrency(value) {
+  const number = Number(value);
 
-// ============================================================
-// DISPLAY DATE
-// ============================================================
+  if (Number.isNaN(number)) {
+    return String(value);
+  }
 
-function formatDisplayDate(
-    value
-) {
+  return new Intl.NumberFormat("en-ZA", {
+    style: "currency",
 
-    if (!value) {
-        return "-";
-    }
+    currency: "ZAR",
 
-
-    const date =
-        new Date(value);
-
-
-    if (
-        Number.isNaN(
-            date.getTime()
-        )
-    ) {
-
-        return String(value);
-    }
-
-
-    return date.toLocaleDateString(
-        "en-ZA",
-        {
-            day: "2-digit",
-            month: "short",
-            year: "numeric"
-        }
-    );
-
+    maximumFractionDigits: 2,
+  }).format(number);
 }
 
+function escapeHTML(value) {
+  if (value === null || value === undefined) {
+    return "";
+  }
 
-// ============================================================
-// TIME
-// ============================================================
-
-function formatTime(
-    value
-) {
-
-    if (!value) {
-        return "-";
-    }
-
-
-    // MySQL TIME
-
-    if (
-        typeof value === "string" &&
-        /^\d{2}:\d{2}/.test(value)
-    ) {
-
-        return value.substring(
-            0,
-            5
-        );
-
-    }
-
-
-    const date =
-        new Date(value);
-
-
-    if (
-        Number.isNaN(
-            date.getTime()
-        )
-    ) {
-
-        return String(value);
-    }
-
-
-    return date.toLocaleTimeString(
-        "en-ZA",
-        {
-            hour: "2-digit",
-            minute: "2-digit"
-        }
-    );
-
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
-
-
-// ============================================================
-// CURRENCY
-// ============================================================
-
-function formatCurrency(
-    value
-) {
-
-    const number =
-        Number(value);
-
-
-    if (
-        !Number.isFinite(number)
-    ) {
-
-        return "R0.00";
-    }
-
-
-    return number.toLocaleString(
-        "en-ZA",
-        {
-            style: "currency",
-            currency: "ZAR",
-            minimumFractionDigits: 2
-        }
-    );
-
-}
-
-
-// ============================================================
-// HTML ESCAPE
-// ============================================================
-
-function escapeHtml(
-    value
-) {
-
-    return String(
-        value ?? ""
-    )
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-        .replace(
-            /</g,
-            "&lt;"
-        )
-        .replace(
-            />/g,
-            "&gt;"
-        )
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-        .replace(
-            /'/g,
-            "&#039;"
-        );
-
-}
-
-
-// ============================================================
-// TOAST
-// ============================================================
-
-function showDashboardToast(
-    message
-) {
-
-    if (
-        typeof showToast ===
-        "function"
-    ) {
-
-        showToast(message);
-
-        return;
-    }
-
-
-    let toast =
-        document.getElementById(
-            "dashboardToast"
-        );
-
-
-    if (!toast) {
-
-        toast =
-            document.createElement(
-                "div"
-            );
-
-
-        toast.id =
-            "dashboardToast";
-
-
-        toast.style.position =
-            "fixed";
-
-
-        toast.style.bottom =
-            "25px";
-
-
-        toast.style.right =
-            "25px";
-
-
-        toast.style.padding =
-            "14px 20px";
-
-
-        toast.style.borderRadius =
-            "10px";
-
-
-        toast.style.background =
-            "#27187E";
-
-
-        toast.style.color =
-            "#ffffff";
-
-
-        toast.style.zIndex =
-            "9999";
-
-
-        toast.style.boxShadow =
-            "0 5px 20px rgba(0,0,0,0.2)";
-
-
-        document.body.appendChild(
-            toast
-        );
-
-    }
-
-
-    toast.textContent =
-        message;
-
-
-    setTimeout(
-        () => {
-
-            if (toast) {
-                toast.remove();
-            }
-
-        },
-        3000
-    );
-
-}
-
-
-// ============================================================
-// GLOBALS
-// ============================================================
-
-window.initializeWorkerDashboard =
-    initializeWorkerDashboard;
-
-window.renderDashboardProfile =
-    renderDashboardProfile;
-
-window.renderTodayStatus =
-    renderTodayStatus;
-
-window.renderClockStatus =
-    renderClockStatus;
-
-window.renderLeaveBalance =
-    renderLeaveBalance;
-
-window.renderLatestPayslip =
-    renderLatestPayslip;
-
-window.handleClockButton =
-    handleClockButton;
