@@ -1,8 +1,27 @@
 // ============================================================
 // ModernTech Worker Dashboard
 // ============================================================
+//
+// Recent Activity now combines:
+//
+// 1. Clock In
+// 2. Clock Out
+// 3. Leave Requests
+//
+// Payslip downloads are intentionally NOT recorded here.
+//
+// All information comes from the backend/database.
+// ============================================================
 
 console.log("Worker Dashboard JS connected.");
+
+// ============================================================
+// VARIABLES
+// ============================================================
+
+// Leave requests returned by the dashboard API.
+// We keep these here so they can be combined with attendance.
+let dashboardLeaveRequests = [];
 
 // ============================================================
 // PAGE INITIALIZATION
@@ -34,13 +53,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // --------------------------------------------------------
-  // Dashboard button
+  // Dashboard buttons
   // --------------------------------------------------------
 
   initializeDashboardButtons();
 
   // --------------------------------------------------------
-  // Load dashboard from database
+  // Load dashboard
   // --------------------------------------------------------
 
   await initializeWorkerDashboard();
@@ -53,7 +72,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function initializeWorkerDashboard() {
   console.log("Loading worker dashboard...");
 
+  // First load employee, leave, payslip and notification data.
+
   await loadDashboardData();
+
+  // Then load attendance history.
 
   await loadDashboardAttendanceHistory();
 
@@ -63,11 +86,10 @@ async function initializeWorkerDashboard() {
 // ============================================================
 // LOAD DASHBOARD DATA
 // ============================================================
-// Uses:
 //
 // GET /api/worker/dashboard
 //
-// The backend already returns:
+// The backend returns:
 //
 // - employee
 // - attendance
@@ -75,6 +97,7 @@ async function initializeWorkerDashboard() {
 // - recentLeaveRequests
 // - latestPayslip
 // - unreadNotifications
+//
 // ============================================================
 
 async function loadDashboardData() {
@@ -126,6 +149,23 @@ async function loadDashboardData() {
     // --------------------------------------------------------
 
     setTextIfExists("notificationCount", dashboard.unreadNotifications ?? 0);
+
+    // --------------------------------------------------------
+    // Recent leave requests
+    // --------------------------------------------------------
+    //
+    // IMPORTANT:
+    //
+    // The backend is already returning these records.
+    // We store them here and combine them with attendance
+    // after attendance has been loaded.
+    // --------------------------------------------------------
+
+    dashboardLeaveRequests = Array.isArray(dashboard.recentLeaveRequests)
+      ? dashboard.recentLeaveRequests
+      : [];
+
+    console.log("Dashboard leave requests:", dashboardLeaveRequests);
   } catch (error) {
     console.error("Could not load dashboard data:", error);
 
@@ -192,8 +232,7 @@ function renderDashboardProfile(profile) {
     avatar.textContent = getInitials(fullName);
   }
 
-  // Save profile information only.
-  // Attendance state is NOT stored here.
+  // Save employee profile information only.
 
   if (typeof saveLoggedInWorker === "function") {
     saveLoggedInWorker(profile);
@@ -206,7 +245,7 @@ function renderDashboardProfile(profile) {
 
 function renderTodayAttendance(attendance) {
   // --------------------------------------------------------
-  // No attendance record for today
+  // No attendance record
   // --------------------------------------------------------
 
   if (!attendance) {
@@ -278,10 +317,6 @@ function updateQuickClockButton(status) {
   // --------------------------------------------------------
   // WORKING
   // --------------------------------------------------------
-  // After Clock In:
-  //
-  // [ Clock Out ]
-  // --------------------------------------------------------
 
   if (state === "WORKING") {
     button.disabled = false;
@@ -289,17 +324,13 @@ function updateQuickClockButton(status) {
     button.innerHTML = `
             <i class="ti ti-logout-2"></i>
             Clock Out
-            `;
+        `;
 
     return;
   }
 
   // --------------------------------------------------------
   // CLOCKED OUT
-  // --------------------------------------------------------
-  // Before Clock In or after Clock Out:
-  //
-  // [ Clock In ]
   // --------------------------------------------------------
 
   if (state === "CLOCKED_OUT") {
@@ -308,13 +339,13 @@ function updateQuickClockButton(status) {
     button.innerHTML = `
             <i class="ti ti-login-2"></i>
             Clock In
-            `;
+        `;
 
     return;
   }
 
   // --------------------------------------------------------
-  // Unknown / loading state
+  // Loading / unknown
   // --------------------------------------------------------
 
   button.disabled = true;
@@ -322,7 +353,7 @@ function updateQuickClockButton(status) {
   button.innerHTML = `
         <i class="ti ti-clock"></i>
         Loading...
-        `;
+    `;
 }
 
 // ============================================================
@@ -355,9 +386,9 @@ async function handleQuickClock() {
   try {
     button.disabled = true;
 
-    // --------------------------------------------------------
-    // Always check MySQL-backed status first.
-    // --------------------------------------------------------
+    // ----------------------------------------------------
+    // Always check the database first.
+    // ----------------------------------------------------
 
     const currentStatus = await getWorkerClockStatus();
 
@@ -365,9 +396,9 @@ async function handleQuickClock() {
 
     const state = currentStatus?.state;
 
-    // --------------------------------------------------------
+    // ----------------------------------------------------
     // CLOCKED OUT → CLOCK IN
-    // --------------------------------------------------------
+    // ----------------------------------------------------
 
     if (state === "CLOCKED_OUT") {
       const response = await workerClockIn();
@@ -375,25 +406,20 @@ async function handleQuickClock() {
       showToast(response?.message || "Clocked in successfully.");
     }
 
-    // --------------------------------------------------------
+    // ----------------------------------------------------
     // WORKING → CLOCK OUT
-    // --------------------------------------------------------
+    // ----------------------------------------------------
     else if (state === "WORKING") {
       const response = await workerClockOut();
 
       showToast(response?.message || "Clocked out successfully.");
-    }
-
-    // --------------------------------------------------------
-    // Unknown state
-    // --------------------------------------------------------
-    else {
+    } else {
       throw new Error("Unable to determine your attendance status.");
     }
 
-    // --------------------------------------------------------
-    // Reload dashboard data from database
-    // --------------------------------------------------------
+    // ----------------------------------------------------
+    // Reload dashboard data.
+    // ----------------------------------------------------
 
     await loadDashboardData();
 
@@ -403,13 +429,6 @@ async function handleQuickClock() {
 
     showToast(error.message || "Attendance action failed.");
   } finally {
-    // --------------------------------------------------------
-    // Get the final state from the database.
-    //
-    // This is what determines whether the button says
-    // Clock In or Clock Out.
-    // --------------------------------------------------------
-
     try {
       const refreshedStatus = await getWorkerClockStatus();
 
@@ -473,12 +492,20 @@ function renderLatestPayslip(payslip) {
 }
 
 // ============================================================
-// ATTENDANCE HISTORY
+// LOAD ATTENDANCE HISTORY
+// ============================================================
+//
+// We now use attendance AND the leave requests already loaded
+// by loadDashboardData().
 // ============================================================
 
 async function loadDashboardAttendanceHistory() {
   try {
     if (typeof getWorkerAttendanceHistory !== "function") {
+      console.error("getWorkerAttendanceHistory() is not available.");
+
+      renderRecentActivity([], dashboardLeaveRequests);
+
       return;
     }
 
@@ -486,121 +513,180 @@ async function loadDashboardAttendanceHistory() {
 
     const attendance = extractArray(response);
 
-    renderAttendanceActivity(attendance);
+    console.log("Dashboard attendance history:", attendance);
+
+    // ----------------------------------------------------
+    // IMPORTANT:
+    //
+    // Do NOT render attendance by itself.
+    //
+    // Combine attendance + leave requests instead.
+    // ----------------------------------------------------
+
+    renderRecentActivity(attendance, dashboardLeaveRequests);
   } catch (error) {
     console.error("Could not load attendance history:", error);
 
-    const tbody = document.getElementById("dashboardActivity");
+    // Even if attendance fails, show leave activity.
 
-    if (tbody) {
-      tbody.innerHTML = `
-                <tr>
-                    <td colspan="3">
-                        Unable to load activity.
-                    </td>
-                </tr>
-                `;
-    }
+    renderRecentActivity([], dashboardLeaveRequests);
   }
 }
 
 // ============================================================
-// ATTENDANCE ACTIVITY
+// RECENT ACTIVITY
+// ============================================================
+//
+// Combines:
+//
+// - Clock In
+// - Clock Out
+// - Leave Request
+//
+// Newest activities appear first.
 // ============================================================
 
-function renderAttendanceActivity(attendance) {
+function renderRecentActivity(attendance, leaveRequests) {
   const tbody = document.getElementById("dashboardActivity");
 
   if (!tbody) {
     return;
   }
 
-  if (!Array.isArray(attendance) || attendance.length === 0) {
-    tbody.innerHTML = `
-            <tr>
-                <td colspan="3">
-                    No attendance activity yet.
-                </td>
-            </tr>
-            `;
-
-    return;
-  }
-
   const activities = [];
 
-  attendance.forEach((record) => {
-    const date = record.attendanceDate ?? record.attendance_date ?? record.date;
+  // ========================================================
+  // ATTENDANCE ACTIVITY
+  // ========================================================
 
-    const clockIn = record.clockIn ?? record.clock_in;
+  if (Array.isArray(attendance)) {
+    attendance.forEach((record) => {
+      const date =
+        record.attendanceDate ?? record.attendance_date ?? record.date;
 
-    const clockOut = record.clockOut ?? record.clock_out;
+      const clockIn = record.clockIn ?? record.clock_in;
 
-    if (clockIn) {
+      const clockOut = record.clockOut ?? record.clock_out;
+
+      // ------------------------------------------------
+      // Clock In
+      // ------------------------------------------------
+
+      if (clockIn) {
+        activities.push({
+          date: date,
+
+          time: clockIn,
+
+          activity: "Clock In",
+
+          status: "Present",
+
+          sortDate: parseActivityDateTime(date, clockIn),
+        });
+      }
+
+      // ------------------------------------------------
+      // Clock Out
+      // ------------------------------------------------
+
+      if (clockOut) {
+        activities.push({
+          date: date,
+
+          time: clockOut,
+
+          activity: "Clock Out",
+
+          status: "Present",
+
+          sortDate: parseActivityDateTime(date, clockOut),
+        });
+      }
+    });
+  }
+
+  // ========================================================
+  // LEAVE REQUEST ACTIVITY
+  // ========================================================
+
+  if (Array.isArray(leaveRequests)) {
+    leaveRequests.forEach((request) => {
+      const submittedDate =
+        request.submittedDate ??
+        request.submitted_date ??
+        request.startDate ??
+        request.start_date;
+
+      const leaveType =
+        request.leaveTypeName ?? request.leave_type_name ?? "Leave";
+
+      const status = request.status ?? "Pending";
+
       activities.push({
-        date: date,
+        date: submittedDate,
 
-        time: clockIn,
+        time: null,
 
-        activity: "Clock In",
+        activity: `Leave Request - ${leaveType}`,
 
-        status: "Present",
+        status: status,
+
+        sortDate: parseActivityDateTime(submittedDate, "23:59:59"),
       });
-    }
+    });
+  }
 
-    if (clockOut) {
-      activities.push({
-        date: date,
+  // ========================================================
+  // SORT NEWEST FIRST
+  // ========================================================
 
-        time: clockOut,
+  activities.sort((a, b) => b.sortDate - a.sortDate);
 
-        activity: "Clock Out",
-
-        status: "Present",
-      });
-    }
-  });
-
-  activities.sort((a, b) => {
-    const first = parseActivityDateTime(a.date, a.time);
-
-    const second = parseActivityDateTime(b.date, b.time);
-
-    return second - first;
-  });
+  // --------------------------------------------------------
+  // Show the five most recent activities.
+  // --------------------------------------------------------
 
   const recentActivities = activities.slice(0, 5);
+
+  // ========================================================
+  // NO ACTIVITY
+  // ========================================================
 
   if (recentActivities.length === 0) {
     tbody.innerHTML = `
             <tr>
                 <td colspan="3">
-                    No attendance activity yet.
+                    No recent activity yet.
                 </td>
             </tr>
-            `;
+        `;
 
     return;
   }
 
+  // ========================================================
+  // RENDER
+  // ========================================================
+
   tbody.innerHTML = recentActivities
     .map((activity) => {
       return `
-                    <tr>
+                        <tr>
 
-                        <td>
-                            ${escapeHTML(formatActivityDate(activity.date))}
-                        </td>
+                            <td>
+                                ${escapeHTML(formatActivityDate(activity.date))}
+                            </td>
 
-                        <td>
-                            ${escapeHTML(activity.activity)}
-                        </td>
+                            <td>
+                                ${escapeHTML(activity.activity)}
+                            </td>
 
-                        <td>
-                            ${escapeHTML(activity.status)}
-                        </td>
+                            <td>
+                                ${escapeHTML(activity.status)}
+                            </td>
 
-                    </tr>
+                        </tr>
                     `;
     })
     .join("");
@@ -630,6 +716,10 @@ function extractArray(response) {
   return [];
 }
 
+// ============================================================
+// SET TEXT
+// ============================================================
+
 function setText(elementId, value) {
   const element = document.getElementById(elementId);
 
@@ -638,6 +728,10 @@ function setText(elementId, value) {
   }
 }
 
+// ============================================================
+// SET TEXT IF EXISTS
+// ============================================================
+
 function setTextIfExists(elementId, value) {
   const element = document.getElementById(elementId);
 
@@ -645,6 +739,10 @@ function setTextIfExists(elementId, value) {
     element.textContent = value;
   }
 }
+
+// ============================================================
+// GET INITIALS
+// ============================================================
 
 function getInitials(name) {
   if (!name) {
@@ -660,6 +758,10 @@ function getInitials(name) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+// ============================================================
+// PARSE DATE + TIME
+// ============================================================
+
 function parseActivityDateTime(date, time) {
   if (!date) {
     return 0;
@@ -669,6 +771,10 @@ function parseActivityDateTime(date, time) {
 
   return Number.isNaN(timestamp) ? 0 : timestamp;
 }
+
+// ============================================================
+// FORMAT ACTIVITY DATE
+// ============================================================
 
 function formatActivityDate(value) {
   if (!value) {
@@ -690,6 +796,10 @@ function formatActivityDate(value) {
   });
 }
 
+// ============================================================
+// FORMAT CURRENCY
+// ============================================================
+
 function formatCurrency(value) {
   const number = Number(value);
 
@@ -705,6 +815,10 @@ function formatCurrency(value) {
     maximumFractionDigits: 2,
   }).format(number);
 }
+
+// ============================================================
+// ESCAPE HTML
+// ============================================================
 
 function escapeHTML(value) {
   if (value === null || value === undefined) {
