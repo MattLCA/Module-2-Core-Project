@@ -4,25 +4,54 @@
 
 console.log("Worker Leave JS connected.");
 
+let workerLeaveTypes = [];
 let workerLeaveBalances = [];
 let workerLeaveRequests = [];
 
 
 // ============================================================
-// INITIALIZE
+// INITIALIZATION
 // ============================================================
 
 document.addEventListener(
     "DOMContentLoaded",
     async () => {
 
+        console.log(
+            "Initializing Worker Leave..."
+        );
+
+
+        // --------------------------------------------------------
+        // Authentication
+        // --------------------------------------------------------
+
         if (
-            typeof requireWorkerLogin === "function" &&
-            !requireWorkerLogin()
+            typeof requireWorkerLogin !==
+            "function"
         ) {
+
+            console.error(
+                "requireWorkerLogin() is not available."
+            );
+
             return;
+
         }
 
+
+        if (
+            !requireWorkerLogin()
+        ) {
+
+            return;
+
+        }
+
+
+        // --------------------------------------------------------
+        // Initialize UI
+        // --------------------------------------------------------
 
         initializeLeaveTabs();
 
@@ -35,90 +64,79 @@ document.addEventListener(
         initializeLeaveDayValidation();
 
 
-        await loadLeaveData();
+        // --------------------------------------------------------
+        // Load each database section independently.
+        // --------------------------------------------------------
+
+        await Promise.allSettled([
+
+            loadLeaveTypes(),
+
+            loadLeaveBalances(),
+
+            loadLeaveRequests()
+
+        ]);
+
+
+        updateLeaveDayLimit();
+
+
+        console.log(
+            "Worker Leave initialization complete."
+        );
 
     }
 );
 
 
 // ============================================================
-// LOAD LEAVE DATA
+// LOAD LEAVE TYPES
 // ============================================================
 
-async function loadLeaveData() {
+async function loadLeaveTypes() {
+
+    console.log(
+        "[Leave] Loading leave types..."
+    );
+
 
     try {
 
-        const [
-            balancesResponse,
-            requestsResponse
-        ] = await Promise.all([
-
-            getWorkerLeaveBalances(),
-
-            getWorkerLeaveRequests()
-
-        ]);
+        const response =
+            await getWorkerLeaveTypes();
 
 
         console.log(
-            "Leave balances response:",
-            balancesResponse
+            "[Leave] LEAVE TYPES API RESPONSE:",
+            response
         );
 
 
-        console.log(
-            "Leave requests response:",
-            requestsResponse
-        );
-
-
-        workerLeaveBalances =
+        workerLeaveTypes =
             extractResponseArray(
-                balancesResponse
-            );
-
-
-        workerLeaveRequests =
-            extractResponseArray(
-                requestsResponse
+                response
             );
 
 
         console.log(
-            "Processed leave balances:",
-            workerLeaveBalances
+            "[Leave] Processed leave types:",
+            workerLeaveTypes
         );
 
 
-        console.log(
-            "Processed leave requests:",
-            workerLeaveRequests
-        );
-
-
-        renderLeaveBalances();
-
-        renderLeaveRequests(
-            workerLeaveRequests
-        );
-
-
-        updateLeaveDayLimit();
+        renderLeaveTypes();
 
 
     } catch (error) {
 
         console.error(
-            "Leave loading error:",
+            "[Leave] Failed to load leave types:",
             error
         );
 
 
-        showToast(
-            error.message ||
-            "Could not load leave information."
-        );
+        renderFallbackLeaveTypes();
 
     }
 
@@ -126,7 +144,170 @@ async function loadLeaveData() {
 
 
 // ============================================================
-// EXTRACT ARRAY FROM API RESPONSE
+// LOAD LEAVE BALANCES
+// ============================================================
+
+async function loadLeaveBalances() {
+
+    console.log(
+        "[Leave] Loading leave balances..."
+    );
+
+
+    try {
+
+        const response =
+            await getWorkerLeaveBalances();
+
+
+        // --------------------------------------------------------
+        // IMPORTANT DEBUG OUTPUT
+        // --------------------------------------------------------
+
+        console.log(
+            "================================================"
+        );
+
+        console.log(
+            "[Leave] LEAVE BALANCES API RESPONSE:"
+        );
+
+        console.log(
+            response
+        );
+
+        console.log(
+            "[Leave] response.data:"
+        );
+
+        console.log(
+            response?.data
+        );
+
+        console.log(
+            "================================================"
+        );
+
+
+        workerLeaveBalances =
+            extractResponseArray(
+                response
+            );
+
+
+        console.log(
+            "[Leave] Processed database balances:",
+            workerLeaveBalances
+        );
+
+
+        if (
+            workerLeaveBalances.length ===
+            0
+        ) {
+
+            console.warn(
+                "[Leave] Database returned ZERO balance rows."
+            );
+
+        }
+
+
+        renderLeaveBalances();
+
+        updateLeaveDayLimit();
+
+
+    } catch (error) {
+
+        console.error(
+            "[Leave] Failed to load balances:",
+            error
+        );
+
+
+        workerLeaveBalances =
+            [];
+
+
+        renderLeaveBalances();
+
+        updateLeaveDayLimit();
+
+    }
+
+}
+
+
+// ============================================================
+// LOAD LEAVE REQUEST HISTORY
+// ============================================================
+
+async function loadLeaveRequests() {
+
+    console.log(
+        "[Leave] Loading leave request history..."
+    );
+
+
+    try {
+
+        const response =
+            await getWorkerLeaveRequests();
+
+
+        console.log(
+            "[Leave] LEAVE REQUESTS API RESPONSE:",
+            response
+        );
+
+
+        workerLeaveRequests =
+            extractResponseArray(
+                response
+            );
+
+
+        console.log(
+            "[Leave] Processed leave requests:",
+            workerLeaveRequests
+        );
+
+
+        renderLeaveRequests(
+            workerLeaveRequests
+        );
+
+
+        renderLeaveBalances();
+
+
+    } catch (error) {
+
+        console.error(
+            "[Leave] Failed to load leave requests:",
+            error
+        );
+
+
+        workerLeaveRequests =
+            [];
+
+
+        renderLeaveRequests(
+            []
+        );
+
+
+        renderLeaveBalances();
+
+    }
+
+}
+
+
+// ============================================================
+// RESPONSE ARRAY HELPER
 // ============================================================
 
 function extractResponseArray(
@@ -134,7 +315,9 @@ function extractResponseArray(
 ) {
 
     if (
-        Array.isArray(response)
+        Array.isArray(
+            response
+        )
     ) {
 
         return response;
@@ -143,7 +326,9 @@ function extractResponseArray(
 
 
     if (
-        Array.isArray(response?.data)
+        Array.isArray(
+            response?.data
+        )
     ) {
 
         return response.data;
@@ -152,7 +337,9 @@ function extractResponseArray(
 
 
     if (
-        Array.isArray(response?.rows)
+        Array.isArray(
+            response?.rows
+        )
     ) {
 
         return response.rows;
@@ -161,7 +348,9 @@ function extractResponseArray(
 
 
     if (
-        Array.isArray(response?.data?.rows)
+        Array.isArray(
+            response?.data?.rows
+        )
     ) {
 
         return response.data.rows;
@@ -175,7 +364,162 @@ function extractResponseArray(
 
 
 // ============================================================
-// LEAVE BALANCES
+// RENDER LEAVE TYPES FROM DATABASE
+// ============================================================
+
+function renderLeaveTypes() {
+
+    const select =
+        document.getElementById(
+            "leaveType"
+        );
+
+
+    if (!select) {
+
+        return;
+
+    }
+
+
+    select.innerHTML = `
+        <option value="">
+            Select Leave Type
+        </option>
+    `;
+
+
+    workerLeaveTypes.forEach(
+        (type) => {
+
+            const leaveTypeId =
+                type.leaveTypeId ??
+                type.leave_type_id;
+
+
+            const leaveTypeName =
+                type.leaveTypeName ??
+                type.leave_type_name;
+
+
+            if (
+                leaveTypeId ===
+                    undefined ||
+                leaveTypeName ===
+                    undefined
+            ) {
+
+                console.warn(
+                    "[Leave] Invalid leave type:",
+                    type
+                );
+
+                return;
+
+            }
+
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            option.value =
+                leaveTypeId;
+
+
+            option.textContent =
+                leaveTypeName;
+
+
+            select.appendChild(
+                option
+            );
+
+        }
+    );
+
+
+    console.log(
+        "[Leave] Dropdown populated with",
+        select.options.length - 1,
+        "database leave types."
+    );
+
+}
+
+
+// ============================================================
+// FALLBACK LEAVE TYPES
+// ============================================================
+//
+// This is only used if the database/API is unavailable.
+// Normal operation ALWAYS uses leave_types from MySQL.
+// ============================================================
+
+function renderFallbackLeaveTypes() {
+
+    const select =
+        document.getElementById(
+            "leaveType"
+        );
+
+
+    if (!select) {
+
+        return;
+
+    }
+
+
+    select.innerHTML = `
+        <option value="">
+            Select Leave Type
+        </option>
+
+        <option value="1">
+            Annual Leave
+        </option>
+
+        <option value="2">
+            Sick Leave
+        </option>
+
+        <option value="3">
+            Family Responsibility
+        </option>
+
+        <option value="4">
+            Study Leave
+        </option>
+
+        <option value="5">
+            Personal
+        </option>
+
+        <option value="6">
+            Vacation
+        </option>
+
+        <option value="7">
+            Medical Appointment
+        </option>
+
+        <option value="8">
+            Bereavement
+        </option>
+
+        <option value="9">
+            Childcare
+        </option>
+    `;
+
+}
+
+
+// ============================================================
+// RENDER LEAVE BALANCES
 // ============================================================
 
 function renderLeaveBalances() {
@@ -212,7 +556,9 @@ function renderLeaveBalances() {
     };
 
 
-    // Reset everything first.
+    // --------------------------------------------------------
+    // Reset displayed values.
+    // --------------------------------------------------------
 
     Object.values(
         balanceMap
@@ -236,12 +582,14 @@ function renderLeaveBalances() {
     );
 
 
-    // Apply database values.
+    // --------------------------------------------------------
+    // Display database values.
+    // --------------------------------------------------------
 
     workerLeaveBalances.forEach(
         (balance) => {
 
-            const typeName =
+            const leaveTypeName =
                 String(
                     balance.leaveTypeName ??
                     balance.leave_type_name ??
@@ -253,15 +601,25 @@ function renderLeaveBalances() {
 
             const elementId =
                 balanceMap[
-                    typeName
+                    leaveTypeName
                 ];
+
+
+            console.log(
+                "[Leave] Rendering balance:",
+                {
+                    leaveTypeName,
+                    elementId,
+                    balance
+                }
+            );
 
 
             if (!elementId) {
 
                 console.warn(
-                    "Could not map leave balance:",
-                    balance
+                    "[Leave] No HTML element mapped for:",
+                    leaveTypeName
                 );
 
                 return;
@@ -277,12 +635,16 @@ function renderLeaveBalances() {
 
             if (!element) {
 
+                console.warn(
+                    `[Leave] #${elementId} does not exist in HTML.`
+                );
+
                 return;
 
             }
 
 
-            const remaining =
+            const remainingDays =
                 Number(
                     balance.remainingDays ??
                     balance.remaining_days ??
@@ -291,13 +653,17 @@ function renderLeaveBalances() {
 
 
             element.textContent =
-                `${formatDays(remaining)} days`;
+                `${formatDays(
+                    remainingDays
+                )} days`;
 
         }
     );
 
 
-    // Pending requests.
+    // --------------------------------------------------------
+    // Pending request count.
+    // --------------------------------------------------------
 
     const pendingCount =
         workerLeaveRequests.filter(
@@ -332,20 +698,20 @@ function renderLeaveBalances() {
 
 
 // ============================================================
-// GET BALANCE FOR SELECTED LEAVE TYPE
+// GET SELECTED LEAVE BALANCE
 // ============================================================
 
 function getSelectedLeaveBalance() {
 
-    const leaveType =
+    const select =
         document.getElementById(
             "leaveType"
         );
 
 
     if (
-        !leaveType ||
-        !leaveType.value
+        !select ||
+        !select.value
     ) {
 
         return null;
@@ -355,7 +721,7 @@ function getSelectedLeaveBalance() {
 
     const leaveTypeId =
         Number(
-            leaveType.value
+            select.value
         );
 
 
@@ -363,15 +729,11 @@ function getSelectedLeaveBalance() {
         workerLeaveBalances.find(
             (item) => {
 
-                const id =
-                    Number(
-                        item.leaveTypeId ??
-                        item.leave_type_id
-                    );
-
-
-                return id ===
-                    leaveTypeId;
+                return Number(
+                    item.leaveTypeId ??
+                    item.leave_type_id
+                ) ===
+                leaveTypeId;
 
             }
         );
@@ -418,6 +780,170 @@ function getSelectedLeaveTypeName() {
         ]?.textContent ||
         ""
     ).trim();
+
+}
+
+
+// ============================================================
+// UPDATE DAY LIMIT
+// ============================================================
+
+function updateLeaveDayLimit() {
+
+    const daysInput =
+        document.getElementById(
+            "leaveDays"
+        );
+
+
+    if (!daysInput) {
+
+        return;
+
+    }
+
+
+    const balance =
+        getSelectedLeaveBalance();
+
+
+    if (
+        balance === null
+    ) {
+
+        daysInput.removeAttribute(
+            "max"
+        );
+
+
+        daysInput.setCustomValidity(
+            ""
+        );
+
+
+        return;
+
+    }
+
+
+    daysInput.max =
+        Math.floor(
+            Math.max(
+                0,
+                balance
+            )
+        );
+
+
+    const requested =
+        Number(
+            daysInput.value
+        );
+
+
+    if (
+        requested &&
+        requested >
+        balance
+    ) {
+
+        daysInput.setCustomValidity(
+            `You only have ${formatDays(
+                balance
+            )} day(s) of ${
+                getSelectedLeaveTypeName()
+            } remaining.`
+        );
+
+    } else {
+
+        daysInput.setCustomValidity(
+            ""
+        );
+
+    }
+
+}
+
+
+// ============================================================
+// DAY VALIDATION INITIALIZATION
+// ============================================================
+
+function initializeLeaveDayValidation() {
+
+    const leaveType =
+        document.getElementById(
+            "leaveType"
+        );
+
+
+    const leaveDays =
+        document.getElementById(
+            "leaveDays"
+        );
+
+
+    const startDate =
+        document.getElementById(
+            "startDate"
+        );
+
+
+    const endDate =
+        document.getElementById(
+            "endDate"
+        );
+
+
+    if (leaveType) {
+
+        leaveType.addEventListener(
+            "change",
+            () => {
+
+                updateLeaveDayLimit();
+
+            }
+        );
+
+    }
+
+
+    if (leaveDays) {
+
+        leaveDays.addEventListener(
+            "input",
+            () => {
+
+                validateRequestedDays(
+                    false
+                );
+
+            }
+        );
+
+    }
+
+
+    if (startDate) {
+
+        startDate.addEventListener(
+            "change",
+            syncDaysWithDates
+        );
+
+    }
+
+
+    if (endDate) {
+
+        endDate.addEventListener(
+            "change",
+            syncDaysWithDates
+        );
+
+    }
 
 }
 
@@ -493,169 +1019,7 @@ function calculateDaysFromDates(
 
 
 // ============================================================
-// UPDATE MAXIMUM DAYS
-// ============================================================
-
-function updateLeaveDayLimit() {
-
-    const daysInput =
-        document.getElementById(
-            "leaveDays"
-        );
-
-
-    if (!daysInput) {
-
-        return;
-
-    }
-
-
-    const balance =
-        getSelectedLeaveBalance();
-
-
-    if (
-        balance === null
-    ) {
-
-        daysInput.removeAttribute(
-            "max"
-        );
-
-        return;
-
-    }
-
-
-    daysInput.max =
-        Math.floor(
-            Math.max(
-                0,
-                balance
-            )
-        );
-
-
-    const requested =
-        Number(
-            daysInput.value
-        );
-
-
-    if (
-        requested &&
-        requested >
-        balance
-    ) {
-
-        daysInput.setCustomValidity(
-            `You only have ${formatDays(balance)} day(s) of ${getSelectedLeaveTypeName()} remaining.`
-        );
-
-    } else {
-
-        daysInput.setCustomValidity(
-            ""
-        );
-
-    }
-
-}
-
-
-// ============================================================
-// LIVE DAYS VALIDATION
-// ============================================================
-
-function initializeLeaveDayValidation() {
-
-    const typeSelect =
-        document.getElementById(
-            "leaveType"
-        );
-
-
-    const daysInput =
-        document.getElementById(
-            "leaveDays"
-        );
-
-
-    const startDate =
-        document.getElementById(
-            "startDate"
-        );
-
-
-    const endDate =
-        document.getElementById(
-            "endDate"
-        );
-
-
-    if (typeSelect) {
-
-        typeSelect.addEventListener(
-            "change",
-            () => {
-
-                updateLeaveDayLimit();
-
-            }
-        );
-
-    }
-
-
-    if (daysInput) {
-
-        daysInput.addEventListener(
-            "input",
-            () => {
-
-                validateRequestedDays(
-                    false
-                );
-
-            }
-        );
-
-    }
-
-
-    if (startDate) {
-
-        startDate.addEventListener(
-            "change",
-            () => {
-
-                syncDaysWithDates();
-
-            }
-        );
-
-    }
-
-
-    if (endDate) {
-
-        endDate.addEventListener(
-            "change",
-            () => {
-
-                syncDaysWithDates();
-
-            }
-        );
-
-    }
-
-}
-
-
-// ============================================================
-// SYNC DAYS WITH DATE RANGE
+// SYNC DAYS FROM DATE RANGE
 // ============================================================
 
 function syncDaysWithDates() {
@@ -666,13 +1030,13 @@ function syncDaysWithDates() {
         );
 
 
-    const start =
+    const startDate =
         document.getElementById(
             "startDate"
         )?.value;
 
 
-    const end =
+    const endDate =
         document.getElementById(
             "endDate"
         )?.value;
@@ -680,8 +1044,8 @@ function syncDaysWithDates() {
 
     if (
         !daysInput ||
-        !start ||
-        !end
+        !startDate ||
+        !endDate
     ) {
 
         return;
@@ -689,15 +1053,15 @@ function syncDaysWithDates() {
     }
 
 
-    const calculated =
+    const calculatedDays =
         calculateDaysFromDates(
-            start,
-            end
+            startDate,
+            endDate
         );
 
 
     if (
-        calculated === null
+        calculatedDays === null
     ) {
 
         return;
@@ -705,11 +1069,8 @@ function syncDaysWithDates() {
     }
 
 
-    // Automatically keep Total Days consistent
-    // with the selected date range.
-
     daysInput.value =
-        calculated;
+        calculatedDays;
 
 
     validateRequestedDays(
@@ -740,7 +1101,7 @@ function validateRequestedDays(
     }
 
 
-    const requested =
+    const requestedDays =
         Number(
             daysInput.value
         );
@@ -750,8 +1111,6 @@ function validateRequestedDays(
         getSelectedLeaveBalance();
 
 
-    // No category selected yet.
-
     if (
         balance === null
     ) {
@@ -760,18 +1119,17 @@ function validateRequestedDays(
             ""
         );
 
+
         return true;
 
     }
 
 
-    // Must be whole number >= 1.
-
     if (
         !Number.isInteger(
-            requested
+            requestedDays
         ) ||
-        requested < 1
+        requestedDays < 1
     ) {
 
         daysInput.setCustomValidity(
@@ -793,15 +1151,17 @@ function validateRequestedDays(
     }
 
 
-    // Must not exceed balance.
-
     if (
-        requested >
+        requestedDays >
         balance
     ) {
 
         const message =
-            `You only have ${formatDays(balance)} day(s) of ${getSelectedLeaveTypeName()} remaining.`;
+            `You only have ${formatDays(
+                balance
+            )} day(s) of ${
+                getSelectedLeaveTypeName()
+            } remaining.`;
 
 
         daysInput.setCustomValidity(
@@ -893,10 +1253,6 @@ function initializeLeaveForm() {
                 )?.value.trim();
 
 
-            // ----------------------------------------------------
-            // Required fields.
-            // ----------------------------------------------------
-
             if (!leaveTypeId) {
 
                 showToast(
@@ -930,10 +1286,15 @@ function initializeLeaveForm() {
             }
 
 
-            if (!reason) {
+            if (
+                !Number.isInteger(
+                    leaveDays
+                ) ||
+                leaveDays < 1
+            ) {
 
                 showToast(
-                    "Please provide a reason for your leave."
+                    "Please enter a valid number of leave days."
                 );
 
                 return;
@@ -941,9 +1302,16 @@ function initializeLeaveForm() {
             }
 
 
-            // ----------------------------------------------------
-            // Date calculation.
-            // ----------------------------------------------------
+            if (!reason) {
+
+                showToast(
+                    "Please provide a reason."
+                );
+
+                return;
+
+            }
+
 
             const calculatedDays =
                 calculateDaysFromDates(
@@ -965,10 +1333,6 @@ function initializeLeaveForm() {
             }
 
 
-            // ----------------------------------------------------
-            // Make sure Total Days agrees with dates.
-            // ----------------------------------------------------
-
             if (
                 leaveDays !==
                 calculatedDays
@@ -983,10 +1347,6 @@ function initializeLeaveForm() {
             }
 
 
-            // ----------------------------------------------------
-            // Check selected category balance.
-            // ----------------------------------------------------
-
             const balance =
                 getSelectedLeaveBalance();
 
@@ -995,8 +1355,19 @@ function initializeLeaveForm() {
                 balance === null
             ) {
 
+                console.error(
+                    "[Leave] No database balance found for leave type:",
+                    leaveTypeId
+                );
+
+                console.error(
+                    "[Leave] Available balances:",
+                    workerLeaveBalances
+                );
+
+
                 showToast(
-                    "The balance for this leave category could not be loaded. Please refresh the page and try again."
+                    "Your balance for this leave type has not loaded. Please refresh the page and try again."
                 );
 
                 return;
@@ -1010,17 +1381,17 @@ function initializeLeaveForm() {
             ) {
 
                 showToast(
-                    `You only have ${formatDays(balance)} day(s) of ${getSelectedLeaveTypeName()} remaining.`
+                    `You only have ${formatDays(
+                        balance
+                    )} day(s) of ${
+                        getSelectedLeaveTypeName()
+                    } remaining.`
                 );
 
                 return;
 
             }
 
-
-            // ----------------------------------------------------
-            // Disable submit button.
-            // ----------------------------------------------------
 
             const submitButton =
                 form.querySelector(
@@ -1041,10 +1412,6 @@ function initializeLeaveForm() {
 
             try {
 
-                // ------------------------------------------------
-                // Submit to database through API.
-                // ------------------------------------------------
-
                 const response =
                     await createWorkerLeaveRequest({
 
@@ -1063,7 +1430,7 @@ function initializeLeaveForm() {
 
 
                 console.log(
-                    "Leave submission response:",
+                    "[Leave] Submission response:",
                     response
                 );
 
@@ -1082,32 +1449,29 @@ function initializeLeaveForm() {
                 }
 
 
-                // ------------------------------------------------
-                // Show confirmation.
-                // ------------------------------------------------
-
                 showLeaveModal(
                     request
                 );
 
 
-                // ------------------------------------------------
-                // Clear form.
-                // ------------------------------------------------
-
                 form.reset();
 
 
-                // ------------------------------------------------
-                // Refresh DB data.
-                // ------------------------------------------------
+                // Refresh only the data affected by submission.
 
-                await loadLeaveData();
+                await Promise.allSettled([
+
+                    loadLeaveBalances(),
+
+                    loadLeaveRequests()
+
+                ]);
+
 
             } catch (error) {
 
                 console.error(
-                    "Leave submission error:",
+                    "[Leave] Submission error:",
                     error
                 );
 
@@ -1116,6 +1480,7 @@ function initializeLeaveForm() {
                     error.message ||
                     "Could not submit leave request."
                 );
+
 
             } finally {
 
@@ -1138,35 +1503,41 @@ function initializeLeaveForm() {
 
 
 // ============================================================
-// SHOW MODAL
+// SHOW SUCCESS MODAL
 // ============================================================
 
 function showLeaveModal(
     request
 ) {
 
-    const selectedType =
-        getSelectedLeaveTypeName();
+    if (!request) {
+
+        return;
+
+    }
 
 
     setText(
         "summaryType",
         request.leaveTypeName ||
-        selectedType ||
+        getSelectedLeaveTypeName() ||
         "Leave"
     );
 
 
     setText(
         "summaryDays",
-        `${request.totalDays ?? "--"} days`
+        request.totalDays ??
+        request.total_days ??
+        "--"
     );
 
 
     setText(
         "summaryStart",
         formatDate(
-            request.startDate
+            request.startDate ??
+            request.start_date
         )
     );
 
@@ -1174,7 +1545,8 @@ function showLeaveModal(
     setText(
         "summaryEnd",
         formatDate(
-            request.endDate
+            request.endDate ??
+            request.end_date
         )
     );
 
@@ -1195,11 +1567,11 @@ function showLeaveModal(
     if (modal) {
 
         modal.classList.add(
-            "show"
+            "active"
         );
 
         modal.classList.add(
-            "active"
+            "show"
         );
 
     }
@@ -1208,7 +1580,7 @@ function showLeaveModal(
 
 
 // ============================================================
-// MODAL
+// MODAL INITIALIZATION
 // ============================================================
 
 function initializeLeaveModal() {
@@ -1249,15 +1621,17 @@ function closeLeaveModal() {
     if (modal) {
 
         modal.classList.remove(
-            "show"
+            "active"
         );
 
         modal.classList.remove(
-            "active"
+            "show"
         );
 
     }
 
+
+    // Automatically switch to history.
 
     activateLeaveTab(
         "history"
@@ -1272,7 +1646,7 @@ function closeLeaveModal() {
 
 
 // ============================================================
-// TABS
+// LEAVE TABS
 // ============================================================
 
 function initializeLeaveTabs() {
@@ -1368,7 +1742,7 @@ function activateLeaveTab(
 
 
 // ============================================================
-// HISTORY
+// RENDER HISTORY
 // ============================================================
 
 function renderLeaveRequests(
@@ -1389,8 +1763,11 @@ function renderLeaveRequests(
 
 
     if (
-        !Array.isArray(requests) ||
-        requests.length === 0
+        !Array.isArray(
+            requests
+        ) ||
+        requests.length ===
+        0
     ) {
 
         table.innerHTML = `
@@ -1442,28 +1819,38 @@ function renderLeaveRequests(
                         <tr>
 
                             <td>
-                                ${escapeHTML(type)}
-                            </td>
-
-                            <td>
                                 ${escapeHTML(
-                                    formatDate(start)
+                                    type
                                 )}
                             </td>
 
                             <td>
                                 ${escapeHTML(
-                                    formatDate(end)
+                                    formatDate(
+                                        start
+                                    )
                                 )}
                             </td>
 
                             <td>
-                                ${escapeHTML(days)}
+                                ${escapeHTML(
+                                    formatDate(
+                                        end
+                                    )
+                                )}
+                            </td>
+
+                            <td>
+                                ${escapeHTML(
+                                    days
+                                )}
                             </td>
 
                             <td>
                                 <span class="status">
-                                    ${escapeHTML(status)}
+                                    ${escapeHTML(
+                                        status
+                                    )}
                                 </span>
                             </td>
 
@@ -1748,17 +2135,18 @@ function formatDate(
     }
 
 
-    const text =
-        String(value)
-            .substring(
-                0,
-                10
-            );
+    const dateText =
+        String(
+            value
+        ).substring(
+            0,
+            10
+        );
 
 
     const date =
         new Date(
-            `${text}T00:00:00`
+            `${dateText}T00:00:00`
         );
 
 
@@ -1797,19 +2185,27 @@ function formatDays(
 ) {
 
     const number =
-        Number(value);
+        Number(
+            value
+        );
 
 
     if (
-        Number.isInteger(number)
+        Number.isInteger(
+            number
+        )
     ) {
 
-        return String(number);
+        return String(
+            number
+        );
 
     }
 
 
-    return number.toFixed(2);
+    return number.toFixed(
+        2
+    );
 
 }
 
@@ -1828,7 +2224,9 @@ function escapeHTML(
     }
 
 
-    return String(value)
+    return String(
+        value
+    )
         .replace(
             /&/g,
             "&amp;"
@@ -1857,8 +2255,29 @@ function escapeHTML(
 // GLOBALS
 // ============================================================
 
+window.loadLeaveTypes =
+    loadLeaveTypes;
+
+window.loadLeaveBalances =
+    loadLeaveBalances;
+
+window.loadLeaveRequests =
+    loadLeaveRequests;
+
 window.loadLeaveData =
-    loadLeaveData;
+    async function () {
+
+        await Promise.allSettled([
+
+            loadLeaveTypes(),
+
+            loadLeaveBalances(),
+
+            loadLeaveRequests()
+
+        ]);
+
+    };
 
 window.renderLeaveBalances =
     renderLeaveBalances;
