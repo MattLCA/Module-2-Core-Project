@@ -1224,6 +1224,46 @@ nav.primary-nav{display:flex;flex-direction:column;gap:2px;}
     }
 }
 
+/* NOTIFICATIONS PAGE */
+/* ============================================================
+   WORKER NOTIFICATIONS
+============================================================ */
+
+.notification-unread {
+    background: rgba(255, 134, 0, 0.06);
+}
+
+.notification-read {
+    opacity: 0.75;
+}
+
+.notification-message {
+    white-space: normal;
+    line-height: 1.5;
+}
+
+.notification-date {
+    white-space: nowrap;
+}
+
+.notification-read-btn {
+    margin-left: 10px;
+    padding: 7px 10px;
+    font-size: 12px;
+    border-radius: 9px;
+}
+
+.notification-read-btn:hover {
+    transform: translateY(-1px);
+}
+
+.notification-read-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+
+   /* MEDIA QUERIES */
 @media(max-width:900px) {
     .leave-request-form,
     .leave-balance-grid,
