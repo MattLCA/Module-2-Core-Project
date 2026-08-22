@@ -1,6 +1,9 @@
+import bcrypt from 'bcrypt';
 import { validationResult } from 'express-validator';
 import * as employeeModel from '../models/employeeModel.js';
 import { ApiError } from '../middleware/errorHandler.js';
+
+const SALT_ROUNDS = 10;
 
 function handleValidation(req) {
   const errors = validationResult(req);
@@ -40,10 +43,21 @@ async function getOne(req, res, next) {
 }
 
 // POST /api/employees  (HR only)
+// Accepts a plain `password` field and hashes it here — the caller
+// (browser) should never be the one computing password_hash.
 async function create(req, res, next) {
   try {
     handleValidation(req);
-    const employee = await employeeModel.create(req.body);
+
+    const passwordHash = await bcrypt.hash(req.body.password, SALT_ROUNDS);
+    const employeeCode = req.body.employeeCode || await employeeModel.getNextEmployeeCode();
+
+    const employee = await employeeModel.create({
+      ...req.body,
+      employeeCode,
+      passwordHash,
+      role: req.body.role || 'worker',
+    });
     res.status(201).json({ data: employee });
   } catch (err) {
     next(err);

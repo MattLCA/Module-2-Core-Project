@@ -13,6 +13,17 @@
  * status 'Approved' (not scoped to whether that leave is happening right
  * now). Kept this way to match hr-dashboard.js exactly; worth revisiting
  * with your team if you want "currently on leave" instead.
+ *
+ * NOTE on schema: position and department are now normalized into their
+ * own tables (positions, departments), referenced via position_id /
+ * department_id — getRecentEmployees joins against them to recover the
+ * readable names it needs.
+ *
+ * NOTE on schema: `attendance` uses attendance_date / attendance_status
+ * (not date / status), per moderntech_db.sql. `leave_requests` uses
+ * leave_type_id (FK to leave_types.leave_type_id) instead of a plain
+ * leave_type text column, and its primary key is leave_request_id
+ * (not leave_id).
  */
 import pool from '../config/db.js';
 
@@ -44,7 +55,7 @@ async function getPendingLeaveCount() {
 
 async function getAttendanceSnapshot() {
   const [dateRows] = await pool.query(
-    `SELECT MAX(date) AS latestDate FROM attendance`
+    `SELECT MAX(attendance_date) AS latestDate FROM attendance`
   );
   const latestDate = dateRows[0].latestDate;
   if (!latestDate) {
@@ -52,7 +63,10 @@ async function getAttendanceSnapshot() {
   }
 
   const [countRows] = await pool.query(
-    `SELECT status, COUNT(*) AS count FROM attendance WHERE date = ? GROUP BY status`,
+    `SELECT attendance_status AS status, COUNT(*) AS count
+     FROM attendance
+     WHERE attendance_date = ?
+     GROUP BY attendance_status`,
     [latestDate]
   );
 
@@ -71,8 +85,14 @@ async function getAttendanceSnapshot() {
 
 async function getRecentEmployees(limit = 5) {
   const [employees] = await pool.query(
-    `SELECT employee_id, name, position, department, employment_history
-     FROM employees WHERE is_active = 1`
+    `SELECT e.employee_id, e.name,
+            p.position_name AS position,
+            d.department_name AS department,
+            e.employment_history
+     FROM employees e
+     JOIN positions p ON e.position_id = p.position_id
+     JOIN departments d ON e.department_id = d.department_id
+     WHERE e.is_active = 1`
   );
   const approvedLeaveIds = await getApprovedLeaveEmployeeIds();
 
@@ -91,11 +111,12 @@ async function getRecentEmployees(limit = 5) {
 
 async function getLeaveFeed(limit = 8) {
   const [rows] = await pool.query(
-    `SELECT lr.employee_id, e.name AS employee_name, lr.leave_type,
+    `SELECT lr.employee_id, e.name AS employee_name, lt.leave_type_name AS leave_type,
             lr.start_date, lr.reason, lr.status
      FROM leave_requests lr
      JOIN employees e ON e.employee_id = lr.employee_id
-     ORDER BY lr.start_date DESC, lr.leave_id DESC
+     JOIN leave_types lt ON lt.leave_type_id = lr.leave_type_id
+     ORDER BY lr.start_date DESC, lr.leave_request_id DESC
      LIMIT ?`,
     [limit]
   );
