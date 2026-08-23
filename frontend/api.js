@@ -12,8 +12,9 @@ const API_BASE_URL =
 
 function getHrToken() {
 
-    return localStorage.getItem(
-        "hrToken"
+    return (
+        localStorage.getItem("hrToken") ||
+        null
     );
 
 }
@@ -30,17 +31,13 @@ function getHrEmployee() {
             "hrEmployee"
         );
 
-
     if (!stored) {
         return null;
     }
 
-
     try {
 
-        return JSON.parse(
-            stored
-        );
+        return JSON.parse(stored);
 
     } catch (error) {
 
@@ -50,9 +47,27 @@ function getHrEmployee() {
         );
 
         return null;
-
     }
+}
 
+
+// ============================================================
+// CLEAR HR SESSION
+// ============================================================
+
+function clearHrSession() {
+
+    localStorage.removeItem(
+        "hrToken"
+    );
+
+    localStorage.removeItem(
+        "hrEmployee"
+    );
+
+    localStorage.removeItem(
+        "hrRole"
+    );
 }
 
 
@@ -87,20 +102,62 @@ async function apiFetch(
     }
 
 
-    const response =
-        await fetch(
-            `${API_BASE_URL}${path}`,
-            {
-                ...options,
-                headers
-            }
+    let response;
+
+    try {
+
+        response =
+            await fetch(
+                `${API_BASE_URL}${path}`,
+                {
+                    ...options,
+                    headers
+                }
+            );
+
+    } catch (error) {
+
+        console.error(
+            "[HR API] Backend connection failed:",
+            error
+        );
+
+        throw new Error(
+            "Could not connect to the ModernTech backend. Make sure the backend is running on port 4000."
+        );
+    }
+
+
+    let body = {};
+
+
+    const contentType =
+        response.headers.get(
+            "content-type"
         );
 
 
-    const body =
-        await response
-            .json()
-            .catch(() => ({}));
+    if (
+        contentType &&
+        contentType.includes(
+            "application/json"
+        )
+    ) {
+
+        try {
+
+            body =
+                await response.json();
+
+        } catch (error) {
+
+            console.error(
+                "[HR API] Could not parse JSON response:",
+                error
+            );
+
+        }
+    }
 
 
     console.log(
@@ -118,23 +175,28 @@ async function apiFetch(
         response.status === 401
     ) {
 
-        localStorage.removeItem(
-            "hrToken"
-        );
-
-        localStorage.removeItem(
-            "hrEmployee"
-        );
-
-        localStorage.removeItem(
-            "hrRole"
-        );
+        clearHrSession();
 
         window.location.href =
             "index.html";
 
         return null;
+    }
 
+
+    // ========================================================
+    // FORBIDDEN
+    // ========================================================
+
+    if (
+        response.status === 403
+    ) {
+
+        throw new Error(
+            body.error ||
+            body.message ||
+            "You do not have permission to access this resource."
+        );
     }
 
 
@@ -145,16 +207,27 @@ async function apiFetch(
     if (!response.ok) {
 
         throw new Error(
-            body.message ||
             body.error ||
+            body.message ||
             `Request failed with status ${response.status}`
         );
-
     }
 
 
     return body;
+}
 
+
+// ============================================================
+// LOGOUT HR
+// ============================================================
+
+function hrLogout() {
+
+    clearHrSession();
+
+    window.location.href =
+        "index.html";
 }
 
 
@@ -167,6 +240,12 @@ window.getHrToken =
 
 window.getHrEmployee =
     getHrEmployee;
+
+window.clearHrSession =
+    clearHrSession;
+
+window.hrLogout =
+    hrLogout;
 
 window.apiFetch =
     apiFetch;

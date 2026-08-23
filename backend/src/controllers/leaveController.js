@@ -1,11 +1,20 @@
 import LeaveModel from "../modules/leave/LeaveModel.js";
-import { create } from "../models/notificationModel.js";
+import {
+    create
+} from "../models/notificationModel.js";
+
 
 // ============================================================
 // GET ALL LEAVE REQUESTS
+// HR ONLY
 // ============================================================
 
-export const getLeaveRequests = async (req, res) => {
+export const getLeaveRequests = async (
+    req,
+    res,
+    next
+) => {
+
     try {
 
         const { status } = req.query;
@@ -25,23 +34,38 @@ export const getLeaveRequests = async (req, res) => {
             error
         );
 
-        return res.status(500).json({
-            error: "Internal server error while fetching leave requests."
-        });
+        next(error);
     }
 };
 
 
 // ============================================================
 // CREATE LEAVE REQUEST
+//
+// NOTE:
+// This route is now HR/worker-safe because the worker employee
+// ID MUST come from the authenticated JWT.
 // ============================================================
 
-export const submitLeaveRequest = async (req, res) => {
+export const submitLeaveRequest = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
+        const employeeId =
+            req.user?.employeeId;
+
+        if (!employeeId) {
+            return res.status(401).json({
+                error:
+                    "Authenticated employee ID is missing."
+            });
+        }
+
         const {
-            employeeId,
             leaveTypeId,
             startDate,
             endDate,
@@ -51,21 +75,73 @@ export const submitLeaveRequest = async (req, res) => {
 
 
         if (
-            !employeeId ||
             !leaveTypeId ||
             !startDate ||
             !endDate ||
-            !totalDays
+            totalDays === undefined ||
+            totalDays === null
         ) {
-
             return res.status(400).json({
-                error: "Missing required leave fields."
+                error:
+                    "Missing required leave fields."
             });
         }
 
 
         const result =
-            await LeaveModel.create(req.body);
+            await LeaveModel.create({
+
+                employeeId,
+
+                leaveTypeId:
+                    Number(leaveTypeId),
+
+                startDate,
+
+                endDate,
+
+                totalDays:
+                    Number(totalDays),
+
+                reason:
+                    reason || null
+            });
+
+
+        // ====================================================
+        // NOTIFY HR
+        // ====================================================
+
+        let hrNotificationCreated = false;
+
+        try {
+
+            const notification = await import(
+                "../models/notificationModel.js"
+            ).then(module =>
+                module.createForRole({
+                    roleName: "hr",
+                    notificationType: "leave",
+                    title: "New Leave Request",
+                    message:
+                        `A new leave request has been submitted by employee ${employeeId}.`,
+                    status: "New"
+                })
+            );
+
+            hrNotificationCreated =
+                Array.isArray(notification)
+                    ? notification.length > 0
+                    : Boolean(notification);
+
+        } catch (notificationError) {
+
+            console.error(
+                "[HR Leave] Failed to notify HR:",
+                notificationError
+            );
+
+        }
 
 
         return res.status(201).json({
@@ -74,7 +150,33 @@ export const submitLeaveRequest = async (req, res) => {
                 "Leave request submitted successfully.",
 
             data: {
-                requestId: result.insertId
+
+                requestId:
+                    result.insertId,
+
+                leaveRequestId:
+                    result.insertId,
+
+                employeeId,
+
+                leaveTypeId:
+                    Number(leaveTypeId),
+
+                startDate,
+
+                endDate,
+
+                totalDays:
+                    Number(totalDays),
+
+                reason:
+                    reason || null,
+
+                status:
+                    "Pending",
+
+                notificationCreated:
+                    hrNotificationCreated
             }
 
         });
@@ -86,35 +188,22 @@ export const submitLeaveRequest = async (req, res) => {
             error
         );
 
-        return res.status(500).json({
-            error:
-                "Internal server error while submitting leave."
-        });
+        next(error);
     }
 };
 
 
 // ============================================================
 // PROCESS HR LEAVE DECISION
-// ============================================================
 //
 // PUT /api/leave/:id/decision
-//
-// Body:
-// {
-//     "status": "Approved"
-// }
-//
-// OR
-//
-// {
-//     "status": "Rejected",
-//     "reason": "Reason"
-// }
-//
 // ============================================================
 
-export const processLeaveDecision = async (req, res) => {
+export const processLeaveDecision = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
@@ -127,15 +216,14 @@ export const processLeaveDecision = async (req, res) => {
         } = req.body;
 
 
-        // --------------------------------------------------------
-        // Validate request ID
-        // --------------------------------------------------------
+        // ----------------------------------------------------
+        // VALIDATE ID
+        // ----------------------------------------------------
 
         if (
             !Number.isInteger(requestId) ||
             requestId <= 0
         ) {
-
             return res.status(400).json({
                 error:
                     "Invalid leave request ID."
@@ -143,9 +231,9 @@ export const processLeaveDecision = async (req, res) => {
         }
 
 
-        // --------------------------------------------------------
-        // Validate status
-        // --------------------------------------------------------
+        // ----------------------------------------------------
+        // VALIDATE STATUS
+        // ----------------------------------------------------
 
         if (
             ![
@@ -153,7 +241,6 @@ export const processLeaveDecision = async (req, res) => {
                 "Rejected"
             ].includes(status)
         ) {
-
             return res.status(400).json({
                 error:
                     "Status must be Approved or Rejected."
@@ -161,9 +248,9 @@ export const processLeaveDecision = async (req, res) => {
         }
 
 
-        // --------------------------------------------------------
-        // Find leave request
-        // --------------------------------------------------------
+        // ----------------------------------------------------
+        // FIND REQUEST
+        // ----------------------------------------------------
 
         const record =
             await LeaveModel.findById(
@@ -177,12 +264,13 @@ export const processLeaveDecision = async (req, res) => {
                 error:
                     "Leave request not found."
             });
+
         }
 
 
-        // --------------------------------------------------------
-        // Get HR employee ID
-        // --------------------------------------------------------
+        // ----------------------------------------------------
+        // GET HR ID
+        // ----------------------------------------------------
 
         const reviewerId =
             req.user?.employeeId;
@@ -194,6 +282,7 @@ export const processLeaveDecision = async (req, res) => {
                 error:
                     "Authenticated HR employee ID is missing."
             });
+
         }
 
 
@@ -209,15 +298,29 @@ export const processLeaveDecision = async (req, res) => {
         );
 
 
-        // --------------------------------------------------------
-        // UPDATE LEAVE REQUEST
-        // --------------------------------------------------------
+        // ----------------------------------------------------
+        // SAVE DECISION
+        // ----------------------------------------------------
 
-        await LeaveModel.updateStatus(
-            requestId,
-            status,
-            reviewerId
-        );
+        const updateResult =
+            await LeaveModel.updateStatus(
+                requestId,
+                status,
+                reviewerId
+            );
+
+
+        if (
+            !updateResult ||
+            updateResult.affectedRows === 0
+        ) {
+
+            return res.status(404).json({
+                error:
+                    "Leave request could not be updated."
+            });
+
+        }
 
 
         console.log(
@@ -230,18 +333,11 @@ export const processLeaveDecision = async (req, res) => {
         );
 
 
-        // --------------------------------------------------------
-        // CREATE WORKER NOTIFICATION
-        // --------------------------------------------------------
-        //
-        // IMPORTANT:
-        // A notification failure must NOT undo the leave
-        // decision that has already been saved.
-        //
-        // --------------------------------------------------------
+        // ----------------------------------------------------
+        // NOTIFY WORKER
+        // ----------------------------------------------------
 
         let notificationCreated = false;
-
 
         try {
 
@@ -257,24 +353,6 @@ export const processLeaveDecision = async (req, res) => {
                     ? `Your ${record.leaveType} request from ${record.startDate} to ${record.endDate} has been approved by HR.`
 
                     : `Your ${record.leaveType} request from ${record.startDate} to ${record.endDate} has been rejected by HR${reason ? `: ${reason}` : "."}`;
-
-
-            console.log(
-                "[HR Leave] Creating worker notification:",
-                {
-                    employeeId:
-                        record.employeeId,
-
-                    notificationType:
-                        "leave",
-
-                    title:
-                        notificationTitle,
-
-                    message:
-                        notificationMessage
-                }
-            );
 
 
             const notification =
@@ -294,40 +372,26 @@ export const processLeaveDecision = async (req, res) => {
 
                     status:
                         "New"
-
                 });
 
 
             notificationCreated =
                 Boolean(notification);
 
-
             console.log(
-                "[HR Leave] Notification created:",
+                "[HR Leave] Worker notification created:",
                 notification
             );
-
 
         } catch (notificationError) {
 
             console.error(
-                "[HR Leave] NOTIFICATION CREATION FAILED:",
+                "[HR Leave] Notification creation failed:",
                 notificationError
             );
 
-            console.error(
-                "[HR Leave] Notification error message:",
-                notificationError.message
-            );
-
-            // Deliberately do not throw here.
-            // The leave decision has already been saved.
         }
 
-
-        // --------------------------------------------------------
-        // RETURN SUCCESS
-        // --------------------------------------------------------
 
         return res.status(200).json({
 
@@ -358,12 +422,6 @@ export const processLeaveDecision = async (req, res) => {
             error
         );
 
-        return res.status(500).json({
-            error:
-                "Internal server error processing leave decision.",
-
-            details:
-                error.message
-        });
+        next(error);
     }
 };

@@ -23,52 +23,35 @@ function calculateDays(
 ) {
 
     const start =
-        new Date(
-            `${startDate}T00:00:00`
-        );
+        new Date(`${startDate}T00:00:00`);
 
     const end =
-        new Date(
-            `${endDate}T00:00:00`
-        );
+        new Date(`${endDate}T00:00:00`);
 
 
     if (
-        Number.isNaN(
-            start.getTime()
-        ) ||
-        Number.isNaN(
-            end.getTime()
-        )
+        Number.isNaN(start.getTime()) ||
+        Number.isNaN(end.getTime())
     ) {
-
         return null;
-
     }
 
 
-    if (
-        end < start
-    ) {
-
+    if (end < start) {
         return null;
-
     }
 
 
     return Math.floor(
-
         (
             end.getTime() -
             start.getTime()
-        ) /
-        (
+        ) / (
             1000 *
             60 *
             60 *
             24
         )
-
     ) + 1;
 }
 
@@ -102,9 +85,7 @@ export const listLeaveTypes = async (
             error:
                 "Failed to retrieve leave types."
         });
-
     }
-
 };
 
 
@@ -142,9 +123,7 @@ export const listLeaveBalances = async (
             error:
                 "Failed to retrieve leave balances."
         });
-
     }
-
 };
 
 
@@ -182,9 +161,7 @@ export const listLeaveRequests = async (
             error:
                 "Failed to retrieve leave requests."
         });
-
     }
-
 };
 
 
@@ -199,8 +176,21 @@ export const submitLeaveRequest = async (
 
     try {
 
+        // ----------------------------------------------------
+        // NEVER trust employeeId from the browser.
+        // ----------------------------------------------------
+
         const employeeId =
-            req.user.employeeId;
+            req.user?.employeeId;
+
+        if (!employeeId) {
+
+            return res.status(401).json({
+                error:
+                    "Authenticated worker ID is missing."
+            });
+
+        }
 
 
         const {
@@ -212,9 +202,9 @@ export const submitLeaveRequest = async (
         } = req.body;
 
 
-        // -----------------------------------------------------
-        // Required values
-        // -----------------------------------------------------
+        // ----------------------------------------------------
+        // REQUIRED VALUES
+        // ----------------------------------------------------
 
         if (!leaveTypeId) {
 
@@ -261,15 +251,11 @@ export const submitLeaveRequest = async (
 
 
         const requestedDays =
-            Number(
-                totalDays
-            );
+            Number(totalDays);
 
 
         if (
-            !Number.isInteger(
-                requestedDays
-            ) ||
+            !Number.isInteger(requestedDays) ||
             requestedDays < 1
         ) {
 
@@ -281,9 +267,9 @@ export const submitLeaveRequest = async (
         }
 
 
-        // -----------------------------------------------------
-        // Validate dates
-        // -----------------------------------------------------
+        // ----------------------------------------------------
+        // VALIDATE DATE RANGE
+        // ----------------------------------------------------
 
         const calculatedDays =
             calculateDays(
@@ -292,9 +278,7 @@ export const submitLeaveRequest = async (
             );
 
 
-        if (
-            calculatedDays === null
-        ) {
+        if (calculatedDays === null) {
 
             return res.status(400).json({
                 message:
@@ -304,32 +288,26 @@ export const submitLeaveRequest = async (
         }
 
 
-        // -----------------------------------------------------
-        // Make sure entered days match dates
-        // -----------------------------------------------------
-
         if (
             requestedDays !==
             calculatedDays
         ) {
 
             return res.status(400).json({
-
                 message:
                     `The selected dates equal ${calculatedDays} day(s), but ${requestedDays} day(s) were requested.`
-
             });
 
         }
 
 
-        // -----------------------------------------------------
-        // Validate leave type
-        // -----------------------------------------------------
+        // ----------------------------------------------------
+        // VALIDATE LEAVE TYPE
+        // ----------------------------------------------------
 
         const leaveType =
             await getLeaveTypeById(
-                leaveTypeId
+                Number(leaveTypeId)
             );
 
 
@@ -343,24 +321,22 @@ export const submitLeaveRequest = async (
         }
 
 
-        // -----------------------------------------------------
-        // Get current balance
-        // -----------------------------------------------------
+        // ----------------------------------------------------
+        // CURRENT BALANCE
+        // ----------------------------------------------------
 
         const balance =
             await getLeaveBalanceByType(
                 employeeId,
-                leaveTypeId
+                Number(leaveTypeId)
             );
 
 
         if (!balance) {
 
             return res.status(400).json({
-
                 message:
                     `No current-year balance exists for ${leaveType.leaveTypeName}.`
-
             });
 
         }
@@ -378,18 +354,16 @@ export const submitLeaveRequest = async (
         ) {
 
             return res.status(400).json({
-
                 message:
                     `You only have ${remainingDays} day(s) of ${leaveType.leaveTypeName} remaining.`
-
             });
 
         }
 
 
-        // -----------------------------------------------------
-        // Check overlapping requests
-        // -----------------------------------------------------
+        // ----------------------------------------------------
+        // OVERLAPPING REQUESTS
+        // ----------------------------------------------------
 
         const overlapping =
             await hasOverlappingLeave({
@@ -406,18 +380,16 @@ export const submitLeaveRequest = async (
         if (overlapping) {
 
             return res.status(409).json({
-
                 message:
                     "You already have a pending or approved leave request covering these dates."
-
             });
 
         }
 
 
-        // -----------------------------------------------------
-        // SAVE REQUEST
-        // -----------------------------------------------------
+        // ----------------------------------------------------
+        // CREATE REQUEST
+        // ----------------------------------------------------
 
         const result =
             await createLeaveRequest({
@@ -425,9 +397,7 @@ export const submitLeaveRequest = async (
                 employeeId,
 
                 leaveTypeId:
-                    Number(
-                        leaveTypeId
-                    ),
+                    Number(leaveTypeId),
 
                 startDate,
 
@@ -436,38 +406,61 @@ export const submitLeaveRequest = async (
                 totalDays:
                     requestedDays,
 
-                reason
+                reason:
+                    reason || null
 
             });
 
 
-        // =====================================================
+        // ----------------------------------------------------
         // NOTIFY HR
-        // =====================================================
+        // ----------------------------------------------------
 
-        await createForRole({
+        let hrNotificationCreated = false;
 
-            roleName:
-                "hr",
+        try {
 
-            notificationType:
-                "leave",
+            const notifications =
+                await createForRole({
 
-            title:
-                "New Leave Request",
+                    roleName:
+                        "hr",
 
-            message:
-                `A new ${leaveType.leaveTypeName} request has been submitted by employee ${employeeId}.`,
+                    notificationType:
+                        "leave",
 
-            status:
-                "New"
+                    title:
+                        "New Leave Request",
 
-        });
+                    message:
+                        `${leaveType.leaveTypeName} leave request submitted by employee ${employeeId}.`,
+
+                    status:
+                        "New"
+
+                });
 
 
-        // -----------------------------------------------------
+            hrNotificationCreated =
+                Array.isArray(
+                    notifications
+                ) &&
+                notifications.length > 0;
+
+
+        } catch (notificationError) {
+
+            console.error(
+                "[Worker Leave] Failed to notify HR:",
+                notificationError
+            );
+
+        }
+
+
+        // ----------------------------------------------------
         // RESPONSE
-        // -----------------------------------------------------
+        // ----------------------------------------------------
 
         return res.status(201).json({
 
@@ -479,12 +472,13 @@ export const submitLeaveRequest = async (
                 leaveRequestId:
                     result.insertId,
 
+                requestId:
+                    result.insertId,
+
                 employeeId,
 
                 leaveTypeId:
-                    Number(
-                        leaveTypeId
-                    ),
+                    Number(leaveTypeId),
 
                 leaveTypeName:
                     leaveType.leaveTypeName,
@@ -500,7 +494,10 @@ export const submitLeaveRequest = async (
                     reason || null,
 
                 status:
-                    "Pending"
+                    "Pending",
+
+                notificationCreated:
+                    hrNotificationCreated
 
             }
 
@@ -514,12 +511,8 @@ export const submitLeaveRequest = async (
         );
 
         return res.status(500).json({
-
             error:
                 "Failed to submit leave request."
-
         });
-
     }
-
 };

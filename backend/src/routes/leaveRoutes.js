@@ -35,12 +35,15 @@ router.get(
 
 // ============================================================
 // CREATE LEAVE REQUEST
-// Worker / authenticated user
+// WORKER ONLY
+//
+// employeeId is taken from req.user.employeeId
 // ============================================================
 
 router.post(
     "/",
     authenticate,
+    authorize("worker"),
     validateLeaveSubmission,
     submitLeaveRequest
 );
