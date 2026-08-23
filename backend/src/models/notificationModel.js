@@ -1,7 +1,3 @@
-// ============================================================
-// ModernTech Notification Model
-// ============================================================
-
 import pool from "../config/db.js";
 
 
@@ -11,24 +7,28 @@ import pool from "../config/db.js";
 
 async function findAllForEmployee(employeeId) {
 
-    const [rows] = await pool.query(
-        `
-        SELECT
-            notification_id AS notificationId,
-            employee_id AS employeeId,
-            notification_type AS notificationType,
-            title,
-            message,
-            status,
-            is_read AS isRead,
-            created_at AS createdAt,
-            read_at AS readAt
-        FROM notifications
-        WHERE employee_id = ?
-        ORDER BY created_at DESC
-        `,
-        [employeeId]
-    );
+    const [rows] =
+        await pool.query(
+            `
+            SELECT
+                notification_id AS notificationId,
+                employee_id AS employeeId,
+                notification_type AS notificationType,
+                title,
+                message,
+                status,
+                is_read AS isRead,
+                created_at AS createdAt,
+                read_at AS readAt
+
+            FROM notifications
+
+            WHERE employee_id = ?
+
+            ORDER BY created_at DESC
+            `,
+            [employeeId]
+        );
 
     return rows;
 }
@@ -40,25 +40,29 @@ async function findAllForEmployee(employeeId) {
 
 async function findUnreadForEmployee(employeeId) {
 
-    const [rows] = await pool.query(
-        `
-        SELECT
-            notification_id AS notificationId,
-            employee_id AS employeeId,
-            notification_type AS notificationType,
-            title,
-            message,
-            status,
-            is_read AS isRead,
-            created_at AS createdAt,
-            read_at AS readAt
-        FROM notifications
-        WHERE employee_id = ?
-          AND is_read = 0
-        ORDER BY created_at DESC
-        `,
-        [employeeId]
-    );
+    const [rows] =
+        await pool.query(
+            `
+            SELECT
+                notification_id AS notificationId,
+                employee_id AS employeeId,
+                notification_type AS notificationType,
+                title,
+                message,
+                status,
+                is_read AS isRead,
+                created_at AS createdAt,
+                read_at AS readAt
+
+            FROM notifications
+
+            WHERE employee_id = ?
+              AND is_read = 0
+
+            ORDER BY created_at DESC
+            `,
+            [employeeId]
+        );
 
     return rows;
 }
@@ -70,15 +74,18 @@ async function findUnreadForEmployee(employeeId) {
 
 async function getUnreadCount(employeeId) {
 
-    const [rows] = await pool.query(
-        `
-        SELECT COUNT(*) AS count
-        FROM notifications
-        WHERE employee_id = ?
-          AND is_read = 0
-        `,
-        [employeeId]
-    );
+    const [rows] =
+        await pool.query(
+            `
+            SELECT COUNT(*) AS count
+
+            FROM notifications
+
+            WHERE employee_id = ?
+              AND is_read = 0
+            `,
+            [employeeId]
+        );
 
     return Number(
         rows[0]?.count || 0
@@ -95,28 +102,32 @@ async function findById(
     employeeId
 ) {
 
-    const [rows] = await pool.query(
-        `
-        SELECT
-            notification_id AS notificationId,
-            employee_id AS employeeId,
-            notification_type AS notificationType,
-            title,
-            message,
-            status,
-            is_read AS isRead,
-            created_at AS createdAt,
-            read_at AS readAt
-        FROM notifications
-        WHERE notification_id = ?
-          AND employee_id = ?
-        LIMIT 1
-        `,
-        [
-            notificationId,
-            employeeId
-        ]
-    );
+    const [rows] =
+        await pool.query(
+            `
+            SELECT
+                notification_id AS notificationId,
+                employee_id AS employeeId,
+                notification_type AS notificationType,
+                title,
+                message,
+                status,
+                is_read AS isRead,
+                created_at AS createdAt,
+                read_at AS readAt
+
+            FROM notifications
+
+            WHERE notification_id = ?
+              AND employee_id = ?
+
+            LIMIT 1
+            `,
+            [
+                notificationId,
+                employeeId
+            ]
+        );
 
     return rows[0] || null;
 }
@@ -131,24 +142,25 @@ async function markAsRead(
     employeeId
 ) {
 
-    const [result] = await pool.query(
-        `
-        UPDATE notifications
+    const [result] =
+        await pool.query(
+            `
+            UPDATE notifications
 
-        SET
-            is_read = 1,
-            status = 'Read',
-            read_at = NOW()
+            SET
+                is_read = 1,
+                status = 'Read',
+                read_at = NOW()
 
-        WHERE notification_id = ?
-          AND employee_id = ?
-          AND is_read = 0
-        `,
-        [
-            notificationId,
-            employeeId
-        ]
-    );
+            WHERE notification_id = ?
+              AND employee_id = ?
+              AND is_read = 0
+            `,
+            [
+                notificationId,
+                employeeId
+            ]
+        );
 
     return result.affectedRows > 0;
 }
@@ -158,29 +170,32 @@ async function markAsRead(
 // MARK ALL AS READ
 // ============================================================
 
-async function markAllAsRead(employeeId) {
+async function markAllAsRead(
+    employeeId
+) {
 
-    const [result] = await pool.query(
-        `
-        UPDATE notifications
+    const [result] =
+        await pool.query(
+            `
+            UPDATE notifications
 
-        SET
-            is_read = 1,
-            status = 'Read',
-            read_at = NOW()
+            SET
+                is_read = 1,
+                status = 'Read',
+                read_at = NOW()
 
-        WHERE employee_id = ?
-          AND is_read = 0
-        `,
-        [employeeId]
-    );
+            WHERE employee_id = ?
+              AND is_read = 0
+            `,
+            [employeeId]
+        );
 
     return result.affectedRows;
 }
 
 
 // ============================================================
-// CREATE ONE NOTIFICATION
+// CREATE NOTIFICATION
 // ============================================================
 
 async function create({
@@ -202,59 +217,79 @@ async function create({
 
     }
 
-    const [result] = await pool.query(
-        `
-        INSERT INTO notifications
-        (
-            employee_id,
-            notification_type,
-            title,
-            message,
-            status,
-            is_read
-        )
 
-        VALUES
-        (
-            ?,
-            ?,
-            ?,
-            ?,
-            ?,
-            0
-        )
-        `,
-        [
+    console.log(
+        "[Notification Model] Creating notification:",
+        {
             employeeId,
             notificationType,
             title,
             message,
             status
-        ]
+        }
     );
 
-    return findById(
-        result.insertId,
-        employeeId
+
+    const [result] =
+        await pool.query(
+            `
+            INSERT INTO notifications
+            (
+                employee_id,
+                notification_type,
+                title,
+                message,
+                status,
+                is_read
+            )
+
+            VALUES
+            (
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                0
+            )
+            `,
+            [
+                employeeId,
+                notificationType,
+                title,
+                message,
+                status
+            ]
+        );
+
+
+    console.log(
+        "[Notification Model] Notification inserted:",
+        result.insertId
     );
+
+
+    return {
+        notificationId:
+            result.insertId,
+
+        employeeId,
+
+        notificationType,
+
+        title,
+
+        message,
+
+        status,
+
+        isRead: 0
+    };
 }
 
 
 // ============================================================
-// CREATE NOTIFICATION FOR ALL USERS WITH A ROLE
-// ============================================================
-//
-// Example:
-//
-// await createForRole({
-//     roleName: "hr",
-//     notificationType: "leave",
-//     title: "New Leave Request",
-//     message: "A worker has submitted a leave request."
-// });
-//
-// This means you do NOT have to hardcode Lungile's employee ID.
-//
+// CREATE NOTIFICATION FOR ROLE
 // ============================================================
 
 async function createForRole({
@@ -265,43 +300,22 @@ async function createForRole({
     status = "New"
 }) {
 
-    if (
-        !roleName ||
-        !message
-    ) {
+    const [employees] =
+        await pool.query(
+            `
+            SELECT
+                e.employee_id AS employeeId
 
-        throw new Error(
-            "roleName and message are required."
+            FROM employees e
+
+            INNER JOIN roles r
+                ON e.role_id = r.role_id
+
+            WHERE r.role_name = ?
+              AND e.is_active = 1
+            `,
+            [roleName]
         );
-
-    }
-
-
-    const [employees] = await pool.query(
-        `
-        SELECT
-            e.employee_id AS employeeId
-
-        FROM employees e
-
-        INNER JOIN roles r
-            ON e.role_id = r.role_id
-
-        WHERE r.role_name = ?
-
-          AND e.is_active = 1
-        `,
-        [roleName]
-    );
-
-
-    if (
-        employees.length === 0
-    ) {
-
-        return [];
-
-    }
 
 
     const notifications = [];
@@ -339,10 +353,6 @@ async function createForRole({
     return notifications;
 }
 
-
-// ============================================================
-// EXPORTS
-// ============================================================
 
 export {
     findAllForEmployee,

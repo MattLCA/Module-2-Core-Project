@@ -1,244 +1,273 @@
 import db from "../../config/db.js";
 
 // ============================================================
-// GET ALL LEAVE REQUESTS FOR HR
+// HR LEAVE MODEL
+// Handles leave requests for the HR portal
 // ============================================================
 
 class LeaveModel {
 
-  static async findAll(status = null) {
+    // ============================================================
+    // GET ALL LEAVE REQUESTS FOR HR
+    // ============================================================
 
-    let query = `
-      SELECT
+    static async findAll(status = null) {
 
-        lr.leave_request_id AS requestId,
+        // IMPORTANT:
+        // This must be "let" because we add WHERE and ORDER BY
+        // to the query later.
+        let query = `
+            SELECT
 
-        lr.employee_id AS employeeId,
+                lr.leave_request_id AS requestId,
 
-        e.employee_code AS employeeCode,
+                lr.employee_id AS employeeId,
 
-        e.name AS employeeFullName,
+                e.employee_code AS employeeCode,
 
-        d.department_name AS department,
+                e.name AS employeeFullName,
 
-        lt.leave_type_name AS leaveType,
+                d.department_name AS department,
 
-        lr.start_date AS startDate,
+                lt.leave_type_name AS leaveType,
 
-        lr.end_date AS endDate,
+                lr.start_date AS startDate,
 
-        lr.total_days AS duration,
+                lr.end_date AS endDate,
 
-        lr.reason,
+                lr.total_days AS duration,
 
-        lr.status AS leaveStatus,
+                lr.reason,
 
-        lr.submitted_date AS submittedDate,
+                lr.status AS leaveStatus,
 
-        lr.reviewed_by AS reviewedBy,
+                lr.submitted_date AS submittedDate,
 
-        reviewer.name AS reviewerName
+                lr.reviewed_by AS reviewedBy,
 
-      FROM leave_requests lr
+                reviewer.name AS reviewerName
 
-      INNER JOIN employees e
-        ON lr.employee_id = e.employee_id
+            FROM leave_requests lr
 
-      INNER JOIN departments d
-        ON e.department_id = d.department_id
+            INNER JOIN employees e
+                ON lr.employee_id = e.employee_id
 
-      INNER JOIN leave_types lt
-        ON lr.leave_type_id = lt.leave_type_id
+            INNER JOIN departments d
+                ON e.department_id = d.department_id
 
-      LEFT JOIN employees reviewer
-        ON lr.reviewed_by = reviewer.employee_id
-    `;
+            INNER JOIN leave_types lt
+                ON lr.leave_type_id = lt.leave_type_id
 
-    const params = [];
+            LEFT JOIN employees reviewer
+                ON lr.reviewed_by = reviewer.employee_id
+        `;
 
-    if (status) {
-      query += `
-        WHERE lr.status = ?
-      `;
+        const params = [];
 
-      params.push(status);
+
+        // --------------------------------------------------------
+        // OPTIONAL STATUS FILTER
+        // --------------------------------------------------------
+
+        if (status) {
+
+            query += `
+                WHERE lr.status = ?
+            `;
+
+            params.push(status);
+        }
+
+
+        // --------------------------------------------------------
+        // SORT NEWEST FIRST
+        // --------------------------------------------------------
+
+        query += `
+            ORDER BY
+                lr.created_at DESC,
+                lr.leave_request_id DESC
+        `;
+
+
+        const [rows] =
+            await db.execute(
+                query,
+                params
+            );
+
+
+        console.log(
+            `[HR Leave Model] Returned ${rows.length} leave request(s).`
+        );
+
+        console.table(rows);
+
+
+        return rows;
     }
 
-    query += `
-      ORDER BY
-        lr.created_at DESC,
-        lr.leave_request_id DESC
-    `;
 
-    const [rows] = await db.execute(
-      query,
-      params
-    );
+    // ============================================================
+    // GET ONE LEAVE REQUEST
+    // ============================================================
 
-    console.log(
-      `[HR Leave Model] Returned ${rows.length} leave request(s).`
-    );
+    static async findById(id) {
 
-    console.table(rows);
+        const [rows] =
+            await db.execute(
+                `
+                SELECT
 
-    return rows;
-  }
+                    lr.leave_request_id AS requestId,
 
+                    lr.employee_id AS employeeId,
 
-  // ==========================================================
-  // GET ONE LEAVE REQUEST
-  // ==========================================================
+                    e.employee_code AS employeeCode,
 
-  static async findById(id) {
+                    e.name AS employeeFullName,
 
-    const [rows] = await db.execute(
-      `
-      SELECT
+                    d.department_name AS department,
 
-        lr.leave_request_id AS requestId,
+                    lt.leave_type_name AS leaveType,
 
-        lr.employee_id AS employeeId,
+                    lr.start_date AS startDate,
 
-        e.employee_code AS employeeCode,
+                    lr.end_date AS endDate,
 
-        e.name AS employeeFullName,
+                    lr.total_days AS duration,
 
-        d.department_name AS department,
+                    lr.reason,
 
-        lt.leave_type_name AS leaveType,
+                    lr.status AS leaveStatus,
 
-        lr.start_date AS startDate,
+                    lr.submitted_date AS submittedDate,
 
-        lr.end_date AS endDate,
+                    lr.reviewed_by AS reviewedBy,
 
-        lr.total_days AS duration,
+                    reviewer.name AS reviewerName
 
-        lr.reason,
+                FROM leave_requests lr
 
-        lr.status AS leaveStatus,
+                INNER JOIN employees e
+                    ON lr.employee_id = e.employee_id
 
-        lr.submitted_date AS submittedDate,
+                INNER JOIN departments d
+                    ON e.department_id = d.department_id
 
-        lr.reviewed_by AS reviewedBy,
+                INNER JOIN leave_types lt
+                    ON lr.leave_type_id = lt.leave_type_id
 
-        reviewer.name AS reviewerName
+                LEFT JOIN employees reviewer
+                    ON lr.reviewed_by = reviewer.employee_id
 
-      FROM leave_requests lr
+                WHERE lr.leave_request_id = ?
 
-      INNER JOIN employees e
-        ON lr.employee_id = e.employee_id
-
-      INNER JOIN departments d
-        ON e.department_id = d.department_id
-
-      INNER JOIN leave_types lt
-        ON lr.leave_type_id = lt.leave_type_id
-
-      LEFT JOIN employees reviewer
-        ON lr.reviewed_by = reviewer.employee_id
-
-      WHERE lr.leave_request_id = ?
-
-      LIMIT 1
-      `,
-      [id]
-    );
-
-    return rows[0] || null;
-  }
+                LIMIT 1
+                `,
+                [id]
+            );
 
 
-  // ==========================================================
-  // CREATE LEAVE REQUEST
-  // ==========================================================
+        return rows[0] || null;
+    }
 
-  static async create(data) {
 
-    const {
-      employeeId,
-      leaveTypeId,
-      startDate,
-      endDate,
-      totalDays,
-      reason
-    } = data;
+    // ============================================================
+    // CREATE LEAVE REQUEST
+    // ============================================================
 
-    const query = `
-      INSERT INTO leave_requests
-      (
-        employee_id,
-        leave_type_id,
-        start_date,
-        end_date,
-        total_days,
-        reason,
+    static async create(data) {
+
+        const {
+            employeeId,
+            leaveTypeId,
+            startDate,
+            endDate,
+            totalDays,
+            reason
+        } = data;
+
+
+        const query = `
+            INSERT INTO leave_requests
+            (
+                employee_id,
+                leave_type_id,
+                start_date,
+                end_date,
+                total_days,
+                reason,
+                status,
+                submitted_date
+            )
+
+            VALUES
+            (
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                'Pending',
+                CURRENT_DATE
+            )
+        `;
+
+
+        const [result] =
+            await db.execute(
+                query,
+                [
+                    employeeId,
+                    leaveTypeId,
+                    startDate,
+                    endDate,
+                    totalDays,
+                    reason || null
+                ]
+            );
+
+
+        return result;
+    }
+
+
+    // ============================================================
+    // UPDATE LEAVE STATUS
+    // ============================================================
+
+    static async updateStatus(
+        id,
         status,
-        submitted_date
-      )
+        reviewerId
+    ) {
 
-      VALUES
-      (
-        ?,
-        ?,
-        ?,
-        ?,
-        ?,
-        ?,
-        'Pending',
-        CURRENT_DATE
-      )
-    `;
+        const query = `
+            UPDATE leave_requests
 
-    const [result] =
-      await db.execute(
-        query,
-        [
-          employeeId,
-          leaveTypeId,
-          startDate,
-          endDate,
-          totalDays,
-          reason || null
-        ]
-      );
+            SET
+                status = ?,
+                reviewed_by = ?
 
-    return result;
-  }
+            WHERE leave_request_id = ?
+        `;
 
 
-  // ==========================================================
-  // UPDATE LEAVE STATUS
-  // ==========================================================
+        const [result] =
+            await db.execute(
+                query,
+                [
+                    status,
+                    reviewerId || null,
+                    id
+                ]
+            );
 
-  static async updateStatus(
-    id,
-    status,
-    reviewerId
-  ) {
 
-    const query = `
-      UPDATE leave_requests
-
-      SET
-        status = ?,
-        reviewed_by = ?
-
-      WHERE leave_request_id = ?
-    `;
-
-    const [result] =
-      await db.execute(
-        query,
-        [
-          status,
-          reviewerId || null,
-          id
-        ]
-      );
-
-    return result;
-  }
-
+        return result;
+    }
 }
 
 

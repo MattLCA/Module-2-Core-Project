@@ -1,5 +1,6 @@
 // ============================================================
 // ModernTech HR Leave Page
+// Database-backed version
 // ============================================================
 
 document.addEventListener(
@@ -10,9 +11,9 @@ document.addEventListener(
             "http://localhost:4000/api";
 
 
-        // --------------------------------------------------------
+        // ========================================================
         // DOM ELEMENTS
-        // --------------------------------------------------------
+        // ========================================================
 
         const leaveSearch =
             document.getElementById(
@@ -96,9 +97,85 @@ document.addEventListener(
             );
 
 
-        // --------------------------------------------------------
+        // ========================================================
+        // CHECK REQUIRED ELEMENTS
+        // ========================================================
+
+        const requiredElements = {
+
+            leaveSearch,
+
+            leaveDepartment,
+
+            leaveType,
+
+            leaveStatus,
+
+            leaveCount,
+
+            leaveRows,
+
+            modalOverlay,
+
+            modalTitle,
+
+            modalSubtitle,
+
+            modalRequestDetails,
+
+            modalTextareaLabel,
+
+            modalReasonTextarea,
+
+            modalCancelBtn,
+
+            modalCloseBtn,
+
+            modalConfirmBtn
+
+        };
+
+
+        for (
+            const [
+                name,
+                element
+            ] of Object.entries(
+                requiredElements
+            )
+        ) {
+
+            if (!element) {
+
+                console.error(
+                    `[HR Leave] Missing HTML element: #${name}`
+                );
+
+            }
+
+        }
+
+
+        if (
+            !leaveRows ||
+            !leaveSearch ||
+            !leaveDepartment ||
+            !leaveType ||
+            !leaveStatus
+        ) {
+
+            console.error(
+                "[HR Leave] Page cannot initialize because required filter/table elements are missing."
+            );
+
+            return;
+
+        }
+
+
+        // ========================================================
         // DATA
-        // --------------------------------------------------------
+        // ========================================================
 
         let leaveRequests = [];
 
@@ -107,9 +184,9 @@ document.addEventListener(
         let activeAction = null;
 
 
-        // --------------------------------------------------------
-        // AUTH TOKEN
-        // --------------------------------------------------------
+        // ========================================================
+        // GET AUTH TOKEN
+        // ========================================================
 
         function getToken() {
 
@@ -126,9 +203,9 @@ document.addEventListener(
         }
 
 
-        // --------------------------------------------------------
-        // AUTHENTICATED REQUEST
-        // --------------------------------------------------------
+        // ========================================================
+        // API REQUEST
+        // ========================================================
 
         async function apiRequest(
             endpoint,
@@ -161,8 +238,7 @@ document.addEventListener(
                             "Content-Type":
                                 "application/json",
 
-                            ...(options.headers ||
-                                {}),
+                            ...(options.headers || {}),
 
                             Authorization:
                                 `Bearer ${token}`
@@ -173,15 +249,13 @@ document.addEventListener(
                 );
 
 
+            let data = null;
+
+
             const contentType =
-                response.headers
-                    .get(
-                        "content-type"
-                    );
-
-
-            let result =
-                null;
+                response.headers.get(
+                    "content-type"
+                );
 
 
             if (
@@ -191,10 +265,17 @@ document.addEventListener(
                 )
             ) {
 
-                result =
+                data =
                     await response.json();
 
             }
+
+
+            console.log(
+                `[HR Leave] ${options.method || "GET"} ${endpoint}`,
+                response.status,
+                data
+            );
 
 
             if (
@@ -221,22 +302,26 @@ document.addEventListener(
             if (!response.ok) {
 
                 throw new Error(
-                    result?.error ||
-                    result?.message ||
-                    "Request failed."
+
+                    data?.error ||
+
+                    data?.message ||
+
+                    `Request failed with status ${response.status}`
+
                 );
 
             }
 
 
-            return result;
+            return data;
 
         }
 
 
-        // --------------------------------------------------------
-        // LOAD LEAVE REQUESTS
-        // --------------------------------------------------------
+        // ========================================================
+        // LOAD REQUESTS
+        // ========================================================
 
         async function loadLeaveRequests() {
 
@@ -270,20 +355,6 @@ document.addEventListener(
                 }
 
 
-                console.log(
-                    "[HR Leave] API response:",
-                    response
-                );
-
-
-                // Support both:
-
-                // {
-                //   data: [...]
-                // }
-
-                // and an older direct array response.
-
                 leaveRequests =
                     Array.isArray(
                         response
@@ -301,17 +372,33 @@ document.addEventListener(
 
 
                 console.log(
-                    "[HR Leave] Loaded requests:",
+                    "[HR Leave] Requests from database:",
                     leaveRequests
+                );
+
+
+                // Helpful check for requestId.
+
+                leaveRequests.forEach(
+                    request => {
+
+                        console.log(
+                            "[HR Leave] Request:",
+                            request.requestId,
+                            request
+                        );
+
+                    }
                 );
 
 
                 renderLeaveRows();
 
+
             } catch (error) {
 
                 console.error(
-                    "[HR Leave] Could not load requests:",
+                    "[HR Leave] Failed to load requests:",
                     error
                 );
 
@@ -338,9 +425,9 @@ document.addEventListener(
         }
 
 
-        // --------------------------------------------------------
+        // ========================================================
         // ESCAPE HTML
-        // --------------------------------------------------------
+        // ========================================================
 
         function escapeHtml(
             value
@@ -378,23 +465,23 @@ document.addEventListener(
         }
 
 
-        // --------------------------------------------------------
-        // FORMAT STATUS
-        // --------------------------------------------------------
+        // ========================================================
+        // STATUS CLASS
+        // ========================================================
 
         function statusClass(
             status
         ) {
 
-            const normal =
+            const value =
                 String(
-                    status
+                    status || ""
                 )
                     .toLowerCase();
 
 
             if (
-                normal ===
+                value ===
                 "approved"
             ) {
 
@@ -404,7 +491,7 @@ document.addEventListener(
 
 
             if (
-                normal ===
+                value ===
                 "rejected"
             ) {
 
@@ -418,29 +505,9 @@ document.addEventListener(
         }
 
 
-        // --------------------------------------------------------
-        // FORMAT LEAVE TYPE
-        // --------------------------------------------------------
-
-        function formatLeaveType(
-            type
-        ) {
-
-            return String(
-                type || ""
-            )
-                .replace(
-                    /\s+/g,
-                    "-"
-                )
-                .toLowerCase();
-
-        }
-
-
-        // --------------------------------------------------------
-        // FORMAT DURATION
-        // --------------------------------------------------------
+        // ========================================================
+        // DURATION
+        // ========================================================
 
         function formatDuration(
             duration
@@ -472,9 +539,9 @@ document.addEventListener(
         }
 
 
-        // --------------------------------------------------------
-        // FILTER
-        // --------------------------------------------------------
+        // ========================================================
+        // FILTER REQUESTS
+        // ========================================================
 
         function getFilteredRequests() {
 
@@ -519,18 +586,17 @@ document.addEventListener(
                         String(
                             request.department ||
                             ""
-                        )
-                            .toLowerCase();
+                        );
 
 
-                    const requestLeaveType =
+                    const leaveTypeName =
                         String(
                             request.leaveType ||
                             ""
                         );
 
 
-                    const requestStatus =
+                    const status =
                         String(
                             request.leaveStatus ||
                             ""
@@ -538,6 +604,7 @@ document.addEventListener(
 
 
                     const matchesSearch =
+
                         !searchValue ||
 
                         employee.includes(
@@ -548,40 +615,50 @@ document.addEventListener(
                             searchValue
                         ) ||
 
-                        department.includes(
-                            searchValue
-                        );
+                        department
+                            .toLowerCase()
+                            .includes(
+                                searchValue
+                            );
 
 
                     const matchesDepartment =
-                        departmentValue ===
-                        "All Departments" ||
 
-                        request.department ===
-                        departmentValue;
+                        departmentValue ===
+                            "All Departments" ||
+
+                        department ===
+                            departmentValue;
 
 
                     const matchesType =
-                        typeValue ===
-                        "All Types" ||
 
-                        requestLeaveType ===
-                        typeValue;
+                        typeValue ===
+                            "All Types" ||
+
+                        leaveTypeName ===
+                            typeValue;
 
 
                     const matchesStatus =
-                        statusValue ===
-                        "All Statuses" ||
 
-                        requestStatus ===
-                        statusValue;
+                        statusValue ===
+                            "All Statuses" ||
+
+                        status ===
+                            statusValue;
 
 
                     return (
+
                         matchesSearch &&
+
                         matchesDepartment &&
+
                         matchesType &&
+
                         matchesStatus
+
                     );
 
                 }
@@ -590,9 +667,9 @@ document.addEventListener(
         }
 
 
-        // --------------------------------------------------------
+        // ========================================================
         // RENDER TABLE
-        // --------------------------------------------------------
+        // ========================================================
 
         function renderLeaveRows() {
 
@@ -600,8 +677,12 @@ document.addEventListener(
                 getFilteredRequests();
 
 
-            leaveCount.textContent =
-                filtered.length;
+            if (leaveCount) {
+
+                leaveCount.textContent =
+                    filtered.length;
+
+            }
 
 
             if (
@@ -655,7 +736,10 @@ document.addEventListener(
                                     part[0]
                             )
                             .join("")
-                            .slice(0, 2)
+                            .slice(
+                                0,
+                                2
+                            )
                             .toUpperCase();
 
 
@@ -683,15 +767,11 @@ document.addEventListener(
 
                                 </div>
 
-                                <div>
+                                <div class="emp-name">
 
-                                    <div class="emp-name">
-
-                                        ${escapeHtml(
-                                            name
-                                        )}
-
-                                    </div>
+                                    ${escapeHtml(
+                                        name
+                                    )}
 
                                 </div>
 
@@ -721,11 +801,7 @@ document.addEventListener(
 
                         <td>
 
-                            <span
-                                class="status-pill ${formatLeaveType(
-                                    request.leaveType
-                                )}"
-                            >
+                            <span class="status-pill">
 
                                 ${escapeHtml(
                                     request.leaveType
@@ -814,13 +890,13 @@ document.addEventListener(
 
                         <td>
 
-                            <div
-                                class="action-cell-group"
-                            >
+                            <div class="action-cell-group">
 
                                 ${
                                     canAction
+
                                         ? `
+
                                             <button
                                                 class="pay-action-btn approve"
                                                 type="button"
@@ -829,6 +905,7 @@ document.addEventListener(
                                                 Approve
                                             </button>
 
+
                                             <button
                                                 class="pay-action-btn decline"
                                                 type="button"
@@ -836,11 +913,15 @@ document.addEventListener(
                                             >
                                                 Reject
                                             </button>
+
                                         `
+
                                         : `
+
                                             <span>
                                                 Completed
                                             </span>
+
                                         `
                                 }
 
@@ -911,14 +992,30 @@ document.addEventListener(
         }
 
 
-        // --------------------------------------------------------
+        // ========================================================
         // OPEN MODAL
-        // --------------------------------------------------------
+        // ========================================================
 
         function openModal(
             request,
             action
         ) {
+
+            if (
+                !modalOverlay ||
+                !modalTitle ||
+                !modalSubtitle ||
+                !modalRequestDetails
+            ) {
+
+                console.error(
+                    "[HR Leave] Modal HTML is missing."
+                );
+
+                return;
+
+            }
+
 
             activeRequest =
                 request;
@@ -927,19 +1024,21 @@ document.addEventListener(
                 action;
 
 
-            const isApprove =
+            const approve =
                 action ===
                 "approve";
 
 
             modalTitle.textContent =
-                isApprove
+                approve
+
                     ? "Approve Leave Request"
+
                     : "Reject Leave Request";
 
 
             modalSubtitle.textContent =
-                isApprove
+                approve
 
                     ? "Confirm that you want to approve this leave request."
 
@@ -954,81 +1053,84 @@ document.addEventListener(
                     )}
                 </strong>
 
-                (${escapeHtml(
-                    request.employeeCode
-                )})
+                <br>
+
+                Employee ID:
+                ${escapeHtml(
+                    request.employeeCode ||
+                    request.employeeId
+                )}
 
                 <br>
 
-                ${escapeHtml(
-                    request.department
-                )}
-
-                •
+                Leave:
                 ${escapeHtml(
                     request.leaveType
                 )}
 
-                •
-                ${escapeHtml(
-                    formatDuration(
-                        request.duration
-                    )
-                )}
-
                 <br>
 
+                Dates:
                 ${escapeHtml(
                     request.startDate
                 )}
-
                 -
-
                 ${escapeHtml(
                     request.endDate
                 )}
 
                 <br>
 
-                Submitted:
+                Duration:
                 ${escapeHtml(
-                    request.submittedDate
+                    formatDuration(
+                        request.duration
+                    )
                 )}
 
             `;
 
 
-            modalReasonTextarea.value =
-                "";
+            if (
+                modalReasonTextarea &&
+                modalTextareaLabel
+            ) {
+
+                modalReasonTextarea.value =
+                    "";
 
 
-            if (isApprove) {
+                if (approve) {
 
-                modalTextareaLabel.style.display =
-                    "none";
+                    modalTextareaLabel.style.display =
+                        "none";
 
-                modalReasonTextarea.style.display =
-                    "none";
+                    modalReasonTextarea.style.display =
+                        "none";
 
-                modalConfirmBtn.textContent =
-                    "Approve";
+                } else {
 
-            } else {
+                    modalTextareaLabel.style.display =
+                        "block";
 
-                modalTextareaLabel.style.display =
-                    "block";
+                    modalReasonTextarea.style.display =
+                        "block";
 
-                modalReasonTextarea.style.display =
-                    "block";
-
-                modalConfirmBtn.textContent =
-                    "Reject";
+                }
 
             }
 
 
-            modalConfirmBtn.disabled =
-                false;
+            if (
+                modalConfirmBtn
+            ) {
+
+                modalConfirmBtn.textContent =
+                    approve
+                        ? "Approve"
+                        : "Reject";
+
+            }
 
 
             modalOverlay.classList.remove(
@@ -1038,15 +1140,21 @@ document.addEventListener(
         }
 
 
-        // --------------------------------------------------------
+        // ========================================================
         // CLOSE MODAL
-        // --------------------------------------------------------
+        // ========================================================
 
         function closeModal() {
 
-            modalOverlay.classList.add(
-                "hidden"
-            );
+            if (
+                modalOverlay
+            ) {
+
+                modalOverlay.classList.add(
+                    "hidden"
+                );
+
+            }
 
 
             activeRequest =
@@ -1055,139 +1163,190 @@ document.addEventListener(
             activeAction =
                 null;
 
-
-            modalReasonTextarea.value =
-                "";
-
         }
 
 
-        // --------------------------------------------------------
-        // PROCESS DECISION
-        // --------------------------------------------------------
+        // ========================================================
+        // PROCESS APPROVE / REJECT
+        // ========================================================
 
         async function processDecision() {
 
-            if (
-                !activeRequest ||
-                !activeAction
-            ) {
+    if (
+        !activeRequest ||
+        !activeAction
+    ) {
 
-                return;
-
-            }
-
-
-            const status =
-                activeAction ===
-                "approve"
-
-                    ? "Approved"
-
-                    : "Rejected";
+        return;
+    }
 
 
-            let reason =
-                "";
+    const requestId =
+        Number(
+            activeRequest.requestId
+        );
 
 
-            if (
-                status ===
-                "Rejected"
-            ) {
+    if (
+        !Number.isInteger(requestId) ||
+        requestId <= 0
+    ) {
 
-                reason =
-                    modalReasonTextarea.value
-                        .trim();
+        console.error(
+            "[HR Leave] Invalid request:",
+            activeRequest
+        );
+
+        alert(
+            "This leave request does not have a valid database ID."
+        );
+
+        return;
+    }
 
 
-                if (!reason) {
+    const status =
+        activeAction === "approve"
+            ? "Approved"
+            : "Rejected";
 
-                    alert(
-                        "Please enter a reason for rejecting this request."
-                    );
 
-                    modalReasonTextarea.focus();
+    let reason = "";
 
-                    return;
+
+    if (
+        status === "Rejected"
+    ) {
+
+        reason =
+            modalReasonTextarea.value
+                .trim();
+
+
+        if (!reason) {
+
+            alert(
+                "Please enter a reason for rejection."
+            );
+
+            return;
+        }
+
+    }
+
+
+    console.log(
+        "[HR Leave] Sending decision:",
+        {
+            requestId,
+            status,
+            reason
+        }
+    );
+
+
+    modalConfirmBtn.disabled =
+        true;
+
+    modalConfirmBtn.textContent =
+        "Saving...";
+
+
+    try {
+
+        const response =
+            await apiRequest(
+
+                `/leave/${requestId}/decision`,
+
+                {
+
+                    method:
+                        "PUT",
+
+                    body:
+                        JSON.stringify({
+
+                            status,
+
+                            reason
+
+                        })
 
                 }
 
-            }
+            );
 
 
-            modalConfirmBtn.disabled =
-                true;
+        console.log(
+            "[HR Leave] Backend decision response:",
+            response
+        );
 
 
-            const originalText =
-                modalConfirmBtn.textContent;
+        closeModal();
 
 
-            modalConfirmBtn.textContent =
-                "Saving...";
+        await loadLeaveRequests();
 
 
-            try {
+        if (
+            response?.data?.notificationCreated === false
+        ) {
 
-                await apiRequest(
+            alert(
+                status === "Approved"
 
-                    `/leave/${activeRequest.requestId}/decision`,
+                    ? "Leave was approved, but the worker notification could not be created."
 
-                    {
+                    : "Leave was rejected, but the worker notification could not be created."
+            );
 
-                        method:
-                            "PUT",
+        } else {
 
-                        body:
-                            JSON.stringify({
+            alert(
+                status === "Approved"
 
-                                status,
+                    ? "Leave request approved successfully."
 
-                                reason
-
-                            })
-
-                    }
-
-                );
-
-
-                closeModal();
-
-
-                await loadLeaveRequests();
-
-
-            } catch (error) {
-
-                console.error(
-                    "Leave decision error:",
-                    error
-                );
-
-
-                alert(
-                    error.message
-                );
-
-
-            } finally {
-
-                modalConfirmBtn.disabled =
-                    false;
-
-                modalConfirmBtn.textContent =
-                    originalText;
-
-            }
+                    : "Leave request rejected successfully."
+            );
 
         }
 
 
-        // --------------------------------------------------------
-        // EVENT LISTENERS
-        // --------------------------------------------------------
+    } catch (error) {
+
+        console.error(
+            "[HR Leave] Decision request failed:",
+            error
+        );
+
+
+        alert(
+            error.message ||
+            "Could not update the leave request."
+        );
+
+
+    } finally {
+
+        modalConfirmBtn.disabled =
+            false;
+
+        modalConfirmBtn.textContent =
+            status === "Approved"
+                ? "Approve"
+                : "Reject";
+
+    }
+
+}
+
+
+        // ========================================================
+        // FILTER EVENTS
+        // ========================================================
 
         leaveSearch.addEventListener(
             "input",
@@ -1213,46 +1372,88 @@ document.addEventListener(
         );
 
 
-        refreshLeaveBtn.addEventListener(
-            "click",
-            loadLeaveRequests
-        );
+        // ========================================================
+        // REFRESH
+        // ========================================================
+
+        if (
+            refreshLeaveBtn
+        ) {
+
+            refreshLeaveBtn.addEventListener(
+                "click",
+                loadLeaveRequests
+            );
+
+        }
 
 
-        modalCancelBtn.addEventListener(
-            "click",
-            closeModal
-        );
+        // ========================================================
+        // MODAL BUTTONS
+        // ========================================================
+
+        if (
+            modalCancelBtn
+        ) {
+
+            modalCancelBtn.addEventListener(
+                "click",
+                closeModal
+            );
+
+        }
 
 
-        modalCloseBtn.addEventListener(
-            "click",
-            closeModal
-        );
+        if (
+            modalCloseBtn
+        ) {
+
+            modalCloseBtn.addEventListener(
+                "click",
+                closeModal
+            );
+
+        }
 
 
-        modalConfirmBtn.addEventListener(
-            "click",
-            processDecision
-        );
+        if (
+            modalConfirmBtn
+        ) {
+
+            modalConfirmBtn.addEventListener(
+                "click",
+                processDecision
+            );
+
+        }
 
 
-        modalOverlay.addEventListener(
-            "click",
-            event => {
+        if (
+            modalOverlay
+        ) {
 
-                if (
-                    event.target ===
-                    modalOverlay
-                ) {
+            modalOverlay.addEventListener(
+                "click",
+                event => {
 
-                    closeModal();
+                    if (
+                        event.target ===
+                        modalOverlay
+                    ) {
+
+                        closeModal();
+
+                    }
 
                 }
+            );
 
-            }
-        );
+        }
 
+
+        // ========================================================
+        // ESC KEY
+        // ========================================================
 
         document.addEventListener(
             "keydown",
@@ -1260,7 +1461,9 @@ document.addEventListener(
 
                 if (
                     event.key ===
-                    "Escape" &&
+                        "Escape" &&
+
+                    modalOverlay &&
 
                     !modalOverlay
                         .classList
@@ -1277,60 +1480,11 @@ document.addEventListener(
         );
 
 
-        // --------------------------------------------------------
+        // ========================================================
         // INITIAL LOAD
-        // --------------------------------------------------------
+        // ========================================================
 
         await loadLeaveRequests();
 
     }
 );
-
-
-// ============================================================
-// LOGOUT
-// ============================================================
-
-const logoutBtn =
-    document.getElementById(
-        "logoutBtn"
-    );
-
-
-if (logoutBtn) {
-
-    logoutBtn.addEventListener(
-        "click",
-        () => {
-
-            localStorage.removeItem(
-                "token"
-            );
-
-            localStorage.removeItem(
-                "authToken"
-            );
-
-            localStorage.removeItem(
-                "employee"
-            );
-
-            localStorage.removeItem(
-                "loggedInUser"
-            );
-
-            localStorage.removeItem(
-                "userRole"
-            );
-
-            localStorage.removeItem(
-                "workerProfile"
-            );
-
-            window.location.href =
-                "index.html";
-
-        }
-    );
-
-}
