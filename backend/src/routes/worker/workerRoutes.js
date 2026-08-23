@@ -1,47 +1,110 @@
-import express from 'express';
+// ============================================================
+// ModernTech Worker Routes
+// ============================================================
 
-import profileRoutes from './profileRoutes.js';
-import attendanceRoutes from './attendanceRoutes.js';
-import leaveRoutes from './leaveRoutes.js';
-import payslipRoutes from './payslipRoutes.js';
-import notificationRoutes from './notificationRoutes.js';
+import express from "express";
 
-const router = express.Router();
+import dashboardRoutes from "./dashboardRoutes.js";
+import profileRoutes from "./profileRoutes.js";
+import attendanceRoutes from "./attendanceRoutes.js";
+import leaveRoutes from "./leaveRoutes.js";
+import payslipRoutes from "./payslipRoutes.js";
+import notificationRoutes from "./notificationRoutes.js";
+
+
+const router =
+    express.Router();
 
 
 // ============================================================
-// WORKER PROFILE
+// DASHBOARD
+// ============================================================
+//
+// GET /api/worker/dashboard
 // ============================================================
 
-router.use('/profile', profileRoutes);
-
-
-// ============================================================
-// WORKER ATTENDANCE
-// ============================================================
-
-router.use('/attendance', attendanceRoutes);
-
-
-// ============================================================
-// WORKER LEAVE
-// ============================================================
-
-router.use('/leave', leaveRoutes);
+router.use(
+    "/dashboard",
+    dashboardRoutes
+);
 
 
 // ============================================================
-// WORKER PAYSLIPS
+// PROFILE
+// ============================================================
+//
+// GET /api/worker/profile
 // ============================================================
 
-router.use('/payslips', payslipRoutes);
+router.use(
+    "/profile",
+    profileRoutes
+);
 
 
 // ============================================================
-// WORKER NOTIFICATIONS
+// ATTENDANCE
+// ============================================================
+//
+// GET  /api/worker/attendance/clock-status
+// POST /api/worker/attendance/clock-in
+// PUT  /api/worker/attendance/clock-out
+// GET  /api/worker/attendance/history
 // ============================================================
 
-router.use('/notifications', notificationRoutes);
+router.use(
+    "/attendance",
+    attendanceRoutes
+);
+
+
+// ============================================================
+// LEAVE
+// ============================================================
+//
+// GET  /api/worker/leave/types
+// GET  /api/worker/leave/balances
+// GET  /api/worker/leave/requests
+// POST /api/worker/leave/requests
+// ============================================================
+
+router.use(
+    "/leave",
+    leaveRoutes
+);
+
+
+// ============================================================
+// PAYSLIPS
+// ============================================================
+//
+// GET /api/worker/payslips
+// GET /api/worker/payslips/:id
+// GET /api/worker/payslips/:id/download
+// ============================================================
+
+router.use(
+    "/payslips",
+    payslipRoutes
+);
+
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+//
+// GET   /api/worker/notifications
+// GET   /api/worker/notifications/unread
+// GET   /api/worker/notifications/unread-count
+// GET   /api/worker/notifications/:id
+// PATCH /api/worker/notifications/:id/read
+// PATCH /api/worker/notifications/read-all
+// ============================================================
+
+router.use(
+    "/notifications",
+    notificationRoutes
+);
 
 
 export default router;

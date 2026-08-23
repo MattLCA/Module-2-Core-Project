@@ -1,28 +1,68 @@
-import express from "express";
-import {
-  getLeaveRequests,
-  submitLeaveRequest,
-  processLeaveDecision,
-} from "../controllers/leaveController.js";
+// ============================================================
+// ModernTech HR Attendance Routes
+// ============================================================
 
-import { authenticate, authorize } from "../middleware/auth.js";
+import express from "express";
+
 import {
-  validateLeaveSubmission,
-  validateLeaveDecision,
+    getDailyAttendance,
+    verifyAttendance
+} from "../controllers/attendanceController.js";
+
+import {
+    authenticate,
+    authorize
+} from "../middleware/auth.js";
+
+import {
+    validateAttendanceUpdate
 } from "../middleware/validationMiddleware.js";
 
-const router = express.Router();
 
-router.get("/", authenticate, authorize("hr"), getLeaveRequests);
+const router =
+    express.Router();
 
-router.post("/", authenticate, validateLeaveSubmission, submitLeaveRequest);
+
+// ============================================================
+// ALL HR ATTENDANCE ROUTES REQUIRE AUTHENTICATION
+// ============================================================
+
+router.use(
+    authenticate
+);
+
+
+// ============================================================
+// GET DAILY ATTENDANCE
+// ============================================================
+//
+// HR only.
+//
+// GET /api/attendance
+// ============================================================
+
+router.get(
+    "/",
+    authorize("hr"),
+    getDailyAttendance
+);
+
+
+// ============================================================
+// VERIFY / UPDATE ATTENDANCE
+// ============================================================
+//
+// HR only.
+//
+// PUT /api/attendance/:id/verify
+// ============================================================
 
 router.put(
-  "/:id/decision",
-  authenticate,
-  authorize("hr"),
-  validateLeaveDecision,
-  processLeaveDecision,
+    "/:id/verify",
+    authorize("hr"),
+    validateAttendanceUpdate,
+    verifyAttendance
 );
+
 
 export default router;
