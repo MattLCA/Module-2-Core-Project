@@ -1,55 +1,103 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  const API_BASE = "http://localhost:4000/api";
+
   const timeoffSearch = document.getElementById("timeoffSearch");
   const timeoffDepartment = document.getElementById("timeoffDepartment");
   const timeoffType = document.getElementById("timeoffType");
   const employeeRows = document.getElementById("employeeRows");
 
-  // Same key the Leave page writes to when a request is approved/declined.
-  const OVERRIDES_KEY = "moderntech_leaveStatusOverrides";
+  // --------------------------------------------------------
+  // AUTHENTICATED REQUEST (same pattern as Busiswa_Leave_Script.js)
+  // --------------------------------------------------------
 
-  function loadLeaveOverrides() {
-    let saved;
-    try {
-      saved = JSON.parse(localStorage.getItem(OVERRIDES_KEY) || "{}");
-    } catch (e) {
-      saved = {};
-    }
-    employeeData.employees.forEach((employee) => {
-      employee.leaveRequests.forEach((leave) => {
-        const override = saved[leave.leaveId];
-        if (override) {
-          leave.status = override.status;
-          if (override.reason !== undefined) {
-            leave.reason = override.reason;
-          }
-        }
-      });
-    });
+  function getToken() {
+    return localStorage.getItem("authToken") || localStorage.getItem("token");
   }
 
-  loadLeaveOverrides();
+  async function apiRequest(endpoint, options = {}) {
+    const token = getToken();
 
-  // Build the "currently away" list straight from real employee data —
-  // only requests that have actually been approved show up here.
-  let timeoffData = [];
-  employeeData.employees.forEach((employee) => {
-    employee.leaveRequests.forEach((leave) => {
-      if (leave.status === "Approved") {
-        timeoffData.push({
-          id: employee.employeeId,
-          name: employee.name,
-          department: employee.department,
-          leaveType: leave.type,
-          startDate: leave.startDate,
-          endDate: leave.endDate,
-          duration: leave.duration,
-        });
-      }
+    if (!token) {
+      window.location.href = "index.html";
+      return null;
+    }
+
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+        Authorization: `Bearer ${token}`,
+      },
     });
-  });
+
+    const contentType = response.headers.get("content-type");
+    let result = null;
+
+    if (contentType && contentType.includes("application/json")) {
+      result = await response.json();
+    }
+
+    if (response.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("authToken");
+      window.location.href = "index.html";
+      return null;
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        (result && (result.message || result.error)) || "Request failed"
+      );
+    }
+
+    return result;
+  }
+
+  // --------------------------------------------------------
+  // LOAD APPROVED LEAVE (real "currently/previously away" list)
+  // --------------------------------------------------------
+
+  let timeoffData = [];
+
+  async function loadTimeoff() {
+    employeeRows.innerHTML = `<div class="empty-inline"><p>Loading\u2026</p></div>`;
+
+    try {
+      const response = await apiRequest("/leave?status=Approved");
+
+      if (!response) {
+        return;
+      }
+
+      const rows = Array.isArray(response)
+        ? response
+        : Array.isArray(response.data)
+        ? response.data
+        : [];
+
+      timeoffData = rows.map((r) => ({
+        id: r.employeeCode,
+        name: r.employeeFullName,
+        department: r.department,
+        leaveType: r.leaveType,
+        startDate: r.startDate,
+        endDate: r.endDate,
+        duration: r.duration,
+      }));
+    } catch (error) {
+      console.error("[Time Off] Failed to load approved leave:", error);
+      employeeRows.innerHTML = `<div class="empty-inline"><p>Couldn\u2019t load time off: ${error.message}</p></div>`;
+      return;
+    }
+
+    populateFilterOptions();
+    updateSummaryCards();
+    renderRows();
+  }
 
   function getInitials(name) {
-    return name
+    return (name || "")
       .split(" ")
       .map((part) => part[0])
       .join("")
@@ -57,7 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function leaveTypeClass(type) {
-    return type.replace(/\s+/g, "-").toLowerCase();
+    return (type || "").replace(/\s+/g, "-").toLowerCase();
   }
 
   function formatDate(dateStr) {
@@ -85,9 +133,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function populateFilterOptions() {
-    const departments = [
-      ...new Set(employeeData.employees.map((e) => e.department)),
-    ].sort();
+    // Departments/types are derived from who's actually on the approved
+    // leave list (rather than every department in the company), so the
+    // dropdowns only ever show options that can return results.
+    timeoffDepartment.innerHTML = `<option>All Departments</option>`;
+    timeoffType.innerHTML = `<option>All Types</option>`;
+
+    const departments = [...new Set(timeoffData.map((t) => t.department))].sort();
     const types = [...new Set(timeoffData.map((t) => t.leaveType))].sort();
 
     departments.forEach((dept) => {
@@ -110,53 +162,24 @@ document.addEventListener("DOMContentLoaded", () => {
     const departments = new Set(matches.map((m) => m.department));
     let mostRecent = null;
     matches.forEach((m) => {
-      if (
-        !mostRecent ||
-        new Date(m.startDate) > new Date(mostRecent.startDate)
-      ) {
+      if (!mostRecent || new Date(m.startDate) > new Date(mostRecent.startDate)) {
         mostRecent = m;
       }
     });
     return {
       count: matches.length,
       deptCount: departments.size,
-      recentName: mostRecent ? mostRecent.name : "—",
+      recentName: mostRecent ? mostRecent.name : "\u2014",
     };
   }
 
   function updateSummaryCards() {
     // Maps each summary card to the leave "type" value used in the data.
-    // Your data uses "Vacation" / "Personal" rather than "Annual" / "Casual",
-    // so those are treated as the closest equivalents.
     const mapping = [
-      {
-        key: "Vacation",
-        countId: "annualLeaveCount",
-        awayId: "annualLeaveAway",
-        deptsId: "annualLeaveDepts",
-        recentId: "annualLeaveRecent",
-      },
-      {
-        key: "Sick Leave",
-        countId: "sickLeaveCount",
-        awayId: "sickLeaveAway",
-        deptsId: "sickLeaveDepts",
-        recentId: "sickLeaveRecent",
-      },
-      {
-        key: "Personal",
-        countId: "casualLeaveCount",
-        awayId: "casualLeaveAway",
-        deptsId: "casualLeaveDepts",
-        recentId: "casualLeaveRecent",
-      },
-      {
-        key: "Family Responsibility",
-        countId: "familyLeaveCount",
-        awayId: "familyLeaveAway",
-        deptsId: "familyLeaveDepts",
-        recentId: "familyLeaveRecent",
-      },
+      { key: "Vacation", countId: "annualLeaveCount", awayId: "annualLeaveAway", deptsId: "annualLeaveDepts", recentId: "annualLeaveRecent" },
+      { key: "Sick Leave", countId: "sickLeaveCount", awayId: "sickLeaveAway", deptsId: "sickLeaveDepts", recentId: "sickLeaveRecent" },
+      { key: "Personal", countId: "casualLeaveCount", awayId: "casualLeaveAway", deptsId: "casualLeaveDepts", recentId: "casualLeaveRecent" },
+      { key: "Family Responsibility", countId: "familyLeaveCount", awayId: "familyLeaveAway", deptsId: "familyLeaveDepts", recentId: "familyLeaveRecent" },
     ];
 
     mapping.forEach(({ key, countId, awayId, deptsId, recentId }) => {
@@ -223,9 +246,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  populateFilterOptions();
-  updateSummaryCards();
-  renderRows();
+  await loadTimeoff();
 
   timeoffSearch.addEventListener("input", renderRows);
   timeoffDepartment.addEventListener("change", renderRows);

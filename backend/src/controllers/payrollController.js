@@ -26,7 +26,6 @@ async function list(req, res, next) {
 
     const records = await payrollModel.findAll({
       payPeriod: req.query.payPeriod,
-
       employeeId,
     });
 
@@ -75,7 +74,6 @@ async function create(req, res, next) {
 
     const existing = await payrollModel.findByEmployeeAndPeriod(
       req.body.employeeId,
-
       req.body.payPeriod,
     );
 
@@ -110,7 +108,6 @@ async function update(req, res, next) {
 
     const record = await payrollModel.update(
       req.params.id,
-
       req.body,
     );
 
@@ -144,4 +141,32 @@ async function remove(req, res, next) {
   }
 }
 
-export { list, getOne, create, update, remove };
+// ============================================================
+// GENERATE (BULK, ONE PER ACTIVE EMPLOYEE)
+// ============================================================
+
+async function generate(req, res, next) {
+  try {
+    validateRequest(req);
+
+    const records = await payrollModel.generateForPeriod(
+      req.body.payPeriod
+    );
+
+    res.status(201).json({
+      data: records,
+      count: records.length,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export {
+  list,
+  getOne,
+  create,
+  update,
+  remove,
+  generate,
+};

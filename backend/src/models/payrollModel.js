@@ -433,6 +433,45 @@ async function remove(payrollId) {
   return result.affectedRows > 0;
 }
 
+// ============================================================
+// GENERATE PAYROLL FOR PERIOD (BULK)
+// ============================================================
+
+const DEFAULT_HOURS_WORKED = 160;
+
+async function generateForPeriod(payPeriod) {
+  const [employees] = await pool.query(
+    `
+    SELECT employee_id
+    FROM employees
+    WHERE is_active = 1
+    `,
+  );
+
+  const created = [];
+
+  for (const employee of employees) {
+    const existing = await findByEmployeeAndPeriod(
+      employee.employee_id,
+      payPeriod,
+    );
+
+    if (existing) {
+      continue;
+    }
+
+    const record = await create({
+      employeeId: employee.employee_id,
+      payPeriod,
+      hoursWorked: DEFAULT_HOURS_WORKED,
+    });
+
+    created.push(record);
+  }
+
+  return created;
+}
+
 export {
   findAll,
   findById,
@@ -441,4 +480,5 @@ export {
   update,
   remove,
   calculateFinalSalary,
+  generateForPeriod,
 };
