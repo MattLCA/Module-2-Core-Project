@@ -1,14 +1,12 @@
-import pool from '../../config/db.js';
-
+import pool from "../../config/db.js";
 
 // ============================================================
 // GET LEAVE TYPES
 // ============================================================
 
 export const getLeaveTypes = async () => {
-
-    const [rows] = await pool.query(
-        `
+  const [rows] = await pool.query(
+    `
         SELECT
             leave_type_id AS leaveTypeId,
 
@@ -23,20 +21,13 @@ export const getLeaveTypes = async () => {
         WHERE is_active = 1
 
         ORDER BY leave_type_id
-        `
-    );
+        `,
+  );
 
+  console.log("[Leave Model] Leave types returned:", rows);
 
-    console.log(
-        "[Leave Model] Leave types returned:",
-        rows
-    );
-
-
-    return rows;
-
+  return rows;
 };
-
 
 // ============================================================
 // GET WORKER LEAVE BALANCES
@@ -50,17 +41,13 @@ export const getLeaveTypes = async () => {
 //
 // ============================================================
 
-export const getLeaveBalances = async (
-    employeeId
-) => {
+export const getLeaveBalances = async (employeeId) => {
+  console.log(
+    `[Leave Model] Getting current-year balances for employee ${employeeId}`,
+  );
 
-    console.log(
-        `[Leave Model] Getting current-year balances for employee ${employeeId}`
-    );
-
-
-    const [rows] = await pool.query(
-        `
+  const [rows] = await pool.query(
+    `
         SELECT
             lb.balance_id AS balanceId,
 
@@ -96,42 +83,27 @@ export const getLeaveBalances = async (
 
         ORDER BY lb.leave_type_id
         `,
-        [
-            employeeId
-        ]
-    );
+    [employeeId],
+  );
 
+  console.log(
+    `[Leave Model] Database returned ${rows.length} balance row(s) for employee ${employeeId}:`,
+  );
 
-    console.log(
-        `[Leave Model] Database returned ${rows.length} balance row(s) for employee ${employeeId}:`
-    );
+  console.table(rows);
 
-
-    console.table(
-        rows
-    );
-
-
-    return rows;
-
+  return rows;
 };
-
 
 // ============================================================
 // GET WORKER LEAVE REQUESTS
 // ============================================================
 
-export const getLeaveRequests = async (
-    employeeId
-) => {
+export const getLeaveRequests = async (employeeId) => {
+  console.log(`[Leave Model] Getting requests for employee ${employeeId}`);
 
-    console.log(
-        `[Leave Model] Getting requests for employee ${employeeId}`
-    );
-
-
-    const [rows] = await pool.query(
-        `
+  const [rows] = await pool.query(
+    `
         SELECT
             lr.leave_request_id AS leaveRequestId,
 
@@ -175,38 +147,25 @@ export const getLeaveRequests = async (
 
         ORDER BY lr.created_at DESC
         `,
-        [
-            employeeId
-        ]
-    );
+    [employeeId],
+  );
 
+  console.log(
+    `[Leave Model] Database returned ${rows.length} request(s) for employee ${employeeId}:`,
+  );
 
-    console.log(
-        `[Leave Model] Database returned ${rows.length} request(s) for employee ${employeeId}:`
-    );
+  console.table(rows);
 
-
-    console.table(
-        rows
-    );
-
-
-    return rows;
-
+  return rows;
 };
-
 
 // ============================================================
 // GET ONE LEAVE REQUEST
 // ============================================================
 
-export const getLeaveRequestById = async (
-    leaveRequestId,
-    employeeId
-) => {
-
-    const [rows] = await pool.query(
-        `
+export const getLeaveRequestById = async (leaveRequestId, employeeId) => {
+  const [rows] = await pool.query(
+    `
         SELECT
             lr.leave_request_id AS leaveRequestId,
 
@@ -252,28 +211,19 @@ export const getLeaveRequestById = async (
 
         LIMIT 1
         `,
-        [
-            leaveRequestId,
-            employeeId
-        ]
-    );
+    [leaveRequestId, employeeId],
+  );
 
-
-    return rows[0] || null;
-
+  return rows[0] || null;
 };
-
 
 // ============================================================
 // GET LEAVE TYPE BY ID
 // ============================================================
 
-export const getLeaveTypeById = async (
-    leaveTypeId
-) => {
-
-    const [rows] = await pool.query(
-        `
+export const getLeaveTypeById = async (leaveTypeId) => {
+  const [rows] = await pool.query(
+    `
         SELECT
             leave_type_id AS leaveTypeId,
 
@@ -287,33 +237,23 @@ export const getLeaveTypeById = async (
 
         LIMIT 1
         `,
-        [
-            leaveTypeId
-        ]
-    );
+    [leaveTypeId],
+  );
 
-
-    return rows[0] || null;
-
+  return rows[0] || null;
 };
-
 
 // ============================================================
 // GET CURRENT-YEAR BALANCE FOR ONE LEAVE TYPE
 // ============================================================
 
-export const getLeaveBalanceByType = async (
-    employeeId,
-    leaveTypeId
-) => {
+export const getLeaveBalanceByType = async (employeeId, leaveTypeId) => {
+  console.log(
+    `[Leave Model] Checking leave type ${leaveTypeId} for employee ${employeeId}`,
+  );
 
-    console.log(
-        `[Leave Model] Checking leave type ${leaveTypeId} for employee ${employeeId}`
-    );
-
-
-    const [rows] = await pool.query(
-        `
+  const [rows] = await pool.query(
+    `
         SELECT
             lb.balance_id AS balanceId,
 
@@ -349,36 +289,25 @@ export const getLeaveBalanceByType = async (
 
         LIMIT 1
         `,
-        [
-            employeeId,
-            leaveTypeId
-        ]
-    );
+    [employeeId, leaveTypeId],
+  );
 
+  console.log("[Leave Model] Selected balance:", rows[0] || null);
 
-    console.log(
-        "[Leave Model] Selected balance:",
-        rows[0] || null
-    );
-
-
-    return rows[0] || null;
-
+  return rows[0] || null;
 };
-
 
 // ============================================================
 // CHECK FOR OVERLAPPING LEAVE
 // ============================================================
 
 export const hasOverlappingLeave = async ({
-    employeeId,
-    startDate,
-    endDate
+  employeeId,
+  startDate,
+  endDate,
 }) => {
-
-    const [rows] = await pool.query(
-        `
+  const [rows] = await pool.query(
+    `
         SELECT
             leave_request_id
 
@@ -397,35 +326,26 @@ export const hasOverlappingLeave = async ({
 
         LIMIT 1
         `,
-        [
-            employeeId,
-            endDate,
-            startDate
-        ]
-    );
+    [employeeId, endDate, startDate],
+  );
 
-
-    return rows.length >
-        0;
-
+  return rows.length > 0;
 };
-
 
 // ============================================================
 // CREATE LEAVE REQUEST
 // ============================================================
 
 export const createLeaveRequest = async ({
-    employeeId,
-    leaveTypeId,
-    startDate,
-    endDate,
-    totalDays,
-    reason
+  employeeId,
+  leaveTypeId,
+  startDate,
+  endDate,
+  totalDays,
+  reason,
 }) => {
-
-    const [result] = await pool.query(
-        `
+  const [result] = await pool.query(
+    `
         INSERT INTO leave_requests
         (
             employee_id,
@@ -464,22 +384,8 @@ export const createLeaveRequest = async ({
             CURRENT_DATE
         )
         `,
-        [
-            employeeId,
+    [employeeId, leaveTypeId, startDate, endDate, totalDays, reason || null],
+  );
 
-            leaveTypeId,
-
-            startDate,
-
-            endDate,
-
-            totalDays,
-
-            reason || null
-        ]
-    );
-
-
-    return result;
-
+  return result;
 };

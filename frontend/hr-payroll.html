@@ -1,29 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ModernTech — Payroll Hub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="styles1.css">
 </head>
+
 <body class="page-payroll">
 
   <a href="#mainContent" class="skip-link">Skip to main content</a>
 
-  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="sidebar">
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation menu" aria-expanded="false"
+    aria-controls="sidebar">
     <i class="ti ti-menu-2" aria-hidden="true"></i>
   </button>
 
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <svg width="34" height="34" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ModernTech icon" style="flex-shrink:0;">
-        <rect x="0" y="0" width="34" height="34" rx="9" fill="#27187e"/>
-        <path d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z" fill="#ff8600"/>
+      <svg width="34" height="34" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" role="img"
+        aria-label="ModernTech icon" style="flex-shrink:0;">
+        <rect x="0" y="0" width="34" height="34" rx="9" fill="#27187e" />
+        <path d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25" fill="none" stroke="#ffffff" stroke-width="3.2"
+          stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z" fill="#ff8600" />
       </svg>
       <div>
         <div class="brand-name">ModernTech</div>
@@ -31,17 +38,21 @@
       </div>
     </div>
 
-  <div class="nav-section-label">Workspace</div>
-  <nav class="primary-nav" aria-label="Primary">
-    <a href="hr-dashboard.html" class="nav-item"><i class="ti ti-layout-grid" aria-hidden="true"></i>Dashboard</a>
-    <a href="hr-employees.html" class="nav-item"><i class="ti ti-users" aria-hidden="true"></i>Employees</a>
-    <a href="Busiswa_Attendance.html" class="nav-item"><i class="ti ti-calendar-check" aria-hidden="true"></i>Attendance</a>
-    <a href="Busiswa_Leave.html" class="nav-item"><i class="ti ti-beach" aria-hidden="true"></i>Leave</a>
-    <a href="hr-payroll.html" class="nav-item active" aria-current="page"><i class="ti ti-cash" aria-hidden="true"></i>Payroll</a>
-    <a href="hr-performance.html" class="nav-item"><i class="ti ti-chart-arrows" aria-hidden="true"></i>Performance</a>
-    <a href="Busiswa_TimeOff.html" class="nav-item"><i class="ti ti-chart-arrows" aria-hidden="true"></i>Time off</a>
-    <a href="Busiswa_IssuesReport.html" class="nav-item"><i class="ti ti-chart-arrows" aria-hidden="true"></i>Issues Report</a>
-  </nav>
+    <div class="nav-section-label">Workspace</div>
+    <nav class="primary-nav" aria-label="Primary">
+      <a href="hr-dashboard.html" class="nav-item"><i class="ti ti-layout-grid" aria-hidden="true"></i>Dashboard</a>
+      <a href="hr-employees.html" class="nav-item"><i class="ti ti-users" aria-hidden="true"></i>Employees</a>
+      <a href="Busiswa_Attendance.html" class="nav-item"><i class="ti ti-calendar-check"
+          aria-hidden="true"></i>Attendance</a>
+      <a href="Busiswa_Leave.html" class="nav-item"><i class="ti ti-beach" aria-hidden="true"></i>Leave</a>
+      <a href="hr-payroll.html" class="nav-item active" aria-current="page"><i class="ti ti-cash"
+          aria-hidden="true"></i>Payroll</a>
+      <a href="hr-performance.html" class="nav-item"><i class="ti ti-chart-arrows"
+          aria-hidden="true"></i>Performance</a>
+      <a href="Busiswa_TimeOff.html" class="nav-item"><i class="ti ti-chart-arrows" aria-hidden="true"></i>Time off</a>
+      <a href="Busiswa_IssuesReport.html" class="nav-item"><i class="ti ti-chart-arrows" aria-hidden="true"></i>Issues
+        Report</a>
+    </nav>
 
     <div class="sidebar-footer">
       <button class="user-chip" id="userMenuBtn" aria-haspopup="true" aria-expanded="false">
@@ -54,7 +65,7 @@
       <button id="logoutBtn" class="logout-btn">
         <i class="ti ti-logout"></i>
         Logout
-    </button>
+      </button>
     </div>
   </aside>
 
@@ -80,7 +91,8 @@
           <div class="sub" id="runCycleLabel">Cycle locks soon</div>
         </div>
         <div class="panel-actions">
-          <button class="secondary-btn" id="generatePayrollBtn"><i class="ti ti-plus"></i> Generate This Month's Payroll</button>
+          <button class="secondary-btn" id="generatePayrollBtn"><i class="ti ti-plus"></i> Generate This Month's
+            Payroll</button>
           <button class="secondary-btn" id="recalcBtn"><i class="ti ti-calculator"></i> Recalculate</button>
           <button class="primary-btn" id="processBatchBtn"><i class="ti ti-cash"></i> Process All Payouts</button>
         </div>
@@ -130,10 +142,12 @@
     <div class="modal-card">
       <div class="modal-header">
         <div class="modal-brand">
-          <svg width="28" height="28" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ModernTech icon" style="flex-shrink:0;">
-            <rect x="0" y="0" width="34" height="34" rx="9" fill="#27187e"/>
-            <path d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z" fill="#ff8600"/>
+          <svg width="28" height="28" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" role="img"
+            aria-label="ModernTech icon" style="flex-shrink:0;">
+            <rect x="0" y="0" width="34" height="34" rx="9" fill="#27187e" />
+            <path d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25" fill="none" stroke="#ffffff" stroke-width="3.2"
+              stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0 Z" fill="#ff8600" />
           </svg>
           <span class="modal-comp-name">ModernTech Ltd.</span>
         </div>
@@ -204,7 +218,8 @@
 
   <script src="api.js"></script>
   <script src="hr-payroll.js"></script>
-<script src="user-chip.js"></script>
+  <script src="user-chip.js"></script>
 
 </body>
+
 </html>

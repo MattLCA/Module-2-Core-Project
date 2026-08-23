@@ -1,169 +1,90 @@
 import express from "express";
 
-import {
-    body
-} from "express-validator";
+import { body } from "express-validator";
 
-import * as controller
-    from "../controllers/employeeController.js";
+import * as controller from "../controllers/employeeController.js";
 
-import {
-    authenticate,
-    authorize
-} from "../middleware/auth.js";
+import { authenticate, authorize } from "../middleware/auth.js";
 
+const router = express.Router();
 
-const router =
-    express.Router();
-
-
-router.use(
-    authenticate
-);
-
+router.use(authenticate);
 
 // HR employee list
-router.get(
-    "/",
-    authorize("hr"),
-    controller.list
-);
-
+router.get("/", authorize("hr"), controller.list);
 
 // HR can see any employee.
 // Worker can only see their own.
-router.get(
-    "/:id",
-    authorize("hr", "worker"),
-    controller.getOne
-);
-
+router.get("/:id", authorize("hr", "worker"), controller.getOne);
 
 // Create employee
 router.post(
+  "/",
 
-    "/",
+  authorize("hr"),
 
-    authorize("hr"),
+  [
+    body("name").trim().notEmpty().withMessage("Name is required."),
 
-    [
+    body("position").trim().notEmpty().withMessage("Position is required."),
 
-        body("name")
-            .trim()
-            .notEmpty()
-            .withMessage(
-                "Name is required."
-            ),
+    body("department").trim().notEmpty().withMessage("Department is required."),
 
-        body("position")
-            .trim()
-            .notEmpty()
-            .withMessage(
-                "Position is required."
-            ),
+    body("baseSalary")
+      .isFloat({
+        min: 0,
+      })
+      .withMessage("baseSalary must be a positive number."),
 
-        body("department")
-            .trim()
-            .notEmpty()
-            .withMessage(
-                "Department is required."
-            ),
+    body("password")
+      .isLength({
+        min: 8,
+      })
+      .withMessage("Password must be at least 8 characters."),
 
-        body("baseSalary")
-            .isFloat({
-                min: 0
-            })
-            .withMessage(
-                "baseSalary must be a positive number."
-            ),
+    body("email")
+      .optional({
+        nullable: true,
+      })
+      .isEmail()
+      .withMessage("Invalid email."),
 
-        body("password")
-            .isLength({
-                min: 8
-            })
-            .withMessage(
-                "Password must be at least 8 characters."
-            ),
+    body("role").optional().isIn(["hr", "worker"]),
+  ],
 
-        body("email")
-            .optional({
-                nullable: true
-            })
-            .isEmail()
-            .withMessage(
-                "Invalid email."
-            ),
-
-        body("role")
-            .optional()
-            .isIn([
-                "hr",
-                "worker"
-            ])
-
-    ],
-
-    controller.create
-
+  controller.create,
 );
-
 
 // Update employee
 router.patch(
+  "/:id",
 
-    "/:id",
+  authorize("hr"),
 
-    authorize("hr"),
+  [
+    body("name").optional().trim().notEmpty(),
 
-    [
+    body("email")
+      .optional({
+        nullable: true,
+      })
+      .isEmail(),
 
-        body("name")
-            .optional()
-            .trim()
-            .notEmpty(),
+    body("position").optional().trim().notEmpty(),
 
-        body("email")
-            .optional({
-                nullable: true
-            })
-            .isEmail(),
+    body("department").optional().trim().notEmpty(),
 
-        body("position")
-            .optional()
-            .trim()
-            .notEmpty(),
+    body("base_salary").optional().isFloat({
+      min: 0,
+    }),
 
-        body("department")
-            .optional()
-            .trim()
-            .notEmpty(),
+    body("role").optional().isIn(["hr", "worker"]),
+  ],
 
-        body("base_salary")
-            .optional()
-            .isFloat({
-                min: 0
-            }),
-
-        body("role")
-            .optional()
-            .isIn([
-                "hr",
-                "worker"
-            ])
-
-    ],
-
-    controller.update
-
+  controller.update,
 );
-
 
 // Soft delete
-router.delete(
-    "/:id",
-    authorize("hr"),
-    controller.remove
-);
-
+router.delete("/:id", authorize("hr"), controller.remove);
 
 export default router;

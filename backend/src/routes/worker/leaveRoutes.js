@@ -1,23 +1,21 @@
-import express from 'express';
+import express from "express";
 
 import {
-    listLeaveTypes,
-    listLeaveBalances,
-    listLeaveRequests,
-    submitLeaveRequest
-} from '../../controllers/worker/leaveController.js';
+  listLeaveTypes,
+  listLeaveBalances,
+  listLeaveRequests,
+  submitLeaveRequest,
+} from "../../controllers/worker/leaveController.js";
 
-import { authenticate } from '../../middleware/auth.js';
+import { authenticate } from "../../middleware/auth.js";
 
 const router = express.Router();
-
 
 // ============================================================
 // AUTHENTICATION
 // ============================================================
 
 router.use(authenticate);
-
 
 // ============================================================
 // LEAVE TYPES
@@ -27,8 +25,7 @@ router.use(authenticate);
 //
 // ============================================================
 
-router.get('/types', listLeaveTypes);
-
+router.get("/types", listLeaveTypes);
 
 // ============================================================
 // LEAVE BALANCES
@@ -38,8 +35,7 @@ router.get('/types', listLeaveTypes);
 //
 // ============================================================
 
-router.get('/balances', listLeaveBalances);
-
+router.get("/balances", listLeaveBalances);
 
 // ============================================================
 // LEAVE REQUESTS
@@ -49,8 +45,7 @@ router.get('/balances', listLeaveBalances);
 //
 // ============================================================
 
-router.get('/requests', listLeaveRequests);
-
+router.get("/requests", listLeaveRequests);
 
 // ============================================================
 // SUBMIT LEAVE REQUEST
@@ -60,7 +55,6 @@ router.get('/requests', listLeaveRequests);
 //
 // ============================================================
 
-router.post('/requests', submitLeaveRequest);
-
+router.post("/requests", submitLeaveRequest);
 
 export default router;

@@ -1,4 +1,4 @@
-import pool from '../config/db.js';
+import pool from "../config/db.js";
 
 async function getActiveCycle() {
   const [rows] = await pool.query(
@@ -6,7 +6,7 @@ async function getActiveCycle() {
      FROM review_cycles
      WHERE is_active = 1
      ORDER BY review_cycle_id DESC
-     LIMIT 1`
+     LIMIT 1`,
   );
   return rows[0] || null;
 }
@@ -24,7 +24,7 @@ async function getFunnel(reviewCycleId) {
        SUM(finalized) AS finalizedCount
      FROM review_cycle_progress
      WHERE review_cycle_id = ?`,
-    [reviewCycleId]
+    [reviewCycleId],
   );
 
   const r = rows[0];
@@ -45,12 +45,17 @@ async function getProgressForEmployee(reviewCycleId, employeeId) {
     `SELECT self_review_submitted, manager_review_submitted, calibration_complete, finalized
      FROM review_cycle_progress
      WHERE review_cycle_id = ? AND employee_id = ?`,
-    [reviewCycleId, employeeId]
+    [reviewCycleId, employeeId],
   );
   return rows[0] || null;
 }
 
-const STAGE_COLUMNS = ['self_review_submitted', 'manager_review_submitted', 'calibration_complete', 'finalized'];
+const STAGE_COLUMNS = [
+  "self_review_submitted",
+  "manager_review_submitted",
+  "calibration_complete",
+  "finalized",
+];
 
 async function updateProgress(reviewCycleId, employeeId, flags) {
   const fields = [];
@@ -66,9 +71,9 @@ async function updateProgress(reviewCycleId, employeeId, flags) {
 
   values.push(reviewCycleId, employeeId);
   await pool.query(
-    `UPDATE review_cycle_progress SET ${fields.join(', ')}
+    `UPDATE review_cycle_progress SET ${fields.join(", ")}
      WHERE review_cycle_id = ? AND employee_id = ?`,
-    values
+    values,
   );
 }
 

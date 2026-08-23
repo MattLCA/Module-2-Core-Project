@@ -15,59 +15,37 @@ import payslipRoutes from "./payslipRoutes.js";
 // Do NOT maintain a second worker notification system.
 import notificationRoutes from "../notificationRoutes.js";
 
-
 const router = express.Router();
-
 
 // ============================================================
 // DASHBOARD
 // ============================================================
 
-router.use(
-    "/dashboard",
-    dashboardRoutes
-);
-
+router.use("/dashboard", dashboardRoutes);
 
 // ============================================================
 // PROFILE
 // ============================================================
 
-router.use(
-    "/profile",
-    profileRoutes
-);
-
+router.use("/profile", profileRoutes);
 
 // ============================================================
 // ATTENDANCE
 // ============================================================
 
-router.use(
-    "/attendance",
-    attendanceRoutes
-);
-
+router.use("/attendance", attendanceRoutes);
 
 // ============================================================
 // LEAVE
 // ============================================================
 
-router.use(
-    "/leave",
-    leaveRoutes
-);
-
+router.use("/leave", leaveRoutes);
 
 // ============================================================
 // PAYSLIPS
 // ============================================================
 
-router.use(
-    "/payslips",
-    payslipRoutes
-);
-
+router.use("/payslips", payslipRoutes);
 
 // ============================================================
 // NOTIFICATIONS
@@ -86,10 +64,6 @@ router.use(
 //
 // ============================================================
 
-router.use(
-    "/notifications",
-    notificationRoutes
-);
-
+router.use("/notifications", notificationRoutes);
 
 export default router;

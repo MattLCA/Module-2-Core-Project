@@ -4,7 +4,6 @@
 
 import jwt from "jsonwebtoken";
 
-
 // ============================================================
 // AUTHENTICATE
 // ============================================================
@@ -20,84 +19,44 @@ import jwt from "jsonwebtoken";
 // ============================================================
 
 function authenticate(req, res, next) {
+  const authorization = req.headers.authorization || "";
 
-    const authorization =
-        req.headers.authorization || "";
+  const [scheme, token] = authorization.split(" ");
 
+  if (scheme !== "Bearer" || !token) {
+    return res.status(401).json({
+      error: "Missing or malformed Authorization header",
+    });
+  }
 
-    const [scheme, token] =
-        authorization.split(" ");
+  if (!process.env.JWT_SECRET) {
+    console.error("JWT_SECRET is not configured.");
 
+    return res.status(500).json({
+      error: "Authentication is not configured correctly.",
+    });
+  }
 
-    if (
-        scheme !== "Bearer" ||
-        !token
-    ) {
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
 
-        return res.status(401).json({
-            error:
-                "Missing or malformed Authorization header"
-        });
+    req.user = payload;
 
+    return next();
+  } catch (error) {
+    console.error("JWT authentication error:", error.message);
+
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        error: "Token expired",
+      });
     }
 
-
-    if (!process.env.JWT_SECRET) {
-
-        console.error(
-            "JWT_SECRET is not configured."
-        );
-
-        return res.status(500).json({
-            error:
-                "Authentication is not configured correctly."
-        });
-
-    }
-
-
-    try {
-
-        const payload =
-            jwt.verify(
-                token,
-                process.env.JWT_SECRET
-            );
-
-
-        req.user = payload;
-
-
-        return next();
-
-    } catch (error) {
-
-        console.error(
-            "JWT authentication error:",
-            error.message
-        );
-
-
-        if (
-            error.name ===
-            "TokenExpiredError"
-        ) {
-
-            return res.status(401).json({
-                error: "Token expired"
-            });
-
-        }
-
-
-        return res.status(401).json({
-            error: "Invalid token"
-        });
-
-    }
-
+    return res.status(401).json({
+      error: "Invalid token",
+    });
+  }
 }
-
 
 // ============================================================
 // AUTHORIZE
@@ -113,60 +72,29 @@ function authenticate(req, res, next) {
 //
 // ============================================================
 
-function authorize(
-    ...allowedRoles
-) {
+function authorize(...allowedRoles) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        error: "Not authenticated",
+      });
+    }
 
-    return (
-        req,
-        res,
-        next
-    ) => {
+    // If no roles were supplied,
+    // authentication alone is required.
 
-        if (!req.user) {
+    if (allowedRoles.length === 0) {
+      return next();
+    }
 
-            return res.status(401).json({
-                error:
-                    "Not authenticated"
-            });
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        error: "Insufficient permissions",
+      });
+    }
 
-        }
-
-
-        // If no roles were supplied,
-        // authentication alone is required.
-
-        if (
-            allowedRoles.length === 0
-        ) {
-
-            return next();
-
-        }
-
-
-        if (
-            !allowedRoles.includes(
-                req.user.role
-            )
-        ) {
-
-            return res.status(403).json({
-                error:
-                    "Insufficient permissions"
-            });
-
-        }
-
-
-        return next();
-
-    };
-
+    return next();
+  };
 }
 
-
-export {
-    authenticate,
-    authorize
-};
+export { authenticate, authorize };

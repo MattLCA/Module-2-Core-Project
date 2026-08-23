@@ -1,4 +1,4 @@
-import pool from '../config/db.js';
+import pool from "../config/db.js";
 
 async function findAll() {
   const [rows] = await pool.query(
@@ -6,7 +6,7 @@ async function findAll() {
             g.progress, g.due_date, g.created_at
      FROM goals g
      JOIN employees e ON e.employee_id = g.employee_id
-     ORDER BY g.created_at DESC`
+     ORDER BY g.created_at DESC`,
   );
   return rows;
 }
@@ -18,7 +18,7 @@ async function findById(goalId) {
      FROM goals g
      JOIN employees e ON e.employee_id = g.employee_id
      WHERE g.goal_id = ?`,
-    [goalId]
+    [goalId],
   );
   return rows[0] || null;
 }
@@ -31,7 +31,7 @@ async function getSummary() {
     `SELECT
        COUNT(*) AS total,
        SUM(CASE WHEN status IN ('on_track', 'completed') THEN 1 ELSE 0 END) AS onTrack
-     FROM goals`
+     FROM goals`,
   );
   const total = rows[0].total || 0;
   const onTrack = rows[0].onTrack || 0;
@@ -39,11 +39,18 @@ async function getSummary() {
   return { total, onTrack, percentOnTrack };
 }
 
-async function create({ employeeId, title, status = 'on_track', progress = 0, dueDate = null, createdBy = null }) {
+async function create({
+  employeeId,
+  title,
+  status = "on_track",
+  progress = 0,
+  dueDate = null,
+  createdBy = null,
+}) {
   const [result] = await pool.query(
     `INSERT INTO goals (employee_id, title, status, progress, due_date, created_by)
      VALUES (?, ?, ?, ?, ?, ?)`,
-    [employeeId, title, status, progress, dueDate, createdBy]
+    [employeeId, title, status, progress, dueDate, createdBy],
   );
   return result.insertId;
 }
@@ -56,7 +63,7 @@ async function update(goalId, { title, status, progress, dueDate }) {
        progress = COALESCE(?, progress),
        due_date = COALESCE(?, due_date)
      WHERE goal_id = ?`,
-    [title ?? null, status ?? null, progress ?? null, dueDate ?? null, goalId]
+    [title ?? null, status ?? null, progress ?? null, dueDate ?? null, goalId],
   );
 }
 

@@ -1,5 +1,4 @@
-import pool from '../../config/db.js';
-
+import pool from "../../config/db.js";
 
 // ============================================================
 // GET TODAY'S ACTIVE ATTENDANCE
@@ -16,9 +15,8 @@ import pool from '../../config/db.js';
 // ============================================================
 
 export const getActiveAttendance = async (employeeId) => {
-
-    const [rows] = await pool.query(
-        `
+  const [rows] = await pool.query(
+    `
         SELECT
             attendance_id AS attendanceId,
             employee_id AS employeeId,
@@ -37,12 +35,11 @@ export const getActiveAttendance = async (employeeId) => {
         ORDER BY attendance_id DESC
         LIMIT 1
         `,
-        [employeeId]
-    );
+    [employeeId],
+  );
 
-    return rows[0] || null;
+  return rows[0] || null;
 };
-
 
 // ============================================================
 // GET TODAY'S ATTENDANCE RECORD
@@ -56,9 +53,8 @@ export const getActiveAttendance = async (employeeId) => {
 // ============================================================
 
 export const getTodayAttendance = async (employeeId) => {
-
-    const [rows] = await pool.query(
-        `
+  const [rows] = await pool.query(
+    `
         SELECT
             attendance_id AS attendanceId,
             employee_id AS employeeId,
@@ -75,12 +71,11 @@ export const getTodayAttendance = async (employeeId) => {
         ORDER BY attendance_id DESC
         LIMIT 1
         `,
-        [employeeId]
-    );
+    [employeeId],
+  );
 
-    return rows[0] || null;
+  return rows[0] || null;
 };
-
 
 // ============================================================
 // CREATE CLOCK-IN ENTRY
@@ -95,9 +90,8 @@ export const getTodayAttendance = async (employeeId) => {
 // ============================================================
 
 export const createClockIn = async (employeeId) => {
-
-    const [result] = await pool.query(
-        `
+  const [result] = await pool.query(
+    `
         INSERT INTO attendance
         (
             employee_id,
@@ -115,12 +109,11 @@ export const createClockIn = async (employeeId) => {
             'Present'
         )
         `,
-        [employeeId]
-    );
+    [employeeId],
+  );
 
-    return result;
+  return result;
 };
-
 
 // ============================================================
 // CLOCK OUT
@@ -131,9 +124,8 @@ export const createClockIn = async (employeeId) => {
 // ============================================================
 
 export const updateClockOut = async (attendanceId) => {
-
-    const [result] = await pool.query(
-        `
+  const [result] = await pool.query(
+    `
         UPDATE attendance
         SET
             clock_out = NOW(),
@@ -141,12 +133,11 @@ export const updateClockOut = async (attendanceId) => {
         WHERE attendance_id = ?
           AND clock_out IS NULL
         `,
-        [attendanceId]
-    );
+    [attendanceId],
+  );
 
-    return result;
+  return result;
 };
-
 
 // ============================================================
 // GET PERSONAL ATTENDANCE HISTORY
@@ -162,9 +153,8 @@ export const updateClockOut = async (attendanceId) => {
 // ============================================================
 
 export const getHistoryByEmployeeId = async (employeeId) => {
-
-    const [rows] = await pool.query(
-        `
+  const [rows] = await pool.query(
+    `
         SELECT
             attendance_id AS attendanceId,
             employee_id AS employeeId,
@@ -179,8 +169,8 @@ export const getHistoryByEmployeeId = async (employeeId) => {
             attendance_id DESC
         LIMIT 30
         `,
-        [employeeId]
-    );
+    [employeeId],
+  );
 
-    return rows;
+  return rows;
 };

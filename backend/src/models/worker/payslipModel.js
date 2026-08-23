@@ -1,5 +1,4 @@
-import pool from '../../config/db.js';
-
+import pool from "../../config/db.js";
 
 // ============================================================
 // GET ALL PAYSLIPS FOR LOGGED-IN WORKER
@@ -11,12 +10,9 @@ import pool from '../../config/db.js';
 //
 // ============================================================
 
-export const getPayslipsByEmployeeId = async (
-    employeeId
-) => {
-
-    const [rows] = await pool.query(
-        `
+export const getPayslipsByEmployeeId = async (employeeId) => {
+  const [rows] = await pool.query(
+    `
         SELECT
 
             p.payroll_id AS payrollId,
@@ -147,26 +143,17 @@ export const getPayslipsByEmployeeId = async (
             p.pay_period DESC,
             p.payroll_id DESC
         `,
-        [
-            employeeId
-        ]
-    );
+    [employeeId],
+  );
 
+  console.log(
+    `[Payslip Model] Returned ${rows.length} payslip(s) for employee ${employeeId}`,
+  );
 
-    console.log(
-        `[Payslip Model] Returned ${rows.length} payslip(s) for employee ${employeeId}`
-    );
+  console.table(rows);
 
-
-    console.table(
-        rows
-    );
-
-
-    return rows;
-
+  return rows;
 };
-
 
 // ============================================================
 // GET ONE PAYSLIP
@@ -179,13 +166,9 @@ export const getPayslipsByEmployeeId = async (
 //
 // ============================================================
 
-export const getPayslipById = async (
-    payrollId,
-    employeeId
-) => {
-
-    const [rows] = await pool.query(
-        `
+export const getPayslipById = async (payrollId, employeeId) => {
+  const [rows] = await pool.query(
+    `
         SELECT
 
             p.payroll_id AS payrollId,
@@ -327,13 +310,8 @@ export const getPayslipById = async (
 
         LIMIT 1
         `,
-        [
-            payrollId,
-            employeeId
-        ]
-    );
+    [payrollId, employeeId],
+  );
 
-
-    return rows[0] || null;
-
+  return rows[0] || null;
 };

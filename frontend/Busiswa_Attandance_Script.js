@@ -132,7 +132,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // two got out of sync before this feature existed.
   (function reconcileSessions() {
     const last = sessions[sessions.length - 1];
-    const hasOpenSession = last && (last.out === null || last.out === undefined);
+    const hasOpenSession =
+      last && (last.out === null || last.out === undefined);
 
     if (working && !hasOpenSession) {
       sessions.push({ in: lastClockIn || Date.now(), out: null });

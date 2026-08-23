@@ -85,7 +85,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function populateFilterOptions() {
-    const departments = [...new Set(employeeData.employees.map((e) => e.department))].sort();
+    const departments = [
+      ...new Set(employeeData.employees.map((e) => e.department)),
+    ].sort();
     const types = [...new Set(timeoffData.map((t) => t.leaveType))].sort();
 
     departments.forEach((dept) => {
@@ -108,7 +110,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const departments = new Set(matches.map((m) => m.department));
     let mostRecent = null;
     matches.forEach((m) => {
-      if (!mostRecent || new Date(m.startDate) > new Date(mostRecent.startDate)) {
+      if (
+        !mostRecent ||
+        new Date(m.startDate) > new Date(mostRecent.startDate)
+      ) {
         mostRecent = m;
       }
     });
@@ -124,10 +129,34 @@ document.addEventListener("DOMContentLoaded", () => {
     // Your data uses "Vacation" / "Personal" rather than "Annual" / "Casual",
     // so those are treated as the closest equivalents.
     const mapping = [
-      { key: "Vacation", countId: "annualLeaveCount", awayId: "annualLeaveAway", deptsId: "annualLeaveDepts", recentId: "annualLeaveRecent" },
-      { key: "Sick Leave", countId: "sickLeaveCount", awayId: "sickLeaveAway", deptsId: "sickLeaveDepts", recentId: "sickLeaveRecent" },
-      { key: "Personal", countId: "casualLeaveCount", awayId: "casualLeaveAway", deptsId: "casualLeaveDepts", recentId: "casualLeaveRecent" },
-      { key: "Family Responsibility", countId: "familyLeaveCount", awayId: "familyLeaveAway", deptsId: "familyLeaveDepts", recentId: "familyLeaveRecent" },
+      {
+        key: "Vacation",
+        countId: "annualLeaveCount",
+        awayId: "annualLeaveAway",
+        deptsId: "annualLeaveDepts",
+        recentId: "annualLeaveRecent",
+      },
+      {
+        key: "Sick Leave",
+        countId: "sickLeaveCount",
+        awayId: "sickLeaveAway",
+        deptsId: "sickLeaveDepts",
+        recentId: "sickLeaveRecent",
+      },
+      {
+        key: "Personal",
+        countId: "casualLeaveCount",
+        awayId: "casualLeaveAway",
+        deptsId: "casualLeaveDepts",
+        recentId: "casualLeaveRecent",
+      },
+      {
+        key: "Family Responsibility",
+        countId: "familyLeaveCount",
+        awayId: "familyLeaveAway",
+        deptsId: "familyLeaveDepts",
+        recentId: "familyLeaveRecent",
+      },
     ];
 
     mapping.forEach(({ key, countId, awayId, deptsId, recentId }) => {

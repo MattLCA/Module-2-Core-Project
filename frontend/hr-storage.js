@@ -7,7 +7,7 @@
    and survives a refresh.
    ================================================================ */
 (function (global) {
-  var STORAGE_KEY = 'moderntech_hr_overrides_v1';
+  var STORAGE_KEY = "moderntech_hr_overrides_v1";
 
   function loadOverrides() {
     try {
@@ -17,10 +17,10 @@
       return {
         added: parsed.added || [],
         removedIds: parsed.removedIds || [],
-        edited: parsed.edited || {}
+        edited: parsed.edited || {},
       };
     } catch (err) {
-      console.error('HRStorage: failed to read localStorage', err);
+      console.error("HRStorage: failed to read localStorage", err);
       return { added: [], removedIds: [], edited: {} };
     }
   }
@@ -29,7 +29,7 @@
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
     } catch (err) {
-      console.error('HRStorage: failed to write localStorage', err);
+      console.error("HRStorage: failed to write localStorage", err);
     }
   }
 
@@ -46,24 +46,31 @@
   function buildEmployees(baseList, mapFn) {
     var overrides = loadOverrides();
     var removed = {};
-    overrides.removedIds.forEach(function (id) { removed[id] = true; });
+    overrides.removedIds.forEach(function (id) {
+      removed[id] = true;
+    });
 
     var mapped = (baseList || [])
       .map(mapFn)
-      .filter(function (e) { return !removed[idOf(e)]; })
+      .filter(function (e) {
+        return !removed[idOf(e)];
+      })
       .map(function (e) {
         var edits = overrides.edited[idOf(e)];
         return edits ? Object.assign({}, e, edits) : e;
       });
 
-    var added = overrides.added.filter(function (e) { return !removed[idOf(e)]; });
+    var added = overrides.added.filter(function (e) {
+      return !removed[idOf(e)];
+    });
 
     return added.concat(mapped);
   }
 
   function addEmployee(emp) {
     var overrides = loadOverrides();
-    emp.localId = 'local-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    emp.localId =
+      "local-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
     overrides.added.unshift(emp);
     saveOverrides(overrides);
     return emp;
@@ -72,13 +79,17 @@
   function removeEmployee(id) {
     var overrides = loadOverrides();
     overrides.removedIds.push(String(id));
-    overrides.added = overrides.added.filter(function (e) { return idOf(e) !== String(id); });
+    overrides.added = overrides.added.filter(function (e) {
+      return idOf(e) !== String(id);
+    });
     saveOverrides(overrides);
   }
 
   function updateEmployee(id, changes) {
     var overrides = loadOverrides();
-    var addedMatch = overrides.added.find(function (e) { return idOf(e) === String(id); });
+    var addedMatch = overrides.added.find(function (e) {
+      return idOf(e) === String(id);
+    });
     if (addedMatch) {
       Object.assign(addedMatch, changes);
     } else {
@@ -97,6 +108,6 @@
     removeEmployee: removeEmployee,
     updateEmployee: updateEmployee,
     clearAll: clearAll,
-    idOf: idOf
+    idOf: idOf,
   };
 })(window);

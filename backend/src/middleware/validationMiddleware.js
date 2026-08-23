@@ -3,41 +3,37 @@
 // ============================================================
 
 function validateFields(requiredFields = []) {
-    return (req, res, next) => {
-        const missing = [];
+  return (req, res, next) => {
+    const missing = [];
 
-        for (const field of requiredFields) {
-            const value = req.body?.[field];
+    for (const field of requiredFields) {
+      const value = req.body?.[field];
 
-            if (
-                value === undefined ||
-                value === null ||
-                (typeof value === "string" && value.trim() === "")
-            ) {
-                missing.push(field);
-            }
-        }
+      if (
+        value === undefined ||
+        value === null ||
+        (typeof value === "string" && value.trim() === "")
+      ) {
+        missing.push(field);
+      }
+    }
 
-        if (missing.length > 0) {
-            return res.status(400).json({
-                error: "Validation failed.",
-                details: `Missing required fields: ${missing.join(", ")}`
-            });
-        }
+    if (missing.length > 0) {
+      return res.status(400).json({
+        error: "Validation failed.",
+        details: `Missing required fields: ${missing.join(", ")}`,
+      });
+    }
 
-        next();
-    };
+    next();
+  };
 }
-
 
 // ============================================================
 // HR ATTENDANCE
 // ============================================================
 
-const validateAttendanceUpdate = validateFields([
-    "attendanceStatus"
-]);
-
+const validateAttendanceUpdate = validateFields(["attendanceStatus"]);
 
 // ============================================================
 // LEAVE SUBMISSION
@@ -48,43 +44,35 @@ const validateAttendanceUpdate = validateFields([
 // ============================================================
 
 const validateLeaveSubmission = validateFields([
-    "leaveTypeId",
-    "startDate",
-    "endDate",
-    "totalDays"
+  "leaveTypeId",
+  "startDate",
+  "endDate",
+  "totalDays",
 ]);
-
 
 // ============================================================
 // HR LEAVE DECISION
 // ============================================================
 
-const validateLeaveDecision = validateFields([
-    "status"
-]);
-
+const validateLeaveDecision = validateFields(["status"]);
 
 // ============================================================
 // ISSUES
 // ============================================================
 
 const validateIssueCreation = validateFields([
-    "employeeId",
-    "title",
-    "message"
+  "employeeId",
+  "title",
+  "message",
 ]);
 
-
-const validateIssueStatusUpdate = validateFields([
-    "status"
-]);
-
+const validateIssueStatusUpdate = validateFields(["status"]);
 
 export {
-    validateFields,
-    validateAttendanceUpdate,
-    validateLeaveSubmission,
-    validateLeaveDecision,
-    validateIssueCreation,
-    validateIssueStatusUpdate
+  validateFields,
+  validateAttendanceUpdate,
+  validateLeaveSubmission,
+  validateLeaveDecision,
+  validateIssueCreation,
+  validateIssueStatusUpdate,
 };

@@ -4,80 +4,48 @@
 
 import express from "express";
 
-import * as controller
-    from "../controllers/notificationController.js";
+import * as controller from "../controllers/notificationController.js";
 
-import {
-    authenticate
-} from "../middleware/auth.js";
-
+import { authenticate } from "../middleware/auth.js";
 
 const router = express.Router();
 
-
-router.use(
-    authenticate
-);
-
+router.use(authenticate);
 
 // ============================================================
 // GET ALL
 // ============================================================
 
-router.get(
-    "/",
-    controller.list
-);
-
+router.get("/", controller.list);
 
 // ============================================================
 // GET UNREAD
 // ============================================================
 
-router.get(
-    "/unread",
-    controller.unread
-);
-
+router.get("/unread", controller.unread);
 
 // ============================================================
 // GET UNREAD COUNT
 // ============================================================
 
-router.get(
-    "/unread-count",
-    controller.unreadCount
-);
-
+router.get("/unread-count", controller.unreadCount);
 
 // ============================================================
 // GET ONE
 // ============================================================
 
-router.get(
-    "/:id",
-    controller.getOne
-);
-
+router.get("/:id", controller.getOne);
 
 // ============================================================
 // MARK ONE AS READ
 // ============================================================
 
-router.patch(
-    "/:id/read",
-    controller.markOneRead
-);
-
+router.patch("/:id/read", controller.markOneRead);
 
 // ============================================================
 // MARK ALL AS READ
 // ============================================================
 
-router.patch(
-    "/read-all",
-    controller.markAllRead
-);
-
+router.patch("/read-all", controller.markAllRead);
 
 export default router;

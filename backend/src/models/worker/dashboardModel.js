@@ -1,18 +1,16 @@
-import pool from '../../config/db.js';
-
+import pool from "../../config/db.js";
 
 // ============================================================
 // GET WORKER DASHBOARD DATA
 // ============================================================
 
 export const getWorkerDashboard = async (employeeId) => {
+  // --------------------------------------------------------
+  // 1. EMPLOYEE SUMMARY
+  // --------------------------------------------------------
 
-    // --------------------------------------------------------
-    // 1. EMPLOYEE SUMMARY
-    // --------------------------------------------------------
-
-    const [employeeRows] = await pool.query(
-        `
+  const [employeeRows] = await pool.query(
+    `
         SELECT
             e.employee_id AS employeeId,
             e.employee_code AS employeeCode,
@@ -40,16 +38,15 @@ export const getWorkerDashboard = async (employeeId) => {
 
         LIMIT 1
         `,
-        [employeeId]
-    );
+    [employeeId],
+  );
 
+  // --------------------------------------------------------
+  // 2. TODAY'S ATTENDANCE
+  // --------------------------------------------------------
 
-    // --------------------------------------------------------
-    // 2. TODAY'S ATTENDANCE
-    // --------------------------------------------------------
-
-    const [attendanceRows] = await pool.query(
-        `
+  const [attendanceRows] = await pool.query(
+    `
         SELECT
             attendance_id AS attendanceId,
             attendance_date AS attendanceDate,
@@ -63,16 +60,15 @@ export const getWorkerDashboard = async (employeeId) => {
           AND attendance_date = CURRENT_DATE()
         LIMIT 1
         `,
-        [employeeId]
-    );
+    [employeeId],
+  );
 
+  // --------------------------------------------------------
+  // 3. LEAVE BALANCES
+  // --------------------------------------------------------
 
-    // --------------------------------------------------------
-    // 3. LEAVE BALANCES
-    // --------------------------------------------------------
-
-    const [leaveBalanceRows] = await pool.query(
-        `
+  const [leaveBalanceRows] = await pool.query(
+    `
         SELECT
             balance_id AS balanceId,
             leave_type_id AS leaveTypeId,
@@ -86,16 +82,15 @@ export const getWorkerDashboard = async (employeeId) => {
           AND balance_year = YEAR(CURDATE())
         ORDER BY leave_type_name
         `,
-        [employeeId]
-    );
+    [employeeId],
+  );
 
+  // --------------------------------------------------------
+  // 4. RECENT LEAVE REQUESTS
+  // --------------------------------------------------------
 
-    // --------------------------------------------------------
-    // 4. RECENT LEAVE REQUESTS
-    // --------------------------------------------------------
-
-    const [leaveRequestRows] = await pool.query(
-        `
+  const [leaveRequestRows] = await pool.query(
+    `
         SELECT
             leave_request_id AS leaveRequestId,
             leave_type_id AS leaveTypeId,
@@ -111,16 +106,15 @@ export const getWorkerDashboard = async (employeeId) => {
         ORDER BY submitted_date DESC, leave_request_id DESC
         LIMIT 5
         `,
-        [employeeId]
-    );
+    [employeeId],
+  );
 
+  // --------------------------------------------------------
+  // 5. LATEST PAYSLIP
+  // --------------------------------------------------------
 
-    // --------------------------------------------------------
-    // 5. LATEST PAYSLIP
-    // --------------------------------------------------------
-
-    const [payrollRows] = await pool.query(
-        `
+  const [payrollRows] = await pool.query(
+    `
         SELECT
             payroll_id AS payrollId,
             pay_period AS payPeriod,
@@ -133,41 +127,38 @@ export const getWorkerDashboard = async (employeeId) => {
         ORDER BY pay_period DESC
         LIMIT 1
         `,
-        [employeeId]
-    );
+    [employeeId],
+  );
 
+  // --------------------------------------------------------
+  // 6. UNREAD NOTIFICATION COUNT
+  // --------------------------------------------------------
 
-    // --------------------------------------------------------
-    // 6. UNREAD NOTIFICATION COUNT
-    // --------------------------------------------------------
-
-    const [notificationRows] = await pool.query(
-        `
+  const [notificationRows] = await pool.query(
+    `
         SELECT COUNT(*) AS unreadNotifications
         FROM notifications
         WHERE employee_id = ?
           AND is_read = 0
         `,
-        [employeeId]
-    );
+    [employeeId],
+  );
 
+  // --------------------------------------------------------
+  // RETURN DASHBOARD
+  // --------------------------------------------------------
 
-    // --------------------------------------------------------
-    // RETURN DASHBOARD
-    // --------------------------------------------------------
+  return {
+    employee: employeeRows[0] || null,
 
-    return {
-        employee: employeeRows[0] || null,
+    attendance: attendanceRows[0] || null,
 
-        attendance: attendanceRows[0] || null,
+    leaveBalances: leaveBalanceRows,
 
-        leaveBalances: leaveBalanceRows,
+    recentLeaveRequests: leaveRequestRows,
 
-        recentLeaveRequests: leaveRequestRows,
+    latestPayslip: payrollRows[0] || null,
 
-        latestPayslip: payrollRows[0] || null,
-
-        unreadNotifications:
-            Number(notificationRows[0]?.unreadNotifications || 0)
-    };
+    unreadNotifications: Number(notificationRows[0]?.unreadNotifications || 0),
+  };
 };

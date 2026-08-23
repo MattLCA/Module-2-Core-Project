@@ -1,22 +1,20 @@
-import express from 'express';
+import express from "express";
 
 import {
-    getPayslips,
-    getPayslip,
-    downloadPayslip
-} from '../../controllers/worker/payslipController.js';
+  getPayslips,
+  getPayslip,
+  downloadPayslip,
+} from "../../controllers/worker/payslipController.js";
 
-import { authenticate } from '../../middleware/auth.js';
+import { authenticate } from "../../middleware/auth.js";
 
 const router = express.Router();
-
 
 // ============================================================
 // AUTHENTICATION
 // ============================================================
 
 router.use(authenticate);
-
 
 // ============================================================
 // GET ALL MY PAYSLIPS
@@ -26,8 +24,7 @@ router.use(authenticate);
 //
 // ============================================================
 
-router.get('/', getPayslips);
-
+router.get("/", getPayslips);
 
 // ============================================================
 // DOWNLOAD A PAYSLIP
@@ -41,8 +38,7 @@ router.get('/', getPayslips);
 //
 // ============================================================
 
-router.get('/:id/download', downloadPayslip);
-
+router.get("/:id/download", downloadPayslip);
 
 // ============================================================
 // GET ONE PAYSLIP
@@ -52,7 +48,6 @@ router.get('/:id/download', downloadPayslip);
 //
 // ============================================================
 
-router.get('/:id', getPayslip);
-
+router.get("/:id", getPayslip);
 
 export default router;

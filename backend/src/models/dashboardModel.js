@@ -1,95 +1,67 @@
 import pool from "../config/db.js";
 
-
 // ============================================================
 // TOTAL EMPLOYEES
 // ============================================================
 
 async function getTotalEmployees() {
-
-    const [rows] =
-        await pool.query(
-            `
+  const [rows] = await pool.query(
+    `
             SELECT COUNT(*) AS count
             FROM employees
             WHERE is_active = 1
-            `
-        );
+            `,
+  );
 
-
-    return Number(
-        rows[0].count
-    );
-
+  return Number(rows[0].count);
 }
-
 
 // ============================================================
 // PENDING LEAVE
 // ============================================================
 
 async function getPendingLeaveCount() {
-
-    const [rows] =
-        await pool.query(
-            `
+  const [rows] = await pool.query(
+    `
             SELECT COUNT(*) AS count
 
             FROM leave_requests
 
             WHERE status = 'Pending'
-            `
-        );
+            `,
+  );
 
-
-    return Number(
-        rows[0].count
-    );
-
+  return Number(rows[0].count);
 }
-
 
 // ============================================================
 // ATTENDANCE SNAPSHOT
 // ============================================================
 
 async function getAttendanceSnapshot() {
-
-    const [latestRows] =
-        await pool.query(
-            `
+  const [latestRows] = await pool.query(
+    `
             SELECT
                 MAX(attendance_date)
                 AS latestDate
 
             FROM attendance
-            `
-        );
+            `,
+  );
 
+  const latestDate = latestRows[0]?.latestDate;
 
-    const latestDate =
-        latestRows[0]
-            ?.latestDate;
+  if (!latestDate) {
+    return {
+      date: null,
+      present: 0,
+      absent: 0,
+      percentPresent: 0,
+    };
+  }
 
-
-    if (!latestDate) {
-
-        return {
-
-            date: null,
-            present: 0,
-            absent: 0,
-            percentPresent: 0
-
-        };
-
-    }
-
-
-    const [rows] =
-        await pool.query(
-
-            `
+  const [rows] = await pool.query(
+    `
             SELECT
                 attendance_status,
                 COUNT(*) AS count
@@ -101,86 +73,42 @@ async function getAttendanceSnapshot() {
             GROUP BY attendance_status
             `,
 
-            [latestDate]
+    [latestDate],
+  );
 
-        );
+  let present = 0;
+  let absent = 0;
 
-
-    let present = 0;
-    let absent = 0;
-
-
-    for (
-        const row of rows
-    ) {
-
-        if (
-            row.attendance_status ===
-            "Present"
-        ) {
-
-            present =
-                Number(
-                    row.count
-                );
-
-        }
-
-
-        if (
-            row.attendance_status ===
-            "Absent"
-        ) {
-
-            absent =
-                Number(
-                    row.count
-                );
-
-        }
-
+  for (const row of rows) {
+    if (row.attendance_status === "Present") {
+      present = Number(row.count);
     }
 
+    if (row.attendance_status === "Absent") {
+      absent = Number(row.count);
+    }
+  }
 
-    const total =
-        present + absent;
+  const total = present + absent;
 
+  return {
+    date: latestDate,
 
-    return {
+    present,
 
-        date: latestDate,
+    absent,
 
-        present,
-
-        absent,
-
-        percentPresent:
-            total
-                ? Math.round(
-                    (
-                        present /
-                        total
-                    ) * 100
-                )
-                : 0
-
-    };
-
+    percentPresent: total ? Math.round((present / total) * 100) : 0,
+  };
 }
-
 
 // ============================================================
 // LEAVE FEED
 // ============================================================
 
-async function getLeaveFeed(
-    limit = 8
-) {
-
-    const [rows] =
-        await pool.query(
-
-            `
+async function getLeaveFeed(limit = 8) {
+  const [rows] = await pool.query(
+    `
             SELECT
 
                 lr.leave_request_id,
@@ -215,55 +143,37 @@ async function getLeaveFeed(
             LIMIT ?
             `,
 
-            [limit]
+    [limit],
+  );
 
-        );
-
-
-    return rows;
-
+  return rows;
 }
-
 
 // ============================================================
 // SUMMARY
 // ============================================================
 
 async function getSummary() {
+  const [totalEmployees, pendingLeaveCount, attendance, leaveFeed] =
+    await Promise.all([
+      getTotalEmployees(),
 
-    const [
-        totalEmployees,
-        pendingLeaveCount,
-        attendance,
-        leaveFeed
-    ] = await Promise.all([
+      getPendingLeaveCount(),
 
-        getTotalEmployees(),
+      getAttendanceSnapshot(),
 
-        getPendingLeaveCount(),
-
-        getAttendanceSnapshot(),
-
-        getLeaveFeed()
-
+      getLeaveFeed(),
     ]);
 
+  return {
+    totalEmployees,
 
-    return {
+    pendingLeaveCount,
 
-        totalEmployees,
+    attendance,
 
-        pendingLeaveCount,
-
-        attendance,
-
-        leaveFeed
-
-    };
-
+    leaveFeed,
+  };
 }
 
-
-export {
-    getSummary
-};
+export { getSummary };

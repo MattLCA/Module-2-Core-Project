@@ -11,7 +11,7 @@
  * simply have no row, and findAll() LEFT JOINs so they still show up
  * (with null rating/notes) so the UI can offer "Start review" for them.
  */
-import pool from '../config/db.js';
+import pool from "../config/db.js";
 
 const EMPLOYEE_JOIN = `
   JOIN departments d ON d.department_id = e.department_id
@@ -27,7 +27,7 @@ async function findAll() {
      ${EMPLOYEE_JOIN}
      LEFT JOIN performance_reviews pr ON pr.employee_id = e.employee_id
      WHERE e.is_active = 1
-     ORDER BY e.name`
+     ORDER BY e.name`,
   );
   return rows;
 }
@@ -40,13 +40,16 @@ async function findByEmployee(employeeId) {
      ${EMPLOYEE_JOIN}
      LEFT JOIN performance_reviews pr ON pr.employee_id = e.employee_id
      WHERE e.employee_id = ?`,
-    [employeeId]
+    [employeeId],
   );
   return rows[0] || null;
 }
 
 // Creates or overwrites the employee's review (one row per employee).
-async function upsert(employeeId, { rating, notes = null, goalProgress = null, reviewedBy = null }) {
+async function upsert(
+  employeeId,
+  { rating, notes = null, goalProgress = null, reviewedBy = null },
+) {
   await pool.query(
     `INSERT INTO performance_reviews (employee_id, rating, goal_progress, notes, review_date, reviewed_by)
      VALUES (?, ?, ?, ?, CURDATE(), ?)
@@ -56,7 +59,7 @@ async function upsert(employeeId, { rating, notes = null, goalProgress = null, r
        notes = VALUES(notes),
        review_date = VALUES(review_date),
        reviewed_by = VALUES(reviewed_by)`,
-    [employeeId, rating, goalProgress, notes, reviewedBy]
+    [employeeId, rating, goalProgress, notes, reviewedBy],
   );
   return findByEmployee(employeeId);
 }
@@ -69,7 +72,11 @@ async function getSummary() {
   const reviewed = employees.filter((e) => e.rating !== null);
 
   const avgRating = reviewed.length
-    ? Math.round((reviewed.reduce((sum, e) => sum + Number(e.rating), 0) / reviewed.length) * 10) / 10
+    ? Math.round(
+        (reviewed.reduce((sum, e) => sum + Number(e.rating), 0) /
+          reviewed.length) *
+          10,
+      ) / 10
     : null;
 
   const overdueCount = reviewed.filter((e) => Number(e.rating) < 3.0).length;

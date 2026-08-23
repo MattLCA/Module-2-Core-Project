@@ -5,32 +5,21 @@
 import express from "express";
 
 import {
-    getDailyAttendance,
-    verifyAttendance
+  getDailyAttendance,
+  verifyAttendance,
 } from "../controllers/attendanceController.js";
 
-import {
-    authenticate,
-    authorize
-} from "../middleware/auth.js";
+import { authenticate, authorize } from "../middleware/auth.js";
 
-import {
-    validateAttendanceUpdate
-} from "../middleware/validationMiddleware.js";
+import { validateAttendanceUpdate } from "../middleware/validationMiddleware.js";
 
-
-const router =
-    express.Router();
-
+const router = express.Router();
 
 // ============================================================
 // ALL HR ATTENDANCE ROUTES REQUIRE AUTHENTICATION
 // ============================================================
 
-router.use(
-    authenticate
-);
-
+router.use(authenticate);
 
 // ============================================================
 // GET DAILY ATTENDANCE
@@ -41,12 +30,7 @@ router.use(
 // GET /api/attendance
 // ============================================================
 
-router.get(
-    "/",
-    authorize("hr"),
-    getDailyAttendance
-);
-
+router.get("/", authorize("hr"), getDailyAttendance);
 
 // ============================================================
 // VERIFY / UPDATE ATTENDANCE
@@ -58,11 +42,10 @@ router.get(
 // ============================================================
 
 router.put(
-    "/:id/verify",
-    authorize("hr"),
-    validateAttendanceUpdate,
-    verifyAttendance
+  "/:id/verify",
+  authorize("hr"),
+  validateAttendanceUpdate,
+  verifyAttendance,
 );
-
 
 export default router;

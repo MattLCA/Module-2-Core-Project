@@ -4,7 +4,6 @@
 
 import pool from "../config/db.js";
 
-
 // ============================================================
 // COMMON PAYROLL SELECT
 // ============================================================
@@ -100,60 +99,30 @@ const PAYROLL_SELECT = `
 
 `;
 
-
 // ============================================================
 // FIND PAYROLL
 // ============================================================
 
-async function findAll({
-    payPeriod = null,
-    employeeId = null
-} = {}) {
+async function findAll({ payPeriod = null, employeeId = null } = {}) {
+  const conditions = [];
+  const params = [];
 
-    const conditions = [];
-    const params = [];
+  if (payPeriod) {
+    conditions.push("p.pay_period = ?");
 
+    params.push(payPeriod);
+  }
 
-    if (payPeriod) {
+  if (employeeId) {
+    conditions.push("p.employee_id = ?");
 
-        conditions.push(
-            "p.pay_period = ?"
-        );
+    params.push(employeeId);
+  }
 
-        params.push(
-            payPeriod
-        );
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
-    }
-
-
-    if (employeeId) {
-
-        conditions.push(
-            "p.employee_id = ?"
-        );
-
-        params.push(
-            employeeId
-        );
-
-    }
-
-
-    const where =
-        conditions.length
-
-            ? `WHERE ${conditions.join(
-                " AND "
-            )}`
-
-            : "";
-
-
-    const [rows] =
-        await pool.query(
-
-            `
+  const [rows] = await pool.query(
+    `
             ${PAYROLL_SELECT}
 
             ${where}
@@ -163,28 +132,19 @@ async function findAll({
                 e.name
             `,
 
-            params
+    params,
+  );
 
-        );
-
-
-    return rows;
-
+  return rows;
 }
-
 
 // ============================================================
 // FIND ONE
 // ============================================================
 
-async function findById(
-    payrollId
-) {
-
-    const [rows] =
-        await pool.query(
-
-            `
+async function findById(payrollId) {
+  const [rows] = await pool.query(
+    `
             ${PAYROLL_SELECT}
 
             WHERE
@@ -193,29 +153,19 @@ async function findById(
             LIMIT 1
             `,
 
-            [payrollId]
+    [payrollId],
+  );
 
-        );
-
-
-    return rows[0] || null;
-
+  return rows[0] || null;
 }
-
 
 // ============================================================
 // FIND EMPLOYEE + PERIOD
 // ============================================================
 
-async function findByEmployeeAndPeriod(
-    employeeId,
-    payPeriod
-) {
-
-    const [rows] =
-        await pool.query(
-
-            `
+async function findByEmployeeAndPeriod(employeeId, payPeriod) {
+  const [rows] = await pool.query(
+    `
             SELECT *
             FROM payroll
 
@@ -225,26 +175,54 @@ async function findByEmployeeAndPeriod(
             LIMIT 1
             `,
 
-            [
-                employeeId,
-                payPeriod
-            ]
+    [employeeId, payPeriod],
+  );
 
-        );
-
-
-    return rows[0] || null;
-
+  return rows[0] || null;
 }
-
 
 // ============================================================
 // CALCULATE FINAL SALARY
 // ============================================================
 
 function calculateFinalSalary({
+  baseSalary,
+  overtimePay = 0,
+  transportAllowance = 0,
+  bonus = 0,
 
-    baseSalary,
+  payeTax = 0,
+  uif = 0,
+  pension = 0,
+  medicalAid = 0,
+  leaveDeductions = 0,
+}) {
+  const earnings =
+    Number(baseSalary) +
+    Number(overtimePay) +
+    Number(transportAllowance) +
+    Number(bonus);
+
+  const deductions =
+    Number(payeTax) +
+    Number(uif) +
+    Number(pension) +
+    Number(medicalAid) +
+    Number(leaveDeductions);
+
+  return Number((earnings - deductions).toFixed(2));
+}
+
+// ============================================================
+// CREATE PAYROLL
+// ============================================================
+
+async function create(data) {
+  const {
+    employeeId,
+    payPeriod,
+    hoursWorked = 0,
+
     overtimePay = 0,
     transportAllowance = 0,
     bonus = 0,
@@ -253,65 +231,12 @@ function calculateFinalSalary({
     uif = 0,
     pension = 0,
     medicalAid = 0,
-    leaveDeductions = 0
 
-}) {
+    leaveDeductions = 0,
+  } = data;
 
-    const earnings =
-        Number(baseSalary)
-        + Number(overtimePay)
-        + Number(transportAllowance)
-        + Number(bonus);
-
-
-    const deductions =
-        Number(payeTax)
-        + Number(uif)
-        + Number(pension)
-        + Number(medicalAid)
-        + Number(leaveDeductions);
-
-
-    return Number(
-        (
-            earnings -
-            deductions
-        ).toFixed(2)
-    );
-
-}
-
-
-// ============================================================
-// CREATE PAYROLL
-// ============================================================
-
-async function create(data) {
-
-    const {
-
-        employeeId,
-        payPeriod,
-        hoursWorked = 0,
-
-        overtimePay = 0,
-        transportAllowance = 0,
-        bonus = 0,
-
-        payeTax = 0,
-        uif = 0,
-        pension = 0,
-        medicalAid = 0,
-
-        leaveDeductions = 0
-
-    } = data;
-
-
-    const [employeeRows] =
-        await pool.query(
-
-            `
+  const [employeeRows] = await pool.query(
+    `
             SELECT base_salary
             FROM employees
 
@@ -320,48 +245,32 @@ async function create(data) {
             LIMIT 1
             `,
 
-            [employeeId]
+    [employeeId],
+  );
 
-        );
+  if (!employeeRows[0]) {
+    return null;
+  }
 
+  const baseSalary = Number(employeeRows[0].base_salary);
 
-    if (!employeeRows[0]) {
+  const finalSalary = calculateFinalSalary({
+    baseSalary,
 
-        return null;
+    overtimePay,
+    transportAllowance,
+    bonus,
 
-    }
+    payeTax,
+    uif,
+    pension,
+    medicalAid,
 
+    leaveDeductions,
+  });
 
-    const baseSalary =
-        Number(
-            employeeRows[0]
-                .base_salary
-        );
-
-
-    const finalSalary =
-        calculateFinalSalary({
-
-            baseSalary,
-
-            overtimePay,
-            transportAllowance,
-            bonus,
-
-            payeTax,
-            uif,
-            pension,
-            medicalAid,
-
-            leaveDeductions
-
-        });
-
-
-    const [result] =
-        await pool.query(
-
-            `
+  const [result] = await pool.query(
+    `
             INSERT INTO payroll (
 
                 employee_id,
@@ -390,113 +299,68 @@ async function create(data) {
             )
             `,
 
-            [
+    [
+      employeeId,
+      payPeriod,
+      hoursWorked,
 
-                employeeId,
-                payPeriod,
-                hoursWorked,
+      overtimePay,
+      transportAllowance,
+      bonus,
 
-                overtimePay,
-                transportAllowance,
-                bonus,
+      payeTax,
+      uif,
+      pension,
+      medicalAid,
 
-                payeTax,
-                uif,
-                pension,
-                medicalAid,
+      leaveDeductions,
+      finalSalary,
+    ],
+  );
 
-                leaveDeductions,
-                finalSalary
-
-            ]
-
-        );
-
-
-    return findById(
-        result.insertId
-    );
-
+  return findById(result.insertId);
 }
-
 
 // ============================================================
 // UPDATE PAYROLL
 // ============================================================
 
-async function update(
-    payrollId,
-    fields
-) {
+async function update(payrollId, fields) {
+  const existing = await findById(payrollId);
 
-    const existing =
-        await findById(
-            payrollId
-        );
+  if (!existing) {
+    return null;
+  }
 
+  const values = {
+    hoursWorked: fields.hoursWorked ?? existing.hoursWorked,
 
-    if (!existing) {
+    overtimePay: fields.overtimePay ?? existing.overtimePay,
 
-        return null;
+    transportAllowance:
+      fields.transportAllowance ?? existing.transportAllowance,
 
-    }
+    bonus: fields.bonus ?? existing.bonus,
 
+    payeTax: fields.payeTax ?? existing.payeTax,
 
-    const values = {
+    uif: fields.uif ?? existing.uif,
 
-        hoursWorked:
-            fields.hoursWorked ??
-            existing.hoursWorked,
+    pension: fields.pension ?? existing.pension,
 
-        overtimePay:
-            fields.overtimePay ??
-            existing.overtimePay,
+    medicalAid: fields.medicalAid ?? existing.medicalAid,
 
-        transportAllowance:
-            fields.transportAllowance ??
-            existing.transportAllowance,
+    leaveDeductions: fields.leaveDeductions ?? existing.leaveDeductions,
+  };
 
-        bonus:
-            fields.bonus ??
-            existing.bonus,
+  const finalSalary = calculateFinalSalary({
+    baseSalary: existing.baseSalary,
 
-        payeTax:
-            fields.payeTax ??
-            existing.payeTax,
+    ...values,
+  });
 
-        uif:
-            fields.uif ??
-            existing.uif,
-
-        pension:
-            fields.pension ??
-            existing.pension,
-
-        medicalAid:
-            fields.medicalAid ??
-            existing.medicalAid,
-
-        leaveDeductions:
-            fields.leaveDeductions ??
-            existing.leaveDeductions
-
-    };
-
-
-    const finalSalary =
-        calculateFinalSalary({
-
-            baseSalary:
-                existing.baseSalary,
-
-            ...values
-
-        });
-
-
-    await pool.query(
-
-        `
+  await pool.query(
+    `
         UPDATE payroll
 
         SET
@@ -524,76 +388,57 @@ async function update(
         WHERE payroll_id = ?
         `,
 
-        [
+    [
+      values.hoursWorked,
 
-            values.hoursWorked,
+      values.overtimePay,
 
-            values.overtimePay,
+      values.transportAllowance,
 
-            values.transportAllowance,
+      values.bonus,
 
-            values.bonus,
+      values.payeTax,
 
-            values.payeTax,
+      values.uif,
 
-            values.uif,
+      values.pension,
 
-            values.pension,
+      values.medicalAid,
 
-            values.medicalAid,
+      values.leaveDeductions,
 
-            values.leaveDeductions,
+      finalSalary,
 
-            finalSalary,
+      payrollId,
+    ],
+  );
 
-            payrollId
-
-        ]
-
-    );
-
-
-    return findById(
-        payrollId
-    );
-
+  return findById(payrollId);
 }
-
 
 // ============================================================
 // DELETE
 // ============================================================
 
-async function remove(
-    payrollId
-) {
-
-    const [result] =
-        await pool.query(
-
-            `
+async function remove(payrollId) {
+  const [result] = await pool.query(
+    `
             DELETE FROM payroll
             WHERE payroll_id = ?
             `,
 
-            [payrollId]
+    [payrollId],
+  );
 
-        );
-
-
-    return (
-        result.affectedRows > 0
-    );
-
+  return result.affectedRows > 0;
 }
 
-
 export {
-    findAll,
-    findById,
-    findByEmployeeAndPeriod,
-    create,
-    update,
-    remove,
-    calculateFinalSalary
+  findAll,
+  findById,
+  findByEmployeeAndPeriod,
+  create,
+  update,
+  remove,
+  calculateFinalSalary,
 };

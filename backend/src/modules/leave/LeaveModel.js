@@ -5,14 +5,12 @@ import db from "../../config/db.js";
 // ============================================================
 
 class LeaveModel {
+  // =========================================================
+  // GET ALL LEAVE REQUESTS FOR HR
+  // =========================================================
 
-    // =========================================================
-    // GET ALL LEAVE REQUESTS FOR HR
-    // =========================================================
-
-    static async findAll(status = null) {
-
-        let query = `
+  static async findAll(status = null) {
+    let query = `
             SELECT
                 lr.leave_request_id AS requestId,
                 lr.employee_id AS employeeId,
@@ -54,45 +52,38 @@ class LeaveModel {
                 ON lr.reviewed_by = reviewer.employee_id
         `;
 
-        const params = [];
+    const params = [];
 
-        if (status) {
-            query += `
+    if (status) {
+      query += `
                 WHERE lr.status = ?
             `;
 
-            params.push(status);
-        }
+      params.push(status);
+    }
 
-        query += `
+    query += `
             ORDER BY
                 lr.created_at DESC,
                 lr.leave_request_id DESC
         `;
 
-        const [rows] = await db.execute(
-            query,
-            params
-        );
+    const [rows] = await db.execute(query, params);
 
-        console.log(
-            `[HR Leave Model] Returned ${rows.length} leave request(s).`
-        );
+    console.log(`[HR Leave Model] Returned ${rows.length} leave request(s).`);
 
-        console.table(rows);
+    console.table(rows);
 
-        return rows;
-    }
+    return rows;
+  }
 
+  // =========================================================
+  // GET ONE LEAVE REQUEST
+  // =========================================================
 
-    // =========================================================
-    // GET ONE LEAVE REQUEST
-    // =========================================================
-
-    static async findById(id) {
-
-        const [rows] = await db.execute(
-            `
+  static async findById(id) {
+    const [rows] = await db.execute(
+      `
             SELECT
                 lr.leave_request_id AS requestId,
                 lr.employee_id AS employeeId,
@@ -137,29 +128,21 @@ class LeaveModel {
 
             LIMIT 1
             `,
-            [id]
-        );
+      [id],
+    );
 
-        return rows[0] || null;
-    }
+    return rows[0] || null;
+  }
 
+  // =========================================================
+  // CREATE LEAVE REQUEST
+  // =========================================================
 
-    // =========================================================
-    // CREATE LEAVE REQUEST
-    // =========================================================
+  static async create(data) {
+    const { employeeId, leaveTypeId, startDate, endDate, totalDays, reason } =
+      data;
 
-    static async create(data) {
-
-        const {
-            employeeId,
-            leaveTypeId,
-            startDate,
-            endDate,
-            totalDays,
-            reason
-        } = data;
-
-        const query = `
+    const query = `
             INSERT INTO leave_requests
             (
                 employee_id,
@@ -184,33 +167,24 @@ class LeaveModel {
             )
         `;
 
-        const [result] = await db.execute(
-            query,
-            [
-                employeeId,
-                leaveTypeId,
-                startDate,
-                endDate,
-                totalDays,
-                reason || null
-            ]
-        );
+    const [result] = await db.execute(query, [
+      employeeId,
+      leaveTypeId,
+      startDate,
+      endDate,
+      totalDays,
+      reason || null,
+    ]);
 
-        return result;
-    }
+    return result;
+  }
 
+  // =========================================================
+  // UPDATE LEAVE STATUS
+  // =========================================================
 
-    // =========================================================
-    // UPDATE LEAVE STATUS
-    // =========================================================
-
-    static async updateStatus(
-        id,
-        status,
-        reviewerId
-    ) {
-
-        const query = `
+  static async updateStatus(id, status, reviewerId) {
+    const query = `
             UPDATE leave_requests
             SET
                 status = ?,
@@ -218,18 +192,10 @@ class LeaveModel {
             WHERE leave_request_id = ?
         `;
 
-        const [result] = await db.execute(
-            query,
-            [
-                status,
-                reviewerId || null,
-                id
-            ]
-        );
+    const [result] = await db.execute(query, [status, reviewerId || null, id]);
 
-        return result;
-    }
+    return result;
+  }
 }
-
 
 export default LeaveModel;

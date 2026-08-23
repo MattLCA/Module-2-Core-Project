@@ -4,377 +4,179 @@
 
 console.log("Worker Profile JS connected.");
 
+document.addEventListener("DOMContentLoaded", async () => {
+  if (typeof requireWorkerLogin === "function" && !requireWorkerLogin()) {
+    return;
+  }
 
-document.addEventListener(
-    "DOMContentLoaded",
-    async () => {
-
-        if (
-            typeof requireWorkerLogin === "function" &&
-            !requireWorkerLogin()
-        ) {
-            return;
-        }
-
-        await initializeProfile();
-
-    }
-);
-
+  await initializeProfile();
+});
 
 // ============================================================
 // INITIALIZE
 // ============================================================
 
 async function initializeProfile() {
+  try {
+    const response = await getWorkerProfile();
 
-    try {
+    console.log("Worker profile:", response);
 
-        const response =
-            await getWorkerProfile();
+    const profile = response?.data || response;
 
-        console.log(
-            "Worker profile:",
-            response
-        );
-
-
-        const profile =
-            response?.data ||
-            response;
-
-
-        if (!profile) {
-
-            throw new Error(
-                "Employee profile was not returned."
-            );
-
-        }
-
-
-        saveLoggedInWorker(
-            profile
-        );
-
-
-        renderProfile(
-            profile
-        );
-
-
-        updateSidebarEmployee(
-            profile
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Profile error:",
-            error
-        );
-
-        showToast(
-            error.message ||
-            "Could not load your profile."
-        );
-
+    if (!profile) {
+      throw new Error("Employee profile was not returned.");
     }
 
-}
+    saveLoggedInWorker(profile);
 
+    renderProfile(profile);
+
+    updateSidebarEmployee(profile);
+  } catch (error) {
+    console.error("Profile error:", error);
+
+    showToast(error.message || "Could not load your profile.");
+  }
+}
 
 // ============================================================
 // RENDER PROFILE
 // ============================================================
 
 function renderProfile(profile) {
+  if (!profile) {
+    return;
+  }
 
-    if (!profile) {
-        return;
-    }
+  const name = profile.name || "Worker";
 
+  const employeeCode = profile.employeeCode || profile.employeeId || "--";
 
-    const name =
-        profile.name ||
-        "Worker";
+  const department = profile.departmentName || "--";
 
+  const position = profile.positionName || "--";
 
-    const employeeCode =
-        profile.employeeCode ||
-        profile.employeeId ||
-        "--";
+  const email = profile.email || "--";
 
+  const status = profile.isActive ? "Active" : "Inactive";
 
-    const department =
-        profile.departmentName ||
-        "--";
+  const salary = Number(profile.baseSalary || 0);
 
+  const history =
+    profile.employmentHistory || "No employment history available.";
 
-    const position =
-        profile.positionName ||
-        "--";
+  // --------------------------------------------------------
+  // Personal information
+  // --------------------------------------------------------
 
+  setText("empName", name);
 
-    const email =
-        profile.email ||
-        "--";
+  setText("empID", employeeCode);
 
+  setText("empDepartment", department);
 
-    const status =
-        profile.isActive
-            ? "Active"
-            : "Inactive";
+  setText("empPosition", position);
 
+  setText("empEmail", email);
 
-    const salary =
-        Number(
-            profile.baseSalary || 0
-        );
+  setText("empStatus", status);
 
+  // --------------------------------------------------------
+  // Salary
+  // --------------------------------------------------------
 
-    const history =
-        profile.employmentHistory ||
-        "No employment history available.";
+  setText("empSalary", formatCurrency(salary));
 
+  setText("empSalaryType", "Monthly");
 
-    // --------------------------------------------------------
-    // Personal information
-    // --------------------------------------------------------
+  setText("empPaymentMethod", "Bank Transfer");
 
-    setText(
-        "empName",
-        name
-    );
+  setText("empNextPayday", getNextPayday());
 
-    setText(
-        "empID",
-        employeeCode
-    );
+  // --------------------------------------------------------
+  // History
+  // --------------------------------------------------------
 
-    setText(
-        "empDepartment",
-        department
-    );
+  setText("empHistory", history);
 
-    setText(
-        "empPosition",
-        position
-    );
+  setText("empDepartmentHistory", department);
 
-    setText(
-        "empEmail",
-        email
-    );
-
-    setText(
-        "empStatus",
-        status
-    );
-
-
-    // --------------------------------------------------------
-    // Salary
-    // --------------------------------------------------------
-
-    setText(
-        "empSalary",
-        formatCurrency(salary)
-    );
-
-
-    setText(
-        "empSalaryType",
-        "Monthly"
-    );
-
-
-    setText(
-        "empPaymentMethod",
-        "Bank Transfer"
-    );
-
-
-    setText(
-        "empNextPayday",
-        getNextPayday()
-    );
-
-
-    // --------------------------------------------------------
-    // History
-    // --------------------------------------------------------
-
-    setText(
-        "empHistory",
-        history
-    );
-
-    setText(
-        "empDepartmentHistory",
-        department
-    );
-
-    setText(
-        "empPositionHistory",
-        position
-    );
-
+  setText("empPositionHistory", position);
 }
-
 
 // ============================================================
 // SAFE TEXT
 // ============================================================
 
-function setText(
-    id,
-    value
-) {
+function setText(id, value) {
+  const element = document.getElementById(id);
 
-    const element =
-        document.getElementById(id);
+  if (!element) {
+    return;
+  }
 
-    if (!element) {
-        return;
-    }
-
-    element.textContent =
-        value ?? "--";
+  element.textContent = value ?? "--";
 }
-
 
 // ============================================================
 // NEXT PAYDAY
 // ============================================================
 
 function getNextPayday() {
+  const today = new Date();
 
-    const today =
-        new Date();
+  let payday = new Date(today.getFullYear(), today.getMonth(), 25);
 
-    let payday =
-        new Date(
-            today.getFullYear(),
-            today.getMonth(),
-            25
-        );
+  if (today > payday) {
+    payday = new Date(today.getFullYear(), today.getMonth() + 1, 25);
+  }
 
-
-    if (today > payday) {
-
-        payday =
-            new Date(
-                today.getFullYear(),
-                today.getMonth() + 1,
-                25
-            );
-
-    }
-
-
-    return payday.toLocaleDateString(
-        "en-ZA",
-        {
-            day: "2-digit",
-            month: "short",
-            year: "numeric"
-        }
-    );
-
+  return payday.toLocaleDateString("en-ZA", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
-
 
 // ============================================================
 // PROFILE TABS
 // ============================================================
 
 function initializeProfileTabs() {
+  const tabs = document.querySelectorAll(".emp-profile-tab");
 
-    const tabs =
-        document.querySelectorAll(
-            ".emp-profile-tab"
-        );
+  const contents = document.querySelectorAll(".emp-profile-content");
 
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const target = tab.dataset.tab;
 
-    const contents =
-        document.querySelectorAll(
-            ".emp-profile-content"
-        );
+      tabs.forEach((item) => item.classList.remove("active"));
 
+      contents.forEach((content) => content.classList.remove("active"));
 
-    tabs.forEach(
-        (tab) => {
+      tab.classList.add("active");
 
-            tab.addEventListener(
-                "click",
-                () => {
+      const targetContent = document.getElementById(target);
 
-                    const target =
-                        tab.dataset.tab;
-
-
-                    tabs.forEach(
-                        (item) =>
-                            item.classList.remove(
-                                "active"
-                            )
-                    );
-
-
-                    contents.forEach(
-                        (content) =>
-                            content.classList.remove(
-                                "active"
-                            )
-                    );
-
-
-                    tab.classList.add(
-                        "active"
-                    );
-
-
-                    const targetContent =
-                        document.getElementById(
-                            target
-                        );
-
-
-                    if (targetContent) {
-
-                        targetContent.classList.add(
-                            "active"
-                        );
-
-                    }
-
-                }
-            );
-
-        }
-    );
-
+      if (targetContent) {
+        targetContent.classList.add("active");
+      }
+    });
+  });
 }
-
 
 // ============================================================
 // GLOBAL
 // ============================================================
 
-window.initializeProfile =
-    initializeProfile;
+window.initializeProfile = initializeProfile;
 
-window.renderProfile =
-    renderProfile;
-
+window.renderProfile = renderProfile;
 
 // ============================================================
 // START
 // ============================================================
 
-document.addEventListener(
-    "DOMContentLoaded",
-    initializeProfileTabs
-);
+document.addEventListener("DOMContentLoaded", initializeProfileTabs);

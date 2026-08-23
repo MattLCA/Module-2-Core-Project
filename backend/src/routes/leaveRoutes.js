@@ -1,37 +1,26 @@
 import express from "express";
 
 import {
-    getLeaveRequests,
-    submitLeaveRequest,
-    processLeaveDecision
+  getLeaveRequests,
+  submitLeaveRequest,
+  processLeaveDecision,
 } from "../controllers/leaveController.js";
 
-import {
-    authenticate,
-    authorize
-} from "../middleware/auth.js";
+import { authenticate, authorize } from "../middleware/auth.js";
 
 import {
-    validateLeaveSubmission,
-    validateLeaveDecision
+  validateLeaveSubmission,
+  validateLeaveDecision,
 } from "../middleware/validationMiddleware.js";
 
-
 const router = express.Router();
-
 
 // ============================================================
 // GET ALL LEAVE REQUESTS
 // HR ONLY
 // ============================================================
 
-router.get(
-    "/",
-    authenticate,
-    authorize("hr"),
-    getLeaveRequests
-);
-
+router.get("/", authenticate, authorize("hr"), getLeaveRequests);
 
 // ============================================================
 // CREATE LEAVE REQUEST
@@ -41,13 +30,12 @@ router.get(
 // ============================================================
 
 router.post(
-    "/",
-    authenticate,
-    authorize("worker"),
-    validateLeaveSubmission,
-    submitLeaveRequest
+  "/",
+  authenticate,
+  authorize("worker"),
+  validateLeaveSubmission,
+  submitLeaveRequest,
 );
-
 
 // ============================================================
 // APPROVE / REJECT LEAVE REQUEST
@@ -57,12 +45,11 @@ router.post(
 // ============================================================
 
 router.put(
-    "/:id/decision",
-    authenticate,
-    authorize("hr"),
-    validateLeaveDecision,
-    processLeaveDecision
+  "/:id/decision",
+  authenticate,
+  authorize("hr"),
+  validateLeaveDecision,
+  processLeaveDecision,
 );
-
 
 export default router;

@@ -1,20 +1,16 @@
-import express from 'express';
+import express from "express";
 
-import {
-    getProfile
-} from '../../controllers/worker/profileController.js';
+import { getProfile } from "../../controllers/worker/profileController.js";
 
-import { authenticate } from '../../middleware/auth.js';
+import { authenticate } from "../../middleware/auth.js";
 
 const router = express.Router();
-
 
 // ============================================================
 // AUTHENTICATION
 // ============================================================
 
 router.use(authenticate);
-
 
 // ============================================================
 // GET WORKER PROFILE
@@ -27,7 +23,6 @@ router.use(authenticate);
 //
 // ============================================================
 
-router.get('/', getProfile);
-
+router.get("/", getProfile);
 
 export default router;

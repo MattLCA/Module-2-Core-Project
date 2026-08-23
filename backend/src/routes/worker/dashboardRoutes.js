@@ -1,13 +1,10 @@
-import express from 'express';
+import express from "express";
 
-import {
-    getDashboard
-} from '../../controllers/worker/dashboardController.js';
+import { getDashboard } from "../../controllers/worker/dashboardController.js";
 
-import { authenticate } from '../../middleware/auth.js';
+import { authenticate } from "../../middleware/auth.js";
 
 const router = express.Router();
-
 
 // ============================================================
 // AUTHENTICATION
@@ -15,13 +12,11 @@ const router = express.Router();
 
 router.use(authenticate);
 
-
 // ============================================================
 // DASHBOARD
 // ============================================================
 
 // Get worker dashboard
-router.get('/', getDashboard);
-
+router.get("/", getDashboard);
 
 export default router;

@@ -1,11 +1,11 @@
-import { validationResult } from 'express-validator';
-import * as goalModel from '../models/goalModel.js';
-import { ApiError } from '../middleware/errorHandler.js';
+import { validationResult } from "express-validator";
+import * as goalModel from "../models/goalModel.js";
+import { ApiError } from "../middleware/errorHandler.js";
 
 function handleValidation(req) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    const err = new ApiError(422, 'Validation failed');
+    const err = new ApiError(422, "Validation failed");
     err.details = errors.array();
     throw err;
   }
@@ -55,7 +55,7 @@ async function create(req, res, next) {
 async function update(req, res, next) {
   try {
     const existing = await goalModel.findById(req.params.goalId);
-    if (!existing) throw new ApiError(404, 'Goal not found');
+    if (!existing) throw new ApiError(404, "Goal not found");
     await goalModel.update(req.params.goalId, req.body);
     const goal = await goalModel.findById(req.params.goalId);
     res.status(200).json({ data: goal });
@@ -68,7 +68,7 @@ async function update(req, res, next) {
 async function remove(req, res, next) {
   try {
     const existing = await goalModel.findById(req.params.goalId);
-    if (!existing) throw new ApiError(404, 'Goal not found');
+    if (!existing) throw new ApiError(404, "Goal not found");
     await goalModel.remove(req.params.goalId);
     res.status(204).send();
   } catch (err) {

@@ -18,847 +18,467 @@
 
 console.log("ModernTech Worker API connected.");
 
-const WORKER_API_BASE_URL =
-    "http://localhost:4000/api";
-
+const WORKER_API_BASE_URL = "http://localhost:4000/api";
 
 // ============================================================
 // TOKEN
 // ============================================================
 
 function getWorkerToken() {
-
-    return (
-        localStorage.getItem("authToken") ||
-        localStorage.getItem("token") ||
-        localStorage.getItem("workerToken")
-    );
-
+  return (
+    localStorage.getItem("authToken") ||
+    localStorage.getItem("token") ||
+    localStorage.getItem("workerToken")
+  );
 }
-
 
 function saveWorkerToken(token) {
+  if (!token) {
+    return;
+  }
 
-    if (!token) {
-        return;
-    }
+  localStorage.setItem("authToken", token);
 
+  localStorage.setItem("token", token);
 
-    localStorage.setItem(
-        "authToken",
-        token
-    );
-
-    localStorage.setItem(
-        "token",
-        token
-    );
-
-    localStorage.setItem(
-        "workerToken",
-        token
-    );
-
+  localStorage.setItem("workerToken", token);
 }
-
 
 function clearWorkerToken() {
+  localStorage.removeItem("authToken");
 
-    localStorage.removeItem(
-        "authToken"
-    );
+  localStorage.removeItem("token");
 
-    localStorage.removeItem(
-        "token"
-    );
+  localStorage.removeItem("workerToken");
 
-    localStorage.removeItem(
-        "workerToken"
-    );
+  localStorage.removeItem("employee");
 
-    localStorage.removeItem(
-        "employee"
-    );
+  localStorage.removeItem("loggedInUser");
 
-    localStorage.removeItem(
-        "loggedInUser"
-    );
+  localStorage.removeItem("workerProfile");
 
-    localStorage.removeItem(
-        "workerProfile"
-    );
-
-    localStorage.removeItem(
-        "userRole"
-    );
-
+  localStorage.removeItem("userRole");
 }
-
 
 // ============================================================
 // EMPLOYEE STORAGE
 // ============================================================
 
 function getLoggedInWorker() {
+  const keys = ["employee", "loggedInUser", "workerProfile"];
 
-    const keys = [
-        "employee",
-        "loggedInUser",
-        "workerProfile"
-    ];
+  for (const key of keys) {
+    const stored = localStorage.getItem(key);
 
-
-    for (const key of keys) {
-
-        const stored =
-            localStorage.getItem(key);
-
-
-        if (!stored) {
-            continue;
-        }
-
-
-        try {
-
-            return JSON.parse(
-                stored
-            );
-
-        } catch (error) {
-
-            console.error(
-                `Could not parse ${key}:`,
-                error
-            );
-
-        }
-
+    if (!stored) {
+      continue;
     }
 
+    try {
+      return JSON.parse(stored);
+    } catch (error) {
+      console.error(`Could not parse ${key}:`, error);
+    }
+  }
 
-    return null;
-
+  return null;
 }
-
 
 function saveLoggedInWorker(employee) {
+  if (!employee) {
+    return;
+  }
 
-    if (!employee) {
-        return;
-    }
+  const json = JSON.stringify(employee);
 
+  localStorage.setItem("employee", json);
 
-    const json =
-        JSON.stringify(employee);
+  localStorage.setItem("loggedInUser", json);
 
-
-    localStorage.setItem(
-        "employee",
-        json
-    );
-
-    localStorage.setItem(
-        "loggedInUser",
-        json
-    );
-
-    localStorage.setItem(
-        "workerProfile",
-        json
-    );
-
+  localStorage.setItem("workerProfile", json);
 }
-
 
 // ============================================================
 // GENERIC API REQUEST
 // ============================================================
 
-async function workerApiRequest(
-    endpoint,
-    options = {}
-) {
+async function workerApiRequest(endpoint, options = {}) {
+  const token = getWorkerToken();
 
-    const token =
-        getWorkerToken();
+  const config = {
+    ...options,
 
+    headers: {
+      "Content-Type": "application/json",
 
-    const config = {
+      ...(options.headers || {}),
+    },
+  };
 
-        ...options,
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
 
-        headers: {
+  const url = `${WORKER_API_BASE_URL}${endpoint}`;
 
-            "Content-Type":
-                "application/json",
+  console.log(`Worker API: ${config.method || "GET"} ${url}`);
 
-            ...(options.headers || {})
+  let response;
 
-        }
+  try {
+    response = await fetch(url, config);
+  } catch (error) {
+    console.error("Backend connection failed:", error);
 
-    };
-
-
-    if (token) {
-
-        config.headers.Authorization =
-            `Bearer ${token}`;
-
-    }
-
-
-    const url =
-        `${WORKER_API_BASE_URL}${endpoint}`;
-
-
-    console.log(
-        `Worker API: ${config.method || "GET"} ${url}`
+    throw new Error(
+      "Could not connect to the ModernTech backend. Make sure the backend is running on port 4000.",
     );
+  }
 
+  let data = null;
 
-    let response;
+  const contentType = response.headers.get("content-type");
 
-
+  if (contentType && contentType.includes("application/json")) {
     try {
-
-        response =
-            await fetch(
-                url,
-                config
-            );
-
+      data = await response.json();
     } catch (error) {
-
-        console.error(
-            "Backend connection failed:",
-            error
-        );
-
-        throw new Error(
-            "Could not connect to the ModernTech backend. Make sure the backend is running on port 4000."
-        );
-
+      console.error("Could not parse API response:", error);
     }
+  }
 
+  console.log("API response:", response.status, data);
 
-    let data = null;
+  // --------------------------------------------------------
+  // Unauthorized
+  // --------------------------------------------------------
 
+  if (response.status === 401) {
+    clearWorkerToken();
 
-    const contentType =
-        response.headers.get(
-            "content-type"
-        );
+    window.location.href = "index.html";
 
+    return null;
+  }
 
-    if (
-        contentType &&
-        contentType.includes(
-            "application/json"
-        )
-    ) {
+  // --------------------------------------------------------
+  // Forbidden
+  // --------------------------------------------------------
 
-        try {
-
-            data =
-                await response.json();
-
-        } catch (error) {
-
-            console.error(
-                "Could not parse API response:",
-                error
-            );
-
-        }
-
-    }
-
-
-    console.log(
-        "API response:",
-        response.status,
-        data
+  if (response.status === 403) {
+    throw new Error(
+      data?.error ||
+        data?.message ||
+        "You do not have permission to access this resource.",
     );
+  }
 
+  // --------------------------------------------------------
+  // Other errors
+  // --------------------------------------------------------
 
-    // --------------------------------------------------------
-    // Unauthorized
-    // --------------------------------------------------------
+  if (!response.ok) {
+    throw new Error(
+      data?.error ||
+        data?.message ||
+        `Request failed with status ${response.status}`,
+    );
+  }
 
-    if (response.status === 401) {
-
-        clearWorkerToken();
-
-        window.location.href =
-            "index.html";
-
-        return null;
-
-    }
-
-
-    // --------------------------------------------------------
-    // Forbidden
-    // --------------------------------------------------------
-
-    if (response.status === 403) {
-
-        throw new Error(
-            data?.error ||
-            data?.message ||
-            "You do not have permission to access this resource."
-        );
-
-    }
-
-
-    // --------------------------------------------------------
-    // Other errors
-    // --------------------------------------------------------
-
-    if (!response.ok) {
-
-        throw new Error(
-            data?.error ||
-            data?.message ||
-            `Request failed with status ${response.status}`
-        );
-
-    }
-
-
-    return data;
-
+  return data;
 }
-
 
 // ============================================================
 // LOGIN
 // ============================================================
 
-async function workerLogin(
-    employeeCode,
-    password
-) {
+async function workerLogin(employeeCode, password) {
+  const response = await workerApiRequest("/auth/login", {
+    method: "POST",
 
-    const response =
-        await workerApiRequest(
-            "/auth/login",
-            {
-                method: "POST",
+    body: JSON.stringify({
+      role: "worker",
 
-                body: JSON.stringify({
+      identifier: employeeCode,
 
-                    role: "worker",
+      password: password,
+    }),
+  });
 
-                    identifier:
-                        employeeCode,
+  if (!response) {
+    return null;
+  }
 
-                    password:
-                        password
+  const data = response.data || response;
 
-                })
-            }
-        );
+  if (data.token) {
+    saveWorkerToken(data.token);
+  }
 
+  if (data.employee) {
+    saveLoggedInWorker(data.employee);
+  }
 
-    if (!response) {
-        return null;
-    }
-
-
-    const data =
-        response.data ||
-        response;
-
-
-    if (data.token) {
-
-        saveWorkerToken(
-            data.token
-        );
-
-    }
-
-
-    if (data.employee) {
-
-        saveLoggedInWorker(
-            data.employee
-        );
-
-    }
-
-
-    return response;
-
+  return response;
 }
-
 
 // ============================================================
 // LOGOUT
 // ============================================================
 
 function workerLogout() {
+  clearWorkerToken();
 
-    clearWorkerToken();
-
-    window.location.href =
-        "index.html";
-
+  window.location.href = "index.html";
 }
-
 
 // ============================================================
 // DASHBOARD
 // ============================================================
 
 async function getWorkerDashboard() {
-
-    return workerApiRequest(
-        "/worker/dashboard"
-    );
-
+  return workerApiRequest("/worker/dashboard");
 }
-
 
 // ============================================================
 // PROFILE
 // ============================================================
 
 async function getWorkerProfile() {
-
-    return workerApiRequest(
-        "/worker/profile"
-    );
-
+  return workerApiRequest("/worker/profile");
 }
-
 
 // ============================================================
 // ATTENDANCE
 // ============================================================
 
 async function getWorkerClockStatus() {
-
-    return workerApiRequest(
-        "/worker/attendance/clock-status"
-    );
-
+  return workerApiRequest("/worker/attendance/clock-status");
 }
-
 
 async function workerClockIn() {
-
-    return workerApiRequest(
-        "/worker/attendance/clock-in",
-        {
-            method: "POST"
-        }
-    );
-
+  return workerApiRequest("/worker/attendance/clock-in", {
+    method: "POST",
+  });
 }
-
 
 async function workerClockOut() {
-
-    return workerApiRequest(
-        "/worker/attendance/clock-out",
-        {
-            method: "PUT"
-        }
-    );
-
+  return workerApiRequest("/worker/attendance/clock-out", {
+    method: "PUT",
+  });
 }
-
 
 async function getWorkerAttendanceHistory() {
-
-    return workerApiRequest(
-        "/worker/attendance/history"
-    );
-
+  return workerApiRequest("/worker/attendance/history");
 }
-
 
 async function getWorkerAttendance() {
-
-    return getWorkerAttendanceHistory();
-
+  return getWorkerAttendanceHistory();
 }
-
 
 // ============================================================
 // LEAVE
 // ============================================================
 
 async function getWorkerLeaveTypes() {
-
-    return workerApiRequest(
-        "/worker/leave/types"
-    );
-
+  return workerApiRequest("/worker/leave/types");
 }
-
 
 async function getWorkerLeaveBalances() {
-
-    return workerApiRequest(
-        "/worker/leave/balances"
-    );
-
+  return workerApiRequest("/worker/leave/balances");
 }
-
 
 async function getWorkerLeaveRequests() {
-
-    return workerApiRequest(
-        "/worker/leave/requests"
-    );
-
+  return workerApiRequest("/worker/leave/requests");
 }
 
+async function createWorkerLeaveRequest(leaveData) {
+  return workerApiRequest("/worker/leave/requests", {
+    method: "POST",
 
-async function createWorkerLeaveRequest(
-    leaveData
-) {
-
-    return workerApiRequest(
-        "/worker/leave/requests",
-        {
-            method: "POST",
-
-            body: JSON.stringify(
-                leaveData
-            )
-        }
-    );
-
+    body: JSON.stringify(leaveData),
+  });
 }
-
 
 // ============================================================
 // PAYSLIPS
 // ============================================================
 
 async function getWorkerPayslips() {
-
-    return workerApiRequest(
-        "/worker/payslips"
-    );
-
+  return workerApiRequest("/worker/payslips");
 }
 
-
-async function getWorkerPayslip(
-    payslipId
-) {
-
-    return workerApiRequest(
-        `/worker/payslips/${payslipId}`
-    );
-
+async function getWorkerPayslip(payslipId) {
+  return workerApiRequest(`/worker/payslips/${payslipId}`);
 }
 
+async function downloadWorkerPayslip(payslipId) {
+  const token = getWorkerToken();
 
-async function downloadWorkerPayslip(
-    payslipId
-) {
+  const response = await fetch(
+    `${WORKER_API_BASE_URL}/worker/payslips/${payslipId}/download`,
+    {
+      method: "GET",
 
-    const token =
-        getWorkerToken();
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
 
+  if (response.status === 401) {
+    clearWorkerToken();
 
-    const response =
-        await fetch(
-            `${WORKER_API_BASE_URL}/worker/payslips/${payslipId}/download`,
-            {
-                method: "GET",
+    window.location.href = "index.html";
 
-                headers: {
-                    Authorization:
-                        `Bearer ${token}`
-                }
-            }
-        );
+    return;
+  }
 
+  if (!response.ok) {
+    let message = "Could not download payslip.";
 
-    if (response.status === 401) {
+    try {
+      const data = await response.json();
 
-        clearWorkerToken();
-
-        window.location.href =
-            "index.html";
-
-        return;
-
+      message = data.error || data.message || message;
+    } catch (error) {
+      // Ignore JSON parsing failure.
     }
 
+    throw new Error(message);
+  }
 
-    if (!response.ok) {
+  const blob = await response.blob();
 
-        let message =
-            "Could not download payslip.";
+  const url = window.URL.createObjectURL(blob);
 
-        try {
+  const link = document.createElement("a");
 
-            const data =
-                await response.json();
+  link.href = url;
 
-            message =
-                data.error ||
-                data.message ||
-                message;
+  link.download = `Payslip-${payslipId}.pdf`;
 
-        } catch (error) {
+  document.body.appendChild(link);
 
-            // Ignore JSON parsing failure.
+  link.click();
 
-        }
+  link.remove();
 
-
-        throw new Error(
-            message
-        );
-
-    }
-
-
-    const blob =
-        await response.blob();
-
-
-    const url =
-        window.URL.createObjectURL(
-            blob
-        );
-
-
-    const link =
-        document.createElement(
-            "a"
-        );
-
-
-    link.href =
-        url;
-
-
-    link.download =
-        `Payslip-${payslipId}.pdf`;
-
-
-    document.body.appendChild(
-        link
-    );
-
-
-    link.click();
-
-
-    link.remove();
-
-
-    window.URL.revokeObjectURL(
-        url
-    );
-
+  window.URL.revokeObjectURL(url);
 }
-
 
 // ============================================================
 // NOTIFICATIONS
 // ============================================================
 
 async function getWorkerNotifications() {
-
-    return workerApiRequest(
-        "/worker/notifications"
-    );
-
+  return workerApiRequest("/worker/notifications");
 }
-
 
 async function getUnreadWorkerNotifications() {
-
-    return workerApiRequest(
-        "/worker/notifications/unread"
-    );
-
+  return workerApiRequest("/worker/notifications/unread");
 }
-
 
 async function getUnreadWorkerNotificationCount() {
-
-    return workerApiRequest(
-        "/worker/notifications/unread-count"
-    );
-
+  return workerApiRequest("/worker/notifications/unread-count");
 }
 
-
-async function getWorkerNotification(
-    notificationId
-) {
-
-    return workerApiRequest(
-        `/worker/notifications/${notificationId}`
-    );
-
+async function getWorkerNotification(notificationId) {
+  return workerApiRequest(`/worker/notifications/${notificationId}`);
 }
 
-
-async function markWorkerNotificationAsRead(
-    notificationId
-) {
-
-    return workerApiRequest(
-        `/worker/notifications/${notificationId}/read`,
-        {
-            method: "PATCH"
-        }
-    );
-
+async function markWorkerNotificationAsRead(notificationId) {
+  return workerApiRequest(`/worker/notifications/${notificationId}/read`, {
+    method: "PATCH",
+  });
 }
-
 
 async function markAllWorkerNotificationsAsRead() {
-
-    return workerApiRequest(
-        "/worker/notifications/read-all",
-        {
-            method: "PATCH"
-        }
-    );
-
+  return workerApiRequest("/worker/notifications/read-all", {
+    method: "PATCH",
+  });
 }
-
 
 // ============================================================
 // AUTHENTICATION
 // ============================================================
 
 function isWorkerLoggedIn() {
-
-    return Boolean(
-        getWorkerToken()
-    );
-
+  return Boolean(getWorkerToken());
 }
-
 
 function requireWorkerLogin() {
+  const token = getWorkerToken();
 
-    const token =
-        getWorkerToken();
+  if (!token) {
+    window.location.href = "index.html";
 
+    return false;
+  }
 
-    if (!token) {
-
-        window.location.href =
-            "index.html";
-
-        return false;
-
-    }
-
-
-    return true;
-
+  return true;
 }
-
 
 // ============================================================
 // GLOBALS
 // ============================================================
 
-window.getWorkerToken =
-    getWorkerToken;
+window.getWorkerToken = getWorkerToken;
 
-window.saveWorkerToken =
-    saveWorkerToken;
+window.saveWorkerToken = saveWorkerToken;
 
-window.clearWorkerToken =
-    clearWorkerToken;
+window.clearWorkerToken = clearWorkerToken;
 
-window.getLoggedInWorker =
-    getLoggedInWorker;
+window.getLoggedInWorker = getLoggedInWorker;
 
-window.saveLoggedInWorker =
-    saveLoggedInWorker;
+window.saveLoggedInWorker = saveLoggedInWorker;
 
-window.workerApiRequest =
-    workerApiRequest;
+window.workerApiRequest = workerApiRequest;
 
-window.workerLogin =
-    workerLogin;
+window.workerLogin = workerLogin;
 
-window.workerLogout =
-    workerLogout;
+window.workerLogout = workerLogout;
 
-window.getWorkerDashboard =
-    getWorkerDashboard;
+window.getWorkerDashboard = getWorkerDashboard;
 
-window.getWorkerProfile =
-    getWorkerProfile;
+window.getWorkerProfile = getWorkerProfile;
 
-window.getWorkerClockStatus =
-    getWorkerClockStatus;
+window.getWorkerClockStatus = getWorkerClockStatus;
 
-window.workerClockIn =
-    workerClockIn;
+window.workerClockIn = workerClockIn;
 
-window.workerClockOut =
-    workerClockOut;
+window.workerClockOut = workerClockOut;
 
-window.getWorkerAttendance =
-    getWorkerAttendance;
+window.getWorkerAttendance = getWorkerAttendance;
 
-window.getWorkerAttendanceHistory =
-    getWorkerAttendanceHistory;
+window.getWorkerAttendanceHistory = getWorkerAttendanceHistory;
 
-window.getWorkerLeaveTypes =
-    getWorkerLeaveTypes;
+window.getWorkerLeaveTypes = getWorkerLeaveTypes;
 
-window.getWorkerLeaveBalances =
-    getWorkerLeaveBalances;
+window.getWorkerLeaveBalances = getWorkerLeaveBalances;
 
-window.getWorkerLeaveRequests =
-    getWorkerLeaveRequests;
+window.getWorkerLeaveRequests = getWorkerLeaveRequests;
 
-window.createWorkerLeaveRequest =
-    createWorkerLeaveRequest;
+window.createWorkerLeaveRequest = createWorkerLeaveRequest;
 
-window.getWorkerPayslips =
-    getWorkerPayslips;
+window.getWorkerPayslips = getWorkerPayslips;
 
-window.getWorkerPayslip =
-    getWorkerPayslip;
+window.getWorkerPayslip = getWorkerPayslip;
 
-window.downloadWorkerPayslip =
-    downloadWorkerPayslip;
+window.downloadWorkerPayslip = downloadWorkerPayslip;
 
-window.getWorkerNotifications =
-    getWorkerNotifications;
+window.getWorkerNotifications = getWorkerNotifications;
 
-window.getUnreadWorkerNotifications =
-    getUnreadWorkerNotifications;
+window.getUnreadWorkerNotifications = getUnreadWorkerNotifications;
 
-window.getUnreadWorkerNotificationCount =
-    getUnreadWorkerNotificationCount;
+window.getUnreadWorkerNotificationCount = getUnreadWorkerNotificationCount;
 
-window.getWorkerNotification =
-    getWorkerNotification;
+window.getWorkerNotification = getWorkerNotification;
 
-window.markWorkerNotificationAsRead =
-    markWorkerNotificationAsRead;
+window.markWorkerNotificationAsRead = markWorkerNotificationAsRead;
 
-window.markAllWorkerNotificationsAsRead =
-    markAllWorkerNotificationsAsRead;
+window.markAllWorkerNotificationsAsRead = markAllWorkerNotificationsAsRead;
 
-window.isWorkerLoggedIn =
-    isWorkerLoggedIn;
+window.isWorkerLoggedIn = isWorkerLoggedIn;
 
-window.requireWorkerLogin =
-    requireWorkerLogin;
+window.requireWorkerLogin = requireWorkerLogin;

@@ -1,12 +1,12 @@
-import pool from '../../config/db.js';
+import pool from "../../config/db.js";
 
 // ============================================================
 // GET LOGGED-IN WORKER PROFILE
 // ============================================================
 
 export const getProfileByEmployeeId = async (employeeId) => {
-    const [rows] = await pool.query(
-        `
+  const [rows] = await pool.query(
+    `
         SELECT
             e.employee_id AS employeeId,
             e.employee_code AS employeeCode,
@@ -41,8 +41,8 @@ export const getProfileByEmployeeId = async (employeeId) => {
 
         LIMIT 1
         `,
-        [employeeId]
-    );
+    [employeeId],
+  );
 
-    return rows[0] || null;
+  return rows[0] || null;
 };

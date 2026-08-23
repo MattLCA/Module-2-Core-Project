@@ -1,235 +1,147 @@
 import express from "express";
 
-import {
-    body,
-    query
-} from "express-validator";
+import { body, query } from "express-validator";
 
-import * as controller
-    from "../controllers/payrollController.js";
+import * as controller from "../controllers/payrollController.js";
 
-import {
-    authenticate,
-    authorize
-} from "../middleware/auth.js";
+import { authenticate, authorize } from "../middleware/auth.js";
 
+const router = express.Router();
 
-const router =
-    express.Router();
+router.use(authenticate);
 
-
-router.use(
-    authenticate
-);
-
-
-const payPeriodPattern =
-    /^\d{4}-(0[1-9]|1[0-2])$/;
-
+const payPeriodPattern = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 router.get(
+  "/",
 
-    "/",
+  authorize("hr", "worker"),
 
-    authorize(
-        "hr",
-        "worker"
-    ),
+  [
+    query("payPeriod").optional().matches(payPeriodPattern),
 
-    [
+    query("employeeId").optional().isInt({
+      min: 1,
+    }),
+  ],
 
-        query("payPeriod")
-            .optional()
-            .matches(
-                payPeriodPattern
-            ),
-
-        query("employeeId")
-            .optional()
-            .isInt({
-                min: 1
-            })
-
-    ],
-
-    controller.list
-
+  controller.list,
 );
-
 
 router.get(
+  "/:id",
 
-    "/:id",
+  authorize("hr", "worker"),
 
-    authorize(
-        "hr",
-        "worker"
-    ),
-
-    controller.getOne
-
+  controller.getOne,
 );
-
 
 // HR creates a payslip
 router.post(
+  "/",
 
-    "/",
+  authorize("hr"),
 
-    authorize("hr"),
+  [
+    body("employeeId").isInt({
+      min: 1,
+    }),
 
-    [
+    body("payPeriod").matches(payPeriodPattern),
 
-        body("employeeId")
-            .isInt({
-                min: 1
-            }),
+    body("hoursWorked").optional().isFloat({
+      min: 0,
+    }),
 
-        body("payPeriod")
-            .matches(
-                payPeriodPattern
-            ),
+    body("overtimePay").optional().isFloat({
+      min: 0,
+    }),
 
-        body("hoursWorked")
-            .optional()
-            .isFloat({
-                min: 0
-            }),
+    body("transportAllowance").optional().isFloat({
+      min: 0,
+    }),
 
-        body("overtimePay")
-            .optional()
-            .isFloat({
-                min: 0
-            }),
+    body("bonus").optional().isFloat({
+      min: 0,
+    }),
 
-        body("transportAllowance")
-            .optional()
-            .isFloat({
-                min: 0
-            }),
+    body("payeTax").optional().isFloat({
+      min: 0,
+    }),
 
-        body("bonus")
-            .optional()
-            .isFloat({
-                min: 0
-            }),
+    body("uif").optional().isFloat({
+      min: 0,
+    }),
 
-        body("payeTax")
-            .optional()
-            .isFloat({
-                min: 0
-            }),
+    body("pension").optional().isFloat({
+      min: 0,
+    }),
 
-        body("uif")
-            .optional()
-            .isFloat({
-                min: 0
-            }),
+    body("medicalAid").optional().isFloat({
+      min: 0,
+    }),
 
-        body("pension")
-            .optional()
-            .isFloat({
-                min: 0
-            }),
+    body("leaveDeductions").optional().isFloat({
+      min: 0,
+    }),
+  ],
 
-        body("medicalAid")
-            .optional()
-            .isFloat({
-                min: 0
-            }),
-
-        body("leaveDeductions")
-            .optional()
-            .isFloat({
-                min: 0
-            })
-
-    ],
-
-    controller.create
-
+  controller.create,
 );
-
 
 // HR edits payslip
 router.patch(
+  "/:id",
 
-    "/:id",
+  authorize("hr"),
 
-    authorize("hr"),
+  [
+    body("hoursWorked").optional().isFloat({
+      min: 0,
+    }),
 
-    [
+    body("overtimePay").optional().isFloat({
+      min: 0,
+    }),
 
-        body("hoursWorked")
-            .optional()
-            .isFloat({
-                min: 0
-            }),
+    body("transportAllowance").optional().isFloat({
+      min: 0,
+    }),
 
-        body("overtimePay")
-            .optional()
-            .isFloat({
-                min: 0
-            }),
+    body("bonus").optional().isFloat({
+      min: 0,
+    }),
 
-        body("transportAllowance")
-            .optional()
-            .isFloat({
-                min: 0
-            }),
+    body("payeTax").optional().isFloat({
+      min: 0,
+    }),
 
-        body("bonus")
-            .optional()
-            .isFloat({
-                min: 0
-            }),
+    body("uif").optional().isFloat({
+      min: 0,
+    }),
 
-        body("payeTax")
-            .optional()
-            .isFloat({
-                min: 0
-            }),
+    body("pension").optional().isFloat({
+      min: 0,
+    }),
 
-        body("uif")
-            .optional()
-            .isFloat({
-                min: 0
-            }),
+    body("medicalAid").optional().isFloat({
+      min: 0,
+    }),
 
-        body("pension")
-            .optional()
-            .isFloat({
-                min: 0
-            }),
+    body("leaveDeductions").optional().isFloat({
+      min: 0,
+    }),
+  ],
 
-        body("medicalAid")
-            .optional()
-            .isFloat({
-                min: 0
-            }),
-
-        body("leaveDeductions")
-            .optional()
-            .isFloat({
-                min: 0
-            })
-
-    ],
-
-    controller.update
-
+  controller.update,
 );
-
 
 router.delete(
+  "/:id",
 
-    "/:id",
+  authorize("hr"),
 
-    authorize("hr"),
-
-    controller.remove
-
+  controller.remove,
 );
-
 
 export default router;
