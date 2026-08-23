@@ -2,29 +2,22 @@ import db from "../../config/db.js";
 
 // ============================================================
 // HR LEAVE MODEL
-// Handles leave requests for the HR portal
 // ============================================================
 
 class LeaveModel {
 
-    // ============================================================
+    // =========================================================
     // GET ALL LEAVE REQUESTS FOR HR
-    // ============================================================
+    // =========================================================
 
     static async findAll(status = null) {
 
-        // IMPORTANT:
-        // This must be "let" because we add WHERE and ORDER BY
-        // to the query later.
         let query = `
             SELECT
-
                 lr.leave_request_id AS requestId,
-
                 lr.employee_id AS employeeId,
 
                 e.employee_code AS employeeCode,
-
                 e.name AS employeeFullName,
 
                 d.department_name AS department,
@@ -32,7 +25,6 @@ class LeaveModel {
                 lt.leave_type_name AS leaveType,
 
                 lr.start_date AS startDate,
-
                 lr.end_date AS endDate,
 
                 lr.total_days AS duration,
@@ -64,10 +56,9 @@ class LeaveModel {
 
         const params = [];
 
-
-        // --------------------------------------------------------
+        // =====================================================
         // OPTIONAL STATUS FILTER
-        // --------------------------------------------------------
+        // =====================================================
 
         if (status) {
 
@@ -76,12 +67,12 @@ class LeaveModel {
             `;
 
             params.push(status);
+
         }
 
-
-        // --------------------------------------------------------
-        // SORT NEWEST FIRST
-        // --------------------------------------------------------
+        // =====================================================
+        // ORDERING
+        // =====================================================
 
         query += `
             ORDER BY
@@ -89,13 +80,11 @@ class LeaveModel {
                 lr.leave_request_id DESC
         `;
 
-
         const [rows] =
             await db.execute(
                 query,
                 params
             );
-
 
         console.log(
             `[HR Leave Model] Returned ${rows.length} leave request(s).`
@@ -103,14 +92,14 @@ class LeaveModel {
 
         console.table(rows);
 
-
         return rows;
+
     }
 
 
-    // ============================================================
+    // =========================================================
     // GET ONE LEAVE REQUEST
-    // ============================================================
+    // =========================================================
 
     static async findById(id) {
 
@@ -118,13 +107,10 @@ class LeaveModel {
             await db.execute(
                 `
                 SELECT
-
                     lr.leave_request_id AS requestId,
-
                     lr.employee_id AS employeeId,
 
                     e.employee_code AS employeeCode,
-
                     e.name AS employeeFullName,
 
                     d.department_name AS department,
@@ -132,7 +118,6 @@ class LeaveModel {
                     lt.leave_type_name AS leaveType,
 
                     lr.start_date AS startDate,
-
                     lr.end_date AS endDate,
 
                     lr.total_days AS duration,
@@ -168,14 +153,14 @@ class LeaveModel {
                 [id]
             );
 
-
         return rows[0] || null;
+
     }
 
 
-    // ============================================================
+    // =========================================================
     // CREATE LEAVE REQUEST
-    // ============================================================
+    // =========================================================
 
     static async create(data) {
 
@@ -187,7 +172,6 @@ class LeaveModel {
             totalDays,
             reason
         } = data;
-
 
         const query = `
             INSERT INTO leave_requests
@@ -201,7 +185,6 @@ class LeaveModel {
                 status,
                 submitted_date
             )
-
             VALUES
             (
                 ?,
@@ -214,7 +197,6 @@ class LeaveModel {
                 CURRENT_DATE
             )
         `;
-
 
         const [result] =
             await db.execute(
@@ -229,14 +211,14 @@ class LeaveModel {
                 ]
             );
 
-
         return result;
+
     }
 
 
-    // ============================================================
+    // =========================================================
     // UPDATE LEAVE STATUS
-    // ============================================================
+    // =========================================================
 
     static async updateStatus(
         id,
@@ -254,7 +236,6 @@ class LeaveModel {
             WHERE leave_request_id = ?
         `;
 
-
         const [result] =
             await db.execute(
                 query,
@@ -265,9 +246,10 @@ class LeaveModel {
                 ]
             );
 
-
         return result;
+
     }
+
 }
 
 

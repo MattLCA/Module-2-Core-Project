@@ -1,26 +1,172 @@
-const API_BASE_URL = "http://localhost:4000/api";
+// ============================================================
+// ModernTech HR API Helper
+// ============================================================
 
-async function apiFetch(path, options = {}) {
+const API_BASE_URL =
+    "http://localhost:4000/api";
 
-    const token = localStorage.getItem("authToken");
 
-    const headers = {
-        "Content-Type": "application/json",
-        ...(options.headers || {}),
-        ...(token ? { "Authorization": `Bearer ${token}` } : {})
-    };
+// ============================================================
+// GET HR TOKEN
+// ============================================================
 
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-        ...options,
-        headers
-    });
+function getHrToken() {
 
-    const body = await response.json().catch(() => ({}));
+    return localStorage.getItem(
+        "hrToken"
+    );
 
-    if (!response.ok) {
-        const message = body.message || body.error || "Request failed";
-        throw new Error(message);
+}
+
+
+// ============================================================
+// GET HR EMPLOYEE
+// ============================================================
+
+function getHrEmployee() {
+
+    const stored =
+        localStorage.getItem(
+            "hrEmployee"
+        );
+
+
+    if (!stored) {
+        return null;
     }
 
-    return body;
+
+    try {
+
+        return JSON.parse(
+            stored
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Could not parse HR employee:",
+            error
+        );
+
+        return null;
+
+    }
+
 }
+
+
+// ============================================================
+// HR API REQUEST
+// ============================================================
+
+async function apiFetch(
+    path,
+    options = {}
+) {
+
+    const token =
+        getHrToken();
+
+
+    const headers = {
+
+        "Content-Type":
+            "application/json",
+
+        ...(options.headers || {})
+
+    };
+
+
+    if (token) {
+
+        headers.Authorization =
+            `Bearer ${token}`;
+
+    }
+
+
+    const response =
+        await fetch(
+            `${API_BASE_URL}${path}`,
+            {
+                ...options,
+                headers
+            }
+        );
+
+
+    const body =
+        await response
+            .json()
+            .catch(() => ({}));
+
+
+    console.log(
+        `[HR API] ${options.method || "GET"} ${path}`,
+        response.status,
+        body
+    );
+
+
+    // ========================================================
+    // UNAUTHORIZED
+    // ========================================================
+
+    if (
+        response.status === 401
+    ) {
+
+        localStorage.removeItem(
+            "hrToken"
+        );
+
+        localStorage.removeItem(
+            "hrEmployee"
+        );
+
+        localStorage.removeItem(
+            "hrRole"
+        );
+
+        window.location.href =
+            "index.html";
+
+        return null;
+
+    }
+
+
+    // ========================================================
+    // OTHER ERRORS
+    // ========================================================
+
+    if (!response.ok) {
+
+        throw new Error(
+            body.message ||
+            body.error ||
+            `Request failed with status ${response.status}`
+        );
+
+    }
+
+
+    return body;
+
+}
+
+
+// ============================================================
+// GLOBALS
+// ============================================================
+
+window.getHrToken =
+    getHrToken;
+
+window.getHrEmployee =
+    getHrEmployee;
+
+window.apiFetch =
+    apiFetch;
