@@ -1,31 +1,13 @@
 // ============================================================
 // ModernTech Central Error Handler
 // ============================================================
-//
-// This file gives the entire backend one consistent way of
-// returning errors.
-//
-// Controllers can:
-//
-//     throw new ApiError(404, "Employee not found");
-//
-// or:
-//
-//     next(error);
-//
-// The errorHandler then formats the response.
-// ============================================================
-
-
-// ============================================================
-// API ERROR
-// ============================================================
 
 class ApiError extends Error {
 
     constructor(
         status,
-        message
+        message,
+        details = null
     ) {
 
         super(message);
@@ -35,6 +17,9 @@ class ApiError extends Error {
 
         this.status =
             status;
+
+        this.details =
+            details;
 
     }
 
@@ -46,7 +31,7 @@ class ApiError extends Error {
 // ============================================================
 
 function errorHandler(
-    err,
+    error,
     req,
     res,
     next
@@ -54,101 +39,124 @@ function errorHandler(
 
     console.error(
         "Backend error:",
-        err
+        error
     );
 
 
     // --------------------------------------------------------
-    // Duplicate database value
-    //
-    // Examples:
-    // - duplicate email
-    // - duplicate employee code
-    // - duplicate payroll period
+    // Express validation errors
     // --------------------------------------------------------
 
     if (
-        err.code ===
+        error.name ===
+        "ValidationError"
+    ) {
+
+        return res.status(422).json({
+            error:
+                error.message,
+
+            details:
+                error.details || null
+
+        });
+
+    }
+
+
+    // --------------------------------------------------------
+    // Duplicate MySQL record
+    // --------------------------------------------------------
+
+    if (
+        error.code ===
         "ER_DUP_ENTRY"
     ) {
 
         return res.status(409).json({
             error:
-                "A record with that value already exists"
+                "A record with that value already exists."
         });
 
     }
 
 
     // --------------------------------------------------------
-    // Foreign key violation
+    // Foreign key errors
     // --------------------------------------------------------
 
     if (
-        err.code ===
+        error.code ===
             "ER_NO_REFERENCED_ROW" ||
-        err.code ===
+        error.code ===
             "ER_NO_REFERENCED_ROW_2" ||
-        err.code ===
+        error.code ===
             "ER_ROW_IS_REFERENCED_2"
     ) {
 
         return res.status(400).json({
             error:
-                "The request refers to a record that does not exist or cannot be changed"
+                "The request refers to a record that does not exist or cannot be changed."
         });
 
     }
 
 
     // --------------------------------------------------------
-    // MySQL validation / constraint errors
+    // CHECK constraint
     // --------------------------------------------------------
 
     if (
-        err.code ===
+        error.code ===
         "ER_CHECK_CONSTRAINT_VIOLATED"
     ) {
 
         return res.status(400).json({
             error:
-                "The supplied data does not satisfy the database rules"
+                "The supplied data does not satisfy the database rules."
         });
 
     }
 
 
     // --------------------------------------------------------
-    // Explicit API error
+    // Explicit ApiError
     // --------------------------------------------------------
 
     const status =
-        Number.isInteger(err.status)
-            ? err.status
+        Number.isInteger(
+            error.status
+        )
+            ? error.status
             : 500;
 
-
-    // --------------------------------------------------------
-    // Never expose internal server details to the frontend.
-    // --------------------------------------------------------
 
     const message =
         status >= 500
             ? "Internal server error"
             : (
-                err.message ||
+                error.message ||
                 "Request failed"
             );
 
 
     return res.status(status).json({
-        error: message
+
+        error: message,
+
+        ...(error.details
+            ? {
+                details:
+                    error.details
+            }
+            : {})
+
     });
 
 }
 
 
 export {
-    errorHandler,
-    ApiError
+    ApiError,
+    errorHandler
 };

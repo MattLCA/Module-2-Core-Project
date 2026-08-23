@@ -1,50 +1,44 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-    const loginForm = document.getElementById("loginForm");
-    const passwordInput = document.getElementById("password");
+
+    const loginForm = document.querySelector("form");
+
+    const passwordInput = document.querySelector(
+        'input[type="password"]'
+    );
+
     const identifierInput = document.getElementById("loginIdentifier");
+
     const identifierLabel = document.getElementById("loginIdentifierLabel");
+
     const identifierIcon = document.getElementById("loginIdentifierIcon");
+
     const roleInputs = document.querySelectorAll('input[name="role"]');
 
 
-    // ============================================================
-    // UPDATE IDENTIFIER FIELD WHEN ROLE CHANGES
-    // ============================================================
+    roleInputs.forEach(role => {
 
-    roleInputs.forEach((roleInput) => {
+        role.addEventListener("change", () => {
 
-        roleInput.addEventListener("change", () => {
-
-            if (
-                roleInput.value === "Employee" &&
-                roleInput.checked
-            ) {
+            if(role.value === "Employee" && role.checked){
 
                 identifierLabel.textContent = "Employee ID";
 
                 identifierInput.type = "text";
 
-                identifierInput.placeholder = "EMP-001";
-
-                identifierInput.value = "";
-
-                identifierInput.autocomplete = "username";
+                identifierInput.placeholder = "EMP001";
 
                 identifierIcon.className = "ti ti-id";
 
-            } else {
+            }
+
+            else{
 
                 identifierLabel.textContent = "Email Address";
 
                 identifierInput.type = "email";
 
-                identifierInput.placeholder =
-                    "Enter your email address";
-
-                identifierInput.value = "";
-
-                identifierInput.autocomplete = "username";
+                identifierInput.placeholder = "jordan@moderntech.com";
 
                 identifierIcon.className = "ti ti-mail";
 
@@ -55,381 +49,112 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
 
-    // ============================================================
-    // LOGIN
-    // ============================================================
 
-    loginForm.addEventListener("submit", async (event) => {
-
-        event.preventDefault();
+    loginForm.addEventListener("submit", async (e)=>{
 
 
-        // --------------------------------------------------------
-        // Get selected frontend role
-        // --------------------------------------------------------
+        e.preventDefault();
 
-        const selectedRoleInput =
-            document.querySelector(
-                'input[name="role"]:checked'
-            );
-
-        if (!selectedRoleInput) {
-
-            showMessage(
-                "Please select a login role.",
-                "error"
-            );
-
-            return;
-
-        }
 
 
         const selectedRole =
-            selectedRoleInput.value;
+        document.querySelector('input[name="role"]:checked').value;
 
+        const identifier = identifierInput.value.trim();
 
-        // --------------------------------------------------------
-        // Convert frontend role to backend role
-        // --------------------------------------------------------
+        const password = passwordInput.value.trim();
 
-        const role =
-            selectedRole === "HR Manager"
-                ? "hr"
-                : "worker";
-
-
-        // --------------------------------------------------------
-        // Get form values
-        // --------------------------------------------------------
-
-        const identifier =
-            identifierInput.value.trim();
-
-        const password =
-            passwordInput.value;
-
-
-        // --------------------------------------------------------
-        // Basic validation
-        // --------------------------------------------------------
-
-        if (!identifier || !password) {
-
-            showMessage(
-                "Please enter your login details.",
-                "error"
-            );
-
-            return;
-
-        }
-
-
-        // --------------------------------------------------------
-        // Disable login button
-        // --------------------------------------------------------
-
-        const loginButton =
-            loginForm.querySelector(".login-btn");
-
-        const originalButtonText =
-            loginButton.innerHTML;
-
-        loginButton.disabled = true;
-
-        loginButton.innerHTML = `
-            <span>Signing in...</span>
-            <i class="ti ti-loader-2"></i>
-        `;
-
+        // Frontend uses "HR Manager"/"Employee" labels, backend expects "hr"/"worker"
+        const apiRole = selectedRole === "HR Manager" ? "hr" : "worker";
 
         try {
 
-            // ----------------------------------------------------
-            // Clear old authentication information
-            // ----------------------------------------------------
+            const result = await apiFetch("/auth/login", {
+                method: "POST",
+                body: JSON.stringify({
+                    role: apiRole,
+                    identifier: identifier,
+                    password: password
+                })
+            });
 
-            localStorage.removeItem("token");
-            localStorage.removeItem("authToken");
-            localStorage.removeItem("workerToken");
-            localStorage.removeItem("employee");
-            localStorage.removeItem("loggedInUser");
-            localStorage.removeItem("userRole");
-            localStorage.removeItem("workerProfile");
+            const { token, employee } = result.data;
 
-
-            // ----------------------------------------------------
-            // Send login request
-            // ----------------------------------------------------
-
-            const response = await fetch(
-                "http://localhost:4000/api/auth/login",
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-
-                    body: JSON.stringify({
-                        role: role,
-                        identifier: identifier,
-                        password: password
-                    })
-                }
-            );
-
-
-            // ----------------------------------------------------
-            // Read response
-            // ----------------------------------------------------
-
-            const result =
-                await response.json();
-
-
-            console.log(
-                "Login response:",
-                result
-            );
-
-
-            // ----------------------------------------------------
-            // Handle failed login
-            // ----------------------------------------------------
-
-            if (!response.ok) {
-
-                throw new Error(
-                    result.error ||
-                    result.message ||
-                    "Login failed. Please check your details."
-                );
-
-            }
-
-
-            // ----------------------------------------------------
-            // Extract authenticated user
-            // ----------------------------------------------------
-
-            const token =
-                result?.data?.token;
-
-            const employee =
-                result?.data?.employee;
-
-
-            // ----------------------------------------------------
-            // Validate response
-            // ----------------------------------------------------
-
-            if (!token) {
-
-                throw new Error(
-                    "Login succeeded but the server did not return an authentication token."
-                );
-
-            }
-
-
-            if (!employee) {
-
-                throw new Error(
-                    "Login succeeded but the server did not return employee information."
-                );
-
-            }
-
-
-            // ----------------------------------------------------
-            // Make sure backend role matches selected role
-            // ----------------------------------------------------
-
-            if (employee.role !== role) {
-
-                throw new Error(
-                    "You do not have permission to access this portal."
-                );
-
-            }
-
-
-            // ====================================================
-            // STORE AUTHENTICATION
-            // ====================================================
-            //
-            // IMPORTANT:
-            //
-            // worker_api.js uses "token"
-            // script.js uses "employee"
-            //
-            // We store those exact keys.
-            //
-            // We also keep authToken/loggedInUser for compatibility
-            // with any existing HR/frontend code.
-            // ====================================================
-
-            localStorage.setItem(
-                "token",
-                token
-            );
-
-            localStorage.setItem(
-                "authToken",
-                token
-            );
-
-            localStorage.setItem(
-                "employee",
-                JSON.stringify(employee)
-            );
-
-            localStorage.setItem(
-                "loggedInUser",
-                JSON.stringify(employee)
-            );
-
-            localStorage.setItem(
-                "userRole",
-                employee.role
-            );
-
-
-            // ----------------------------------------------------
-            // Store worker profile
-            // ----------------------------------------------------
-
-            if (employee.role === "worker") {
-
-                localStorage.setItem(
-                    "workerProfile",
-                    JSON.stringify(employee)
-                );
-
-            }
-
-
-            // ----------------------------------------------------
-            // Log authentication information
-            // ----------------------------------------------------
-
-            console.log(
-                "Authentication successful."
-            );
-
-            console.log(
-                "Authenticated employee:",
-                employee
-            );
-
-            console.log(
-                "Role:",
-                employee.role
-            );
-
-
-            // ----------------------------------------------------
-            // Success message
-            // ----------------------------------------------------
+            // Save token and employee info
+            localStorage.setItem("authToken", token);
+            localStorage.setItem("loggedInUser", JSON.stringify(employee));
 
             showMessage(
                 "Login successful! Redirecting...",
                 "success"
             );
 
+            setTimeout(()=>{
 
-            // ----------------------------------------------------
-            // Redirect based on DATABASE role
-            // ----------------------------------------------------
+                if(employee.role === "hr"){
 
-            setTimeout(() => {
-
-                if (employee.role === "hr") {
-
-                    window.location.href =
-                        "hr-dashboard.html";
-
-                } else if (
-                    employee.role === "worker"
-                ) {
-
-                    window.location.href =
-                        "worker-dashboard.html";
-
-                } else {
-
-                    showMessage(
-                        "Your account does not have a valid portal role.",
-                        "error"
-                    );
+                    window.location.href = "hr-dashboard.html";
 
                 }
 
-            }, 500);
+                else if(employee.role === "worker"){
 
+                    window.location.href = "worker-dashboard.html";
 
-        } catch (error) {
+                }
 
-            console.error(
-                "Login error:",
-                error
-            );
+            },1000);
 
+        }
+
+        catch (err) {
 
             showMessage(
-                error.message ||
-                "Unable to connect to the server.",
+                "Incorrect Employee ID/Email or password.",
                 "error"
             );
 
-
-        } finally {
-
-            loginButton.disabled = false;
-
-            loginButton.innerHTML =
-                originalButtonText;
-
         }
+
 
     });
 
 
-    // ============================================================
-    // MESSAGE DISPLAY
-    // ============================================================
 
-    function showMessage(message, type) {
+
+
+    function showMessage(message,type){
+
 
         let messageBox =
-            document.querySelector(
-                ".login-message"
-            );
+        document.querySelector(".login-message");
 
 
-        if (!messageBox) {
+
+        if(!messageBox){
 
             messageBox =
-                document.createElement("div");
+            document.createElement("div");
 
             messageBox.className =
-                "login-message";
+            "login-message";
 
-            loginForm.prepend(
-                messageBox
-            );
+
+            loginForm.prepend(messageBox);
 
         }
 
 
-        messageBox.textContent =
-            message;
+
+        messageBox.textContent = message;
+
 
         messageBox.className =
-            `login-message ${type}`;
+        `login-message ${type}`;
+
 
     }
+
+
 
 });

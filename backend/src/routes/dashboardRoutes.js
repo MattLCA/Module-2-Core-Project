@@ -1,13 +1,29 @@
-import express from 'express';
-import * as controller from '../controllers/dashboardController.js';
-import { authenticate, authorize } from '../middleware/auth.js';
+import express from "express";
 
-const router = express.Router();
+import * as controller
+    from "../controllers/dashboardController.js";
 
-router.use(authenticate);
+import {
+    authenticate,
+    authorize
+} from "../middleware/auth.js";
 
-// The dashboard aggregates org-wide data (all employees' attendance/leave),
-// so it's HR-only — same access level as the employee list.
-router.get('/summary', authorize('hr'), controller.summary);
+
+const router =
+    express.Router();
+
+
+router.use(
+    authenticate
+);
+
+
+// HR dashboard only
+router.get(
+    "/summary",
+    authorize("hr"),
+    controller.summary
+);
+
 
 export default router;

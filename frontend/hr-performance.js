@@ -29,6 +29,14 @@ document.addEventListener('DOMContentLoaded', () => {
     return new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
+  function formatReviewDate(isoDate) {
+    if (!isoDate) return null;
+    // review_date arrives as 'YYYY-MM-DD' from the API.
+    const d = new Date(isoDate + 'T00:00:00');
+    if (isNaN(d)) return isoDate;
+    return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
   function ratingTier(rating) {
     if (rating >= 4.0) return 'good';
     if (rating >= 3.0) return 'mid';
@@ -45,175 +53,108 @@ document.addEventListener('DOMContentLoaded', () => {
     const quarter = Math.floor(now.getMonth() / 3) + 1;
     const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     if (dateText) dateText.textContent = `${dateStr} · Q${quarter} ${now.getFullYear()} review cycle`;
-    // reviewCycleSub already flags this panel as demo data in the HTML; leave as-is.
+    if (reviewCycleSub) reviewCycleSub.textContent = `Q${quarter} ${now.getFullYear()} review cycle`;
   })();
 
-  /* ================= Build team performance table from real employee data ================= */
+  /* ================= Load real performance data from the backend ================= */
+  // GET /api/performance returns every active employee with their review
+  // if one exists (null rating/notes/goal_progress otherwise) — no local
+  // employee-data file or fake reviews array needed anymore.
 
-  const employees = (typeof employeeData !== 'undefined'
-    ? employeeData.employees
-    : []
-  ).map((e, index) => {
+  let employees = [];
 
-    const reviews = [
-      {
-        rating: 4.8,
-        lastReview: "09 Jul 2026",
-        notes: "Consistently exceeds expectations. Demonstrates excellent leadership, mentors junior staff, and delivers projects ahead of schedule.",
-        goalProgress: 96
-      },
-      {
-        rating: 4.5,
-        lastReview: "05 Jul 2026",
-        notes: "Strong team player with excellent communication skills. Produces high-quality work and adapts quickly to new responsibilities.",
-        goalProgress: 90
-      },
-      {
-        rating: 3.9,
-        lastReview: "28 Jun 2026",
-        notes: "Reliable and dependable. Meets deadlines consistently but could take more initiative during team projects.",
-        goalProgress: 75
-      },
-      {
-        rating: 4.7,
-        lastReview: "01 Jul 2026",
-        notes: "Outstanding attention to detail and problem-solving abilities. Frequently contributes innovative ideas that improve workflows.",
-        goalProgress: 94
-      },
-      {
-        rating: 3.4,
-        lastReview: "25 Jun 2026",
-        notes: "Meets most performance expectations. Should focus on improving time management and responding more promptly to client requests.",
-        goalProgress: 68
-      },
-      {
-        rating: 4.2,
-        lastReview: "03 Jul 2026",
-        notes: "Delivers quality work and collaborates well with colleagues. Could improve confidence when presenting ideas during meetings.",
-        goalProgress: 82
-      },
-      {
-        rating: 2.8,
-        lastReview: "20 Jun 2026",
-        notes: "Performance has declined over the past quarter. Improvement needed in attendance, communication, and meeting deadlines. Coaching recommended.",
-        goalProgress: 45
-      },
-      {
-        rating: 4.9,
-        lastReview: "08 Jul 2026",
-        notes: "Exceptional performer. Takes ownership of projects, supports teammates, and consistently exceeds business objectives.",
-        goalProgress: 98
-      },
-      {
-        rating: 3.6,
-        lastReview: "29 Jun 2026",
-        notes: "Solid contributor who completes assigned tasks well. Should work on developing leadership and decision-making skills.",
-        goalProgress: 71
-      },
-      {
-        rating: 4.3,
-        lastReview: "06 Jul 2026",
-        notes: "Excellent customer service and strong collaboration across departments. Demonstrates a positive attitude and willingness to learn.",
-        goalProgress: 88
-      },
-      {
-        rating: 3.1,
-        lastReview: "18 Jun 2026",
-        notes: "Shows potential but requires additional support in technical skills and task prioritization. Progress should be reviewed next cycle.",
-        goalProgress: 56
-      },
-      {
-        rating: 4.6,
-        lastReview: "07 Jul 2026",
-        notes: "Highly dependable and proactive. Regularly volunteers for new initiatives and maintains excellent quality standards.",
-        goalProgress: 93
-      }
-    ];
-
-    const review = reviews[index % reviews.length];
-
+  function mapPerformanceRecord(r) {
     return {
-      employeeId: e.employeeId,
-      name: e.name,
-      role: e.position,
-      dept: e.department,
-      rating: review.rating,
-      notes: review.notes,
-      lastReview: review.lastReview,
-      goalProgress: review.goalProgress
+      employeeId: r.employee_id,
+      name: r.name,
+      role: r.position,
+      dept: r.department,
+      rating: r.rating !== null && r.rating !== undefined ? Number(r.rating) : null,
+      notes: r.notes,
+      lastReview: formatReviewDate(r.review_date),
+      goalProgress: r.goal_progress !== null && r.goal_progress !== undefined ? Number(r.goal_progress) : null
     };
-  });
-
-  // Load saved performance reviews
-  const savedPerformance = localStorage.getItem("performanceData");
-
-  if (savedPerformance) {
-      const savedEmployees = JSON.parse(savedPerformance);
-
-      savedEmployees.forEach(savedEmp => {
-          const employee = employees.find(emp => emp.employeeId === savedEmp.employeeId);
-
-          if (employee) {
-              employee.rating = savedEmp.rating;
-              employee.notes = savedEmp.notes;
-              employee.lastReview = savedEmp.lastReview;
-          }
-      });
   }
 
   const performanceTbody = document.getElementById('performanceTbody');
   const teamPerformanceSub = document.getElementById('teamPerformanceSub');
   const reviewsTotalVal = document.getElementById('reviewsTotalVal');
 
+  function loadPerformance() {
+    if (performanceTbody) {
+      performanceTbody.innerHTML = '<tr><td colspan="6">Loading performance data\u2026</td></tr>';
+    }
+
+    return apiFetch('/performance')
+      .then(function(result) {
+        employees = (result.data || []).map(mapPerformanceRecord);
+        renderPerformanceTable();
+        recalcStats();
+      })
+      .catch(function(err) {
+        if (performanceTbody) {
+          performanceTbody.innerHTML = '<tr><td colspan="6">Couldn\u2019t load performance data: ' + err.message + '</td></tr>';
+        }
+        showToast('Failed to load performance data from the server');
+      });
+  }
+
   function renderPerformanceTable() {
     if (!performanceTbody) return;
 
-    performanceTbody.innerHTML = employees.map(e => {
-      const hasRating = e.rating !== null && e.rating !== undefined && e.rating !== '';
-      const ratingBadgeCls = hasRating ? ratingTier(parseFloat(e.rating)) : 'none';
-      const ratingText = hasRating ? parseFloat(e.rating).toFixed(1) : '—';
-      let statusCls = "active";
-      let statusText = "Meets Expectations";
+    if (!employees.length) {
+      performanceTbody.innerHTML = '<tr><td colspan="6">No employees found.</td></tr>';
+      return;
+    }
 
-      if (e.rating >= 4.5) {
-          statusText = "Outstanding";
+    performanceTbody.innerHTML = employees.map(e => {
+      const hasRating = e.rating !== null && e.rating !== undefined;
+      const ratingBadgeCls = hasRating ? ratingTier(e.rating) : 'none';
+      const ratingText = hasRating ? e.rating.toFixed(1) : '\u2014';
+      const goalProgress = e.goalProgress !== null && e.goalProgress !== undefined ? e.goalProgress : 0;
+
+      let statusCls = "active";
+      let statusText = "Not yet reviewed";
+
+      if (!hasRating) {
+        statusText = "Not yet reviewed";
+        statusCls = "active";
+      } else if (e.rating >= 4.5) {
+        statusText = "Outstanding";
       } else if (e.rating >= 4.0) {
-          statusText = "Exceeds Expectations";
+        statusText = "Exceeds Expectations";
       } else if (e.rating >= 3.0) {
-          statusText = "Meets Expectations";
+        statusText = "Meets Expectations";
       } else {
-          statusText = "Needs Improvement";
-          statusCls = "overdue";
+        statusText = "Needs Improvement";
+        statusCls = "overdue";
       }
+
       const actionLabel = hasRating ? 'View review' : 'Start review';
       const actionCls = hasRating ? 'view-review-btn' : 'start-review-btn';
 
       return `
-        <tr data-name="${e.name.toLowerCase()}" data-role="${e.role.toLowerCase()}" data-dept="${e.dept.toLowerCase()}" data-rating="${hasRating ? e.rating : ''}" data-notes="${e.notes || ''}">
+        <tr data-employee-id="${e.employeeId}" data-name="${e.name.toLowerCase()}" data-role="${e.role.toLowerCase()}" data-dept="${e.dept.toLowerCase()}" data-rating="${hasRating ? e.rating : ''}" data-notes="${e.notes || ''}" data-goal-progress="${e.goalProgress !== null && e.goalProgress !== undefined ? e.goalProgress : ''}">
           <td><div class="emp-cell"><div class="emp-avatar">${initials(e.name)}</div><div><div class="emp-name">${e.name}</div><div class="emp-role">${e.role}</div></div></div></td>
           <td><span class="rating-badge ${ratingBadgeCls}">${ratingText}</span></td>
           <td>
-            <td>
-              <div class="goal-progress">
-                <div class="goal-progress-track">
-                  <div class="goal-progress-fill" style="width:${e.goalProgress}%;"></div>
-                </div>
-                <span class="goal-progress-label">${e.goalProgress}%</span>
+            <div class="goal-progress">
+              <div class="goal-progress-track">
+                <div class="goal-progress-fill" style="width:${goalProgress}%;"></div>
               </div>
-            </td>
+              <span class="goal-progress-label">${goalProgress}%</span>
+            </div>
           </td>
-          <td class="last-review-cell">${e.lastReview ? e.lastReview : '—'}</td>
+          <td class="last-review-cell">${e.lastReview ? e.lastReview : '\u2014'}</td>
           <td><span class="status-pill ${statusCls}">${statusText}</span></td>
           <td><button class="pay-action-btn ${actionCls}" type="button">${actionLabel}</button></td>
         </tr>
       `;
     }).join('');
 
-    if (teamPerformanceSub) teamPerformanceSub.textContent = `${employees.length} team members · no prior ratings in uploaded data`;
+    if (teamPerformanceSub) teamPerformanceSub.textContent = `${employees.length} team members`;
     if (reviewsTotalVal) reviewsTotalVal.textContent = String(employees.length);
   }
-
-  renderPerformanceTable();
 
   /* ================= Sidebar (mobile) ================= */
 
@@ -240,16 +181,16 @@ document.addEventListener('DOMContentLoaded', () => {
     userMenuBtn.addEventListener('click', () => {
       const isExpanded = userMenuBtn.getAttribute('aria-expanded') === 'true';
       userMenuBtn.setAttribute('aria-expanded', String(!isExpanded));
-      // TODO: hook up a real profile/settings/sign-out dropdown when that menu exists.
     });
   }
 
-  /* ================= Notifications dropdown ================= */
+  /* ================= Notifications dropdown (real data from /api/notifications) ================= */
 
   const notifBtn = document.getElementById('notifBtn');
   const notifPanel = document.getElementById('notifPanel');
   const notifDot = document.getElementById('notifDot');
   const notifMarkAllBtn = document.getElementById('notifMarkAllBtn');
+  const notifList = document.getElementById('notifList');
 
   function closeNotifPanel() {
     if (!notifPanel || notifPanel.hidden) return;
@@ -271,11 +212,68 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  function timeAgo(isoString) {
+    const then = new Date(isoString);
+    if (isNaN(then)) return '';
+    const seconds = Math.floor((Date.now() - then.getTime()) / 1000);
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  }
+
+  function renderNotifications(notifications) {
+    if (!notifList) return;
+    if (!notifications.length) {
+      notifList.innerHTML = '<li class="notif-item"><p>No notifications yet.</p></li>';
+    } else {
+      notifList.innerHTML = notifications.map(n => `
+        <li class="notif-item ${n.is_read ? '' : 'unread'}" data-notification-id="${n.notification_id}">
+          <i class="ti ${n.is_read ? 'ti-bell' : 'ti-alert-circle'}" aria-hidden="true"></i>
+          <div><p>${n.title ? n.title + ' — ' : ''}${n.message}</p><span>${timeAgo(n.created_at)}</span></div>
+        </li>
+      `).join('');
+    }
+    const unreadCount = notifications.filter(n => !n.is_read).length;
+    if (notifDot) notifDot.style.display = unreadCount > 0 ? '' : 'none';
+  }
+
+  function loadNotifications() {
+    return apiFetch('/notifications')
+      .then(result => renderNotifications(result.data || []))
+      .catch(() => {
+        if (notifList) notifList.innerHTML = '<li class="notif-item"><p>Couldn\u2019t load notifications.</p></li>';
+      });
+  }
+
+  if (notifList) {
+    notifList.addEventListener('click', (e) => {
+      const item = e.target.closest('.notif-item[data-notification-id]');
+      if (!item || !item.classList.contains('unread')) return;
+      const id = item.dataset.notificationId;
+      apiFetch(`/notifications/${id}/read`, { method: 'PATCH' })
+        .then(() => {
+          item.classList.remove('unread');
+          const remaining = notifList.querySelectorAll('.notif-item.unread').length;
+          if (notifDot) notifDot.style.display = remaining > 0 ? '' : 'none';
+        })
+        .catch(() => showToast('Failed to mark notification as read'));
+    });
+  }
+
   if (notifMarkAllBtn) {
     notifMarkAllBtn.addEventListener('click', () => {
-      document.querySelectorAll('.notif-item.unread').forEach(item => item.classList.remove('unread'));
-      if (notifDot) notifDot.style.display = 'none';
-      showToast('All notifications marked as read.');
+      apiFetch('/notifications/read-all', { method: 'PATCH' })
+        .then(() => {
+          document.querySelectorAll('.notif-item.unread').forEach(item => item.classList.remove('unread'));
+          if (notifDot) notifDot.style.display = 'none';
+          showToast('All notifications marked as read.');
+        })
+        .catch(() => showToast('Failed to mark notifications as read'));
     });
   }
 
@@ -318,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const avg = ratedRows.reduce((sum, r) => sum + parseFloat(r.dataset.rating), 0) / ratedRows.length;
         avgRatingVal.textContent = avg.toFixed(1);
       } else {
-        avgRatingVal.textContent = '—';
+        avgRatingVal.textContent = '\u2014';
       }
     }
     if (reviewsCompletedVal) reviewsCompletedVal.textContent = String(ratedRows.length);
@@ -364,6 +362,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (cancelReviewBtn) cancelReviewBtn.addEventListener('click', closeReviewModal);
   reviewModal?.addEventListener('click', (e) => { if (e.target === reviewModal) closeReviewModal(); });
 
+  // NOTE: this modal only collects rating + notes — there's no input for
+  // goal progress, even though the backend tracks it too. To avoid
+  // silently wiping an employee's existing goal_progress to null on every
+  // save, we read the row's current data-goal-progress and send it back
+  // unchanged. Add a goal-progress field to the modal if that needs to
+  // become editable here.
   reviewForm?.addEventListener('submit', (e) => {
     e.preventDefault();
     const rating = reviewRatingInput.value;
@@ -375,41 +379,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const row = activeReviewRow;
     const name = row.querySelector('.emp-name').textContent;
-    const wasOverdue = row.querySelector('.status-pill')?.classList.contains('overdue');
+    const employeeId = row.dataset.employeeId;
+    const existingGoalProgress = row.dataset.goalProgress;
 
-    row.dataset.rating = rating;
-    row.dataset.notes = reviewNotesInput.value.trim();
-
-    const ratingBadge = row.querySelector('.rating-badge');
-    ratingBadge.textContent = parseFloat(rating).toFixed(1);
-    ratingBadge.className = `rating-badge ${ratingTier(parseFloat(rating))}`;
-
-    row.querySelector('.last-review-cell').textContent = todayFormatted();
-
-    // Update employee object
-    const employee = employees.find(emp => emp.name === name);
-
-    if (employee) {
-        employee.rating = parseFloat(rating);
-        employee.notes = reviewNotesInput.value.trim();
-        employee.lastReview = todayFormatted();
+    const payload = {
+      rating: parseFloat(rating),
+      notes: reviewNotesInput.value.trim()
+    };
+    if (existingGoalProgress !== '' && existingGoalProgress !== undefined) {
+      payload.goalProgress = parseInt(existingGoalProgress, 10);
     }
 
-    // Save to localStorage
-    localStorage.setItem("performanceData", JSON.stringify(employees));
+    const submitBtn = reviewForm.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
 
-    const statusPill = row.querySelector('.status-pill');
-    statusPill.className = 'status-pill active';
-    statusPill.textContent = 'Reviewed';
+    apiFetch('/performance/' + employeeId, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    })
+      .then(function(result) {
+        const updated = mapPerformanceRecord(result.data);
+        const idx = employees.findIndex(emp => emp.employeeId === updated.employeeId);
+        if (idx > -1) employees[idx] = updated;
 
-    const actionBtn = row.querySelector('.pay-action-btn');
-    actionBtn.textContent = 'View review';
-    actionBtn.classList.remove('start-review-btn');
-    actionBtn.classList.add('view-review-btn');
-
-    recalcStats();
-    showToast(wasOverdue ? `Review submitted for ${name}.` : `Review updated for ${name}.`);
-    closeReviewModal();
+        renderPerformanceTable();
+        recalcStats();
+        showToast(`Review saved for ${name}.`);
+        closeReviewModal();
+      })
+      .catch(function(err) {
+        reviewFormError.textContent = 'Failed to save review: ' + err.message;
+        reviewFormError.hidden = false;
+      })
+      .finally(function() {
+        if (submitBtn) submitBtn.disabled = false;
+      });
   });
 
   /* ================= View review modal ================= */
@@ -429,7 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
     viewedRow = row;
     lastFocusedEl = document.activeElement;
     viewReviewName.textContent = row.querySelector('.emp-name').textContent;
-    viewReviewRating.textContent = row.dataset.rating ? parseFloat(row.dataset.rating).toFixed(1) : '—';
+    viewReviewRating.textContent = row.dataset.rating ? parseFloat(row.dataset.rating).toFixed(1) : '\u2014';
     viewReviewDate.textContent = row.querySelector('.last-review-cell').textContent;
     viewReviewNotes.textContent = row.dataset.notes && row.dataset.notes.length
       ? row.dataset.notes
@@ -503,6 +507,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (oneOnOneList) oneOnOneList.style.display = count === 0 ? 'none' : '';
   }
 
+  // NOTE: scheduling a 1:1 is still UI-only — there's no backend table
+  // for this yet, so it doesn't persist across a page reload.
   scheduleForm?.addEventListener('submit', (e) => {
     e.preventDefault();
     const name = document.getElementById('scheduleNameInput').value.trim();
@@ -554,6 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (reviewModal && !reviewModal.hidden) { closeReviewModal(); return; }
     if (viewReviewModal && !viewReviewModal.hidden) { closeViewReviewModal(); return; }
     if (scheduleModal && !scheduleModal.hidden) { closeScheduleModal(); return; }
+    if (goalModal && !goalModal.hidden) { closeGoalModal(); return; }
     if (sidebar && sidebar.classList.contains('open')) {
       sidebar.classList.remove('open');
       sidebarToggle.setAttribute('aria-expanded', 'false');
@@ -561,8 +568,160 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  /* Initial sync */
-  recalcStats();
+  /* ================= Review cycle funnel (real data from /api/review-cycle) ================= */
+
+  function setFunnelBar(countId, fillId, pct) {
+    const countEl = document.getElementById(countId);
+    const fillEl = document.getElementById(fillId);
+    if (countEl) countEl.textContent = `${pct}%`;
+    if (fillEl) fillEl.style.width = `${pct}%`;
+  }
+
+  function loadReviewCycleFunnel() {
+    return apiFetch('/review-cycle')
+      .then(result => {
+        const data = result.data;
+        if (!data) {
+          if (reviewCycleSub) reviewCycleSub.textContent = 'No active review cycle';
+          return;
+        }
+        const { funnel } = data;
+        setFunnelBar('funnelSelfReviewCount', 'funnelSelfReviewFill', funnel.selfReviewSubmittedPct);
+        setFunnelBar('funnelManagerReviewCount', 'funnelManagerReviewFill', funnel.managerReviewSubmittedPct);
+        setFunnelBar('funnelCalibrationCount', 'funnelCalibrationFill', funnel.calibrationCompletePct);
+        setFunnelBar('funnelFinalizedCount', 'funnelFinalizedFill', funnel.finalizedPct);
+      })
+      .catch(() => showToast('Failed to load review cycle progress'));
+  }
+
+  /* ================= Goals & OKRs (real data from /api/goals) ================= */
+
+  const goalsList = document.getElementById('goalsList');
+  const goalsSub = document.getElementById('goalsSub');
+  const goalsEmptyState = document.getElementById('goalsEmptyState');
+  const goalsOnTrackVal = document.getElementById('goalsOnTrackVal');
+  const addGoalBtn = document.getElementById('addGoalBtn');
+  const goalModal = document.getElementById('goalModal');
+  const closeGoalModalBtn = document.getElementById('closeGoalModalBtn');
+  const cancelGoalBtn = document.getElementById('cancelGoalBtn');
+  const goalForm = document.getElementById('goalForm');
+  const goalFormError = document.getElementById('goalFormError');
+  const goalOwnerInput = document.getElementById('goalOwnerInput');
+
+  const STATUS_LABELS = { on_track: 'On track', at_risk: 'At risk', behind: 'Behind', completed: 'Completed' };
+  const STATUS_CLASSES = { on_track: 'on-track', at_risk: 'at-risk', behind: 'behind', completed: 'on-track' };
+  const PROGRESS_FILL_CLASSES = { on_track: '', at_risk: 'at-risk', behind: 'behind', completed: '' };
+
+  function renderGoals(goals) {
+    if (!goalsList) return;
+    if (!goals.length) {
+      goalsList.innerHTML = '';
+      if (goalsEmptyState) goalsEmptyState.hidden = false;
+      return;
+    }
+    if (goalsEmptyState) goalsEmptyState.hidden = true;
+
+    goalsList.innerHTML = goals.map(g => `
+      <div class="goal-item">
+        <div class="goal-item-top">
+          <span class="goal-title">${g.title}</span>
+          <span class="goal-status ${STATUS_CLASSES[g.status] || ''}">${STATUS_LABELS[g.status] || g.status}</span>
+        </div>
+        <div class="goal-item-meta">${g.owner_name}</div>
+        <div class="goal-progress">
+          <div class="goal-progress-track"><div class="goal-progress-fill ${PROGRESS_FILL_CLASSES[g.status] || ''}" style="width:${g.progress}%;"></div></div>
+          <span class="goal-progress-label">${g.progress}%</span>
+        </div>
+      </div>
+    `).join('');
+
+    if (goalsSub) goalsSub.textContent = `${goals.length} goal${goals.length === 1 ? '' : 's'}`;
+  }
+
+  function loadGoalsSummary() {
+    return apiFetch('/goals/summary')
+      .then(result => {
+        const { percentOnTrack } = result.data;
+        if (goalsOnTrackVal) goalsOnTrackVal.textContent = percentOnTrack === null ? '\u2014' : `${percentOnTrack}%`;
+      })
+      .catch(() => { if (goalsOnTrackVal) goalsOnTrackVal.textContent = '\u2014'; });
+  }
+
+  function loadGoals() {
+    if (goalsSub) goalsSub.textContent = 'Loading\u2026';
+    return apiFetch('/goals')
+      .then(result => renderGoals(result.data || []))
+      .catch(() => {
+        if (goalsSub) goalsSub.textContent = 'Failed to load goals';
+        showToast('Failed to load goals');
+      });
+  }
+
+  function populateGoalOwnerOptions() {
+    if (!goalOwnerInput) return;
+    goalOwnerInput.innerHTML = employees
+      .map(e => `<option value="${e.employeeId}">${e.name}</option>`)
+      .join('');
+  }
+
+  function openGoalModal() {
+    lastFocusedEl = document.activeElement;
+    populateGoalOwnerOptions();
+    goalFormError.hidden = true;
+    goalModal.hidden = false;
+    document.getElementById('goalTitleInput').focus();
+  }
+  function closeGoalModal() {
+    goalModal.hidden = true;
+    goalForm.reset();
+    if (lastFocusedEl) lastFocusedEl.focus();
+  }
+
+  if (addGoalBtn) addGoalBtn.addEventListener('click', openGoalModal);
+  if (closeGoalModalBtn) closeGoalModalBtn.addEventListener('click', closeGoalModal);
+  if (cancelGoalBtn) cancelGoalBtn.addEventListener('click', closeGoalModal);
+  goalModal?.addEventListener('click', (e) => { if (e.target === goalModal) closeGoalModal(); });
+
+  goalForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const employeeId = goalOwnerInput.value;
+    const title = document.getElementById('goalTitleInput').value.trim();
+    const status = document.getElementById('goalStatusInput').value;
+    const dueDate = document.getElementById('goalDueDateInput').value || null;
+
+    if (!employeeId || !title) {
+      goalFormError.hidden = false;
+      return;
+    }
+    goalFormError.hidden = true;
+
+    const submitBtn = goalForm.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+
+    apiFetch('/goals', {
+      method: 'POST',
+      body: JSON.stringify({ employeeId: Number(employeeId), title, status, dueDate }),
+    })
+      .then(() => {
+        showToast('Goal added.');
+        closeGoalModal();
+        return Promise.all([loadGoals(), loadGoalsSummary()]);
+      })
+      .catch(err => {
+        goalFormError.textContent = 'Failed to add goal: ' + err.message;
+        goalFormError.hidden = false;
+      })
+      .finally(() => {
+        if (submitBtn) submitBtn.disabled = false;
+      });
+  });
+
+  /* Initial load */
+  loadPerformance().then(() => populateGoalOwnerOptions());
+  loadNotifications();
+  loadReviewCycleFunnel();
+  loadGoals();
+  loadGoalsSummary();
   updateOneOnOneSub();
 });
 
@@ -579,6 +738,7 @@ if(logoutBtn){
         if(confirmLogout){
 
             localStorage.removeItem("loggedInUser");
+            localStorage.removeItem("authToken");
 
             window.location.href = "index.html";
 

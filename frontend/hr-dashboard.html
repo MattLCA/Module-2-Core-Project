@@ -45,10 +45,10 @@
 
   <div class="sidebar-footer">
     <button class="user-chip" id="userMenuBtn" aria-haspopup="true" aria-expanded="false">
-      <div class="avatar">MA</div>
+      <div class="avatar" id="userAvatarInitials">MA</div>
       <div>
-        <div class="name">Busiswa Bala</div>
-        <div class="role">HR Manager</div>
+        <div class="name" id="userNameDisplay">Busiswa Bala</div>
+        <div class="role" id="userRoleDisplay">HR Manager</div>
       </div>
       <i class="ti ti-chevron-down" aria-hidden="true"></i>
     </button>
@@ -63,7 +63,7 @@
 
   <div class="topbar">
     <div>
-      <h1 id="greetingText">Good morning, Busiswa</h1>
+      <h1 id="greetingText">Good morning, Jordan</h1>
       <div class="date" id="dateText">Loading date…</div>
     </div>
     <div class="topbar-actions">
@@ -97,7 +97,6 @@
           </ul>
         </div>
       </div>
-      <button class="primary-btn" id="addEmployeeBtn"><i class="ti ti-plus" aria-hidden="true"></i>Add employee</button>
     </div>
   </div>
 
@@ -146,7 +145,7 @@
             <h2>Attendance snapshot</h2>
             <div class="sub" id="attendanceDateSub">Loading…</div>
           </div>
-          <a href="hr-attendance.html" class="panel-link">View report</a>
+          <a href="Busiswa_Attendance.html" class="panel-link">View report</a>
         </div>
         <div class="attendance-body">
           <div class="donut-wrap">
@@ -250,56 +249,7 @@
 
 </main>
 
-<!-- Add Employee Modal -->
-<div id="addEmployeeModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="addEmployeeTitle" hidden>
-  <div class="modal-card">
-    <div class="modal-header">
-      <h3 id="addEmployeeTitle">Add employee</h3>
-      <button id="closeAddEmployeeBtn" class="modal-close-icon" aria-label="Close">&times;</button>
-    </div>
-    <form id="addEmployeeForm" novalidate>
-      <div class="form-row">
-        <label for="empNameInput">Full name</label>
-        <input type="text" id="empNameInput" name="empName" required autocomplete="off">
-      </div>
-      <div class="form-row">
-        <label for="empRoleInput">Role / title</label>
-        <input type="text" id="empRoleInput" name="empRole" required autocomplete="off">
-      </div>
-      <div class="form-row">
-        <label for="empDeptInput">Department</label>
-        <select id="empDeptInput" name="empDept" required>
-          <option value="" disabled selected>Select department</option>
-          <option value="Development">Development</option>
-          <option value="Design">Design</option>
-          <option value="Sales">Sales</option>
-          <option value="Marketing">Marketing</option>
-          <option value="HR">HR</option>
-          <option value="QA">QA</option>
-          <option value="Finance">Finance</option>
-          <option value="IT">IT</option>
-          <option value="Support">Support</option>
-        </select>
-      </div>
-      <div class="form-row">
-        <label for="empSalaryInput">Salary (annual)</label>
-        <input type="number" id="empSalaryInput" name="empSalary" min="0" step="0.01" required>
-      </div>
-      <div class="form-row">
-        <label for="empStartInput">Start date</label>
-        <input type="date" id="empStartInput" name="empStart" required>
-      </div>
-      <p class="form-error" id="addEmployeeError" hidden>Please fill in all fields before adding this employee.</p>
-      <div class="modal-footer-actions">
-        <button type="button" class="secondary-btn" id="cancelAddEmployeeBtn">Cancel</button>
-        <button type="submit" class="primary-btn"><i class="ti ti-plus" aria-hidden="true"></i> Add employee</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<script src="hr-employee-data.js"></script>
-<script src="hr-storage.js"></script>
+<script src="api.js"></script>
 <script src="hr-dashboard.js"></script>
 
 </body>

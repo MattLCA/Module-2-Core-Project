@@ -1,18 +1,6 @@
 // ============================================================
 // ModernTech Validation Middleware
 // ============================================================
-//
-// These validators are used by the HR-side routes.
-//
-// Worker routes perform additional validation in their own
-// controllers because those requests use the authenticated
-// worker ID from req.user.
-// ============================================================
-
-
-// ============================================================
-// GENERIC REQUIRED-FIELD VALIDATOR
-// ============================================================
 
 function validateFields(
     requiredFields
@@ -24,7 +12,7 @@ function validateFields(
         next
     ) => {
 
-        const missingFields = [];
+        const missing = [];
 
 
         for (
@@ -35,8 +23,6 @@ function validateFields(
                 req.body?.[field];
 
 
-            // Treat null, undefined and empty strings as missing.
-
             if (
                 value === undefined ||
                 value === null ||
@@ -46,9 +32,7 @@ function validateFields(
                 )
             ) {
 
-                missingFields.push(
-                    field
-                );
+                missing.push(field);
 
             }
 
@@ -56,16 +40,16 @@ function validateFields(
 
 
         if (
-            missingFields.length > 0
+            missing.length > 0
         ) {
 
             return res.status(400).json({
 
-                message:
+                error:
                     "Validation failed.",
 
-                error:
-                    `Missing required body fields: ${missingFields.join(", ")}`
+                details:
+                    `Missing required fields: ${missing.join(", ")}`
 
             });
 
@@ -79,32 +63,14 @@ function validateFields(
 }
 
 
-// ============================================================
-// ATTENDANCE UPDATE
-// ============================================================
-//
-// Used by:
-//
-// PUT /api/attendance/:id/verify
-// ============================================================
-
+// HR attendance
 const validateAttendanceUpdate =
     validateFields([
         "attendanceStatus"
     ]);
 
 
-// ============================================================
-// LEAVE SUBMISSION
-// ============================================================
-//
-// Used by the HR/general leave route.
-//
-// NOTE:
-// The worker leave system uses its authenticated employee ID
-// instead of trusting a client-supplied employee ID.
-// ============================================================
-
+// HR leave
 const validateLeaveSubmission =
     validateFields([
         "employeeId",
@@ -116,23 +82,14 @@ const validateLeaveSubmission =
     ]);
 
 
-// ============================================================
-// LEAVE DECISION
-// ============================================================
-//
-// Used by HR when approving/rejecting a leave request.
-// ============================================================
-
+// HR leave decision
 const validateLeaveDecision =
     validateFields([
         "status"
     ]);
 
 
-// ============================================================
-// ISSUE CREATION
-// ============================================================
-
+// Issues
 const validateIssueCreation =
     validateFields([
         "employeeId",
@@ -141,19 +98,11 @@ const validateIssueCreation =
     ]);
 
 
-// ============================================================
-// ISSUE STATUS UPDATE
-// ============================================================
-
 const validateIssueStatusUpdate =
     validateFields([
         "status"
     ]);
 
-
-// ============================================================
-// EXPORT
-// ============================================================
 
 export {
     validateFields,

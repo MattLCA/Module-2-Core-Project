@@ -82,14 +82,7 @@
             <button class="notif-mark-read" id="notifMarkAllBtn">Mark all read</button>
           </div>
           <ul class="notif-list" id="notifList">
-            <li class="notif-item unread">
-              <i class="ti ti-alert-circle" aria-hidden="true"></i>
-              <div><p>Some reviews are still outstanding this cycle</p><span>Just now</span></div>
-            </li>
-            <li class="notif-item">
-              <i class="ti ti-calendar-event" aria-hidden="true"></i>
-              <div><p>Review cycle dates are demo placeholders</p><span>—</span></div>
-            </li>
+            <li class="notif-item"><p>Loading notifications…</p></li>
           </ul>
         </div>
       </div>
@@ -118,9 +111,8 @@
       <div class="stat-top">
         <div class="stat-icon periwinkle"><i class="ti ti-target-arrow" aria-hidden="true"></i></div>
       </div>
-      <div class="stat-value">68%</div>
+      <div class="stat-value" id="goalsOnTrackVal">—</div>
       <div class="stat-label">Goals on track</div>
-      <div class="stat-label" style="margin-top:2px;font-size:11px;">(demo data — no goals file provided)</div>
     </div>
 
     <div class="stat-card">
@@ -145,20 +137,20 @@
         </div>
 
         <div class="funnel-row">
-          <div class="funnel-top"><span class="stage">Self-review submitted</span><span class="count">92%</span></div>
-          <div class="funnel-track"><div class="funnel-fill" style="width:92%;"></div></div>
+          <div class="funnel-top"><span class="stage">Self-review submitted</span><span class="count" id="funnelSelfReviewCount">—</span></div>
+          <div class="funnel-track"><div class="funnel-fill" id="funnelSelfReviewFill" style="width:0%;"></div></div>
         </div>
         <div class="funnel-row">
-          <div class="funnel-top"><span class="stage">Manager review submitted</span><span class="count">68%</span></div>
-          <div class="funnel-track"><div class="funnel-fill" style="width:68%;"></div></div>
+          <div class="funnel-top"><span class="stage">Manager review submitted</span><span class="count" id="funnelManagerReviewCount">—</span></div>
+          <div class="funnel-track"><div class="funnel-fill" id="funnelManagerReviewFill" style="width:0%;"></div></div>
         </div>
         <div class="funnel-row">
-          <div class="funnel-top"><span class="stage">Calibration complete</span><span class="count">40%</span></div>
-          <div class="funnel-track"><div class="funnel-fill orange" style="width:40%;"></div></div>
+          <div class="funnel-top"><span class="stage">Calibration complete</span><span class="count" id="funnelCalibrationCount">—</span></div>
+          <div class="funnel-track"><div class="funnel-fill orange" id="funnelCalibrationFill" style="width:0%;"></div></div>
         </div>
         <div class="funnel-row">
-          <div class="funnel-top"><span class="stage">Finalized & shared</span><span class="count">22%</span></div>
-          <div class="funnel-track"><div class="funnel-fill indigo" style="width:22%;"></div></div>
+          <div class="funnel-top"><span class="stage">Finalized &amp; shared</span><span class="count" id="funnelFinalizedCount">—</span></div>
+          <div class="funnel-track"><div class="funnel-fill indigo" id="funnelFinalizedFill" style="width:0%;"></div></div>
         </div>
       </div>
 
@@ -211,46 +203,16 @@
         <div class="panel-head">
           <div>
             <h2>Goals &amp; OKRs</h2>
-            <div class="sub">Demo data — no goals file provided</div>
+            <div class="sub" id="goalsSub">Loading…</div>
           </div>
-          <a href="#" class="panel-link">Open board</a>
+          <button type="button" class="panel-link" id="addGoalBtn" style="background:none;border:none;cursor:pointer;">+ Add goal</button>
         </div>
 
-        <div class="goal-item">
-          <div class="goal-item-top">
-            <span class="goal-title">Grow enterprise ARR by 20%</span>
-            <span class="goal-status on-track">On track</span>
-          </div>
-          <div class="goal-item-meta">Example owner — replace with a real goal</div>
-          <div class="goal-progress"><div class="goal-progress-track"><div class="goal-progress-fill" style="width:62%;"></div></div><span class="goal-progress-label">62%</span></div>
-        </div>
-
-        <div class="goal-item">
-          <div class="goal-item-top">
-            <span class="goal-title">Ship redesigned onboarding flow</span>
-            <span class="goal-status on-track">On track</span>
-          </div>
-          <div class="goal-item-meta">Example owner — replace with a real goal</div>
-          <div class="goal-progress"><div class="goal-progress-track"><div class="goal-progress-fill" style="width:88%;"></div></div><span class="goal-progress-label">88%</span></div>
-        </div>
-
-        <div class="goal-item">
-          <div class="goal-item-top">
-            <span class="goal-title">Reduce support ticket backlog</span>
-            <span class="goal-status at-risk">At risk</span>
-          </div>
-          <div class="goal-item-meta">Example owner — replace with a real goal</div>
-          <div class="goal-progress"><div class="goal-progress-track"><div class="goal-progress-fill at-risk" style="width:35%;"></div></div><span class="goal-progress-label">35%</span></div>
-        </div>
-
-        <div class="goal-item">
-          <div class="goal-item-top">
-            <span class="goal-title">Hire 3 senior engineers</span>
-            <span class="goal-status behind">Behind</span>
-          </div>
-          <div class="goal-item-meta">Example owner — replace with a real goal</div>
-          <div class="goal-progress"><div class="goal-progress-track"><div class="goal-progress-fill behind" style="width:20%;"></div></div><span class="goal-progress-label">20%</span></div>
-        </div>
+        <div id="goalsList"></div>
+        <p class="empty-inline" id="goalsEmptyState" hidden>
+          <i class="ti ti-target-arrow" aria-hidden="true"></i>
+          <span>No goals yet — add one to start tracking OKRs.</span>
+        </p>
       </div>
     </div>
 
@@ -324,6 +286,44 @@
   </div>
 </div>
 
+<!-- Add goal modal -->
+<div id="goalModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="goalModalTitle" hidden>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="goalModalTitle">Add goal</h3>
+      <button id="closeGoalModalBtn" class="modal-close-icon" aria-label="Close">&times;</button>
+    </div>
+    <form id="goalForm" novalidate>
+      <div class="form-row">
+        <label for="goalOwnerInput">Owner</label>
+        <select id="goalOwnerInput" name="goalOwner" required></select>
+      </div>
+      <div class="form-row">
+        <label for="goalTitleInput">Goal title</label>
+        <input type="text" id="goalTitleInput" name="goalTitle" required autocomplete="off">
+      </div>
+      <div class="form-row">
+        <label for="goalStatusInput">Status</label>
+        <select id="goalStatusInput" name="goalStatus">
+          <option value="on_track">On track</option>
+          <option value="at_risk">At risk</option>
+          <option value="behind">Behind</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="goalDueDateInput">Due date (optional)</label>
+        <input type="date" id="goalDueDateInput" name="goalDueDate">
+      </div>
+      <p class="form-error" id="goalFormError" hidden>Please choose an owner and enter a title.</p>
+      <div class="modal-footer-actions">
+        <button type="button" class="secondary-btn" id="cancelGoalBtn">Cancel</button>
+        <button type="submit" class="primary-btn"><i class="ti ti-target-arrow" aria-hidden="true"></i> Add goal</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- View review modal (read-only) -->
 <div id="viewReviewModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="viewReviewTitle" hidden>
   <div class="modal-card">
@@ -354,8 +354,9 @@
   </div>
 </div>
 
-<script src="hr-employee-data.js"></script>
+<script src="api.js"></script>
 <script src="hr-performance.js"></script>
+<script src="user-chip.js"></script>
 
 </body>
 </html>

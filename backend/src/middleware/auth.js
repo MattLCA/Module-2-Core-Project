@@ -1,21 +1,6 @@
 // ============================================================
 // ModernTech Authentication Middleware
 // ============================================================
-//
-// Responsibilities:
-//
-// 1. Read the JWT from:
-//      Authorization: Bearer <token>
-//
-// 2. Verify the JWT.
-//
-// 3. Store the decoded user information in:
-//      req.user
-//
-// 4. Provide role-based access control using:
-//      authorize("hr")
-//      authorize("worker")
-// ============================================================
 
 import jwt from "jsonwebtoken";
 
@@ -24,38 +9,24 @@ import jwt from "jsonwebtoken";
 // AUTHENTICATE
 // ============================================================
 //
-// This checks whether a valid JWT was supplied.
+// Reads:
 //
-// If successful:
+// Authorization: Bearer <token>
 //
-// req.user = {
-//     employeeId,
-//     employeeCode,
-//     role,
-//     name,
-//     ...
-// }
+// Then places the decoded JWT inside:
+//
+// req.user
 //
 // ============================================================
 
 function authenticate(req, res, next) {
 
-    const authorizationHeader =
+    const authorization =
         req.headers.authorization || "";
 
 
-    // --------------------------------------------------------
-    // Check Authorization header
-    // --------------------------------------------------------
-
-    const parts =
-        authorizationHeader.split(" ");
-
-    const scheme =
-        parts[0];
-
-    const token =
-        parts[1];
+    const [scheme, token] =
+        authorization.split(" ");
 
 
     if (
@@ -64,15 +35,26 @@ function authenticate(req, res, next) {
     ) {
 
         return res.status(401).json({
-            error: "Missing or malformed Authorization header"
+            error:
+                "Missing or malformed Authorization header"
         });
 
     }
 
 
-    // --------------------------------------------------------
-    // Verify JWT
-    // --------------------------------------------------------
+    if (!process.env.JWT_SECRET) {
+
+        console.error(
+            "JWT_SECRET is not configured."
+        );
+
+        return res.status(500).json({
+            error:
+                "Authentication is not configured correctly."
+        });
+
+    }
+
 
     try {
 
@@ -83,11 +65,7 @@ function authenticate(req, res, next) {
             );
 
 
-        // Store the decoded token for controllers
-        // and other middleware to use.
-
-        req.user =
-            payload;
+        req.user = payload;
 
 
         return next();
@@ -96,11 +74,9 @@ function authenticate(req, res, next) {
 
         console.error(
             "JWT authentication error:",
-            error
+            error.message
         );
 
-
-        // Token has expired.
 
         if (
             error.name ===
@@ -113,8 +89,6 @@ function authenticate(req, res, next) {
 
         }
 
-
-        // Token is invalid.
 
         return res.status(401).json({
             error: "Invalid token"
@@ -129,16 +103,11 @@ function authenticate(req, res, next) {
 // AUTHORIZE
 // ============================================================
 //
-// Example:
+// Examples:
 //
-// router.get(
-//     "/employees",
-//     authenticate,
-//     authorize("hr"),
-//     controller.list
-// );
+// authorize("hr")
 //
-// Multiple roles are supported:
+// authorize("worker")
 //
 // authorize("hr", "worker")
 //
@@ -154,26 +123,18 @@ function authorize(
         next
     ) => {
 
-        // ----------------------------------------------------
-        // Authentication must happen first.
-        // ----------------------------------------------------
-
         if (!req.user) {
 
             return res.status(401).json({
-                error: "Not authenticated"
+                error:
+                    "Not authenticated"
             });
 
         }
 
 
-        // ----------------------------------------------------
-        // No roles supplied
-        //
-        // If you use authorize() with no arguments,
-        // the route still requires authentication but does
-        // not restrict the user's role.
-        // ----------------------------------------------------
+        // If no roles were supplied,
+        // authentication alone is required.
 
         if (
             allowedRoles.length === 0
@@ -184,10 +145,6 @@ function authorize(
         }
 
 
-        // ----------------------------------------------------
-        // Check role
-        // ----------------------------------------------------
-
         if (
             !allowedRoles.includes(
                 req.user.role
@@ -195,7 +152,8 @@ function authorize(
         ) {
 
             return res.status(403).json({
-                error: "Insufficient permissions"
+                error:
+                    "Insufficient permissions"
             });
 
         }

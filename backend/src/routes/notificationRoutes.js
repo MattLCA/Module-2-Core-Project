@@ -1,16 +1,116 @@
-import express from 'express';
-import * as controller from '../controllers/notificationController.js';
-import { authenticate } from '../middleware/auth.js';
+// ============================================================
+// ModernTech Notification Routes
+// ============================================================
 
-const router = express.Router();
+import express from "express";
 
-// Any logged-in employee (HR or worker) can read/manage their own
-// notifications — no role restriction needed, req.user.employeeId scopes it.
-router.use(authenticate);
+import * as controller
+    from "../controllers/notificationController.js";
 
-router.get('/', controller.list);
-router.get('/unread-count', controller.unreadCount);
-router.patch('/:id/read', controller.markOneRead);
-router.patch('/read-all', controller.markAllRead);
+import {
+    authenticate
+} from "../middleware/auth.js";
+
+
+const router =
+    express.Router();
+
+
+// ============================================================
+// ALL NOTIFICATION ROUTES REQUIRE LOGIN
+// ============================================================
+
+router.use(
+    authenticate
+);
+
+
+// ============================================================
+// GET ALL
+// ============================================================
+//
+// GET /api/notifications
+//
+// ============================================================
+
+router.get(
+    "/",
+    controller.list
+);
+
+
+// ============================================================
+// GET UNREAD
+// ============================================================
+//
+// GET /api/notifications/unread
+//
+// ============================================================
+
+router.get(
+    "/unread",
+    controller.unread
+);
+
+
+// ============================================================
+// GET UNREAD COUNT
+// ============================================================
+//
+// GET /api/notifications/unread-count
+//
+// ============================================================
+
+router.get(
+    "/unread-count",
+    controller.unreadCount
+);
+
+
+// ============================================================
+// GET ONE
+// ============================================================
+//
+// IMPORTANT:
+// This must come AFTER the more specific routes above,
+// otherwise /unread-count could be treated as an ID.
+//
+// GET /api/notifications/:id
+//
+// ============================================================
+
+router.get(
+    "/:id",
+    controller.getOne
+);
+
+
+// ============================================================
+// MARK ONE AS READ
+// ============================================================
+//
+// PATCH /api/notifications/:id/read
+//
+// ============================================================
+
+router.patch(
+    "/:id/read",
+    controller.markOneRead
+);
+
+
+// ============================================================
+// MARK ALL AS READ
+// ============================================================
+//
+// PATCH /api/notifications/read-all
+//
+// ============================================================
+
+router.patch(
+    "/read-all",
+    controller.markAllRead
+);
+
 
 export default router;

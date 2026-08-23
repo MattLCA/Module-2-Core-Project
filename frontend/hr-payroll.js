@@ -1,6 +1,3 @@
-// ---------- Real employee dataset ----------
-
-
 document.addEventListener("DOMContentLoaded", () => {
 
     /*=====================================================
@@ -8,11 +5,12 @@ document.addEventListener("DOMContentLoaded", () => {
     =====================================================*/
 
     const searchInput = document.getElementById("payrollSearch");
+    const generatePayrollBtn = document.getElementById("generatePayrollBtn");
     const processBatchBtn = document.getElementById("processBatchBtn");
     const recalcBtn = document.getElementById("recalcBtn");
 
     const emptyState = document.getElementById("emptyState");
-    const tableEl = document.querySelector("table");  
+    const tableEl = document.querySelector("table");
     const tableBody = document.getElementById("payrollItemsTable");
 
     const slipModal = document.getElementById("slipModal");
@@ -39,160 +37,65 @@ document.addEventListener("DOMContentLoaded", () => {
             minimumFractionDigits: 2
         });
 
-    const initials = name =>
-        (name || "")
+    /*=====================================================
+      LOAD REAL PAYROLL DATA FROM THE BACKEND
+      GET /api/payroll already returns fully computed records
+      (base_salary, hours_worked, leave_deductions, final_salary)
+      joined with employee name/department/position — no client-side
+      normalization needed, unlike the old demo-data flow.
+
+      NOTE: the payroll table has no "verified"/"paid" status column,
+      so Verify Pay / Process Batch stay UI-only below, same as with
+      the old demo data — there's nothing on the backend yet to
+      persist that state to.
+    =====================================================*/
+
+    function buildRecordFromApi(p) {
+        const hoursWorked = Number(p.hours_worked) || 0;
+        const leaveDeductions = Number(p.leave_deductions) || 0;
+        const finalSalary = Number(p.final_salary) || 0;
+        const baseSalary = Number(p.base_salary) || finalSalary;
+
+        const payableHours = hoursWorked - leaveDeductions;
+        const hourlyRate = payableHours > 0 ? finalSalary / payableHours : 0;
+        const deductionAmount = baseSalary - finalSalary;
+
+        const initials = (p.employee_name || "")
             .split(" ")
             .map(word => word[0])
             .join("")
             .toUpperCase();
 
-    /*=====================================================
-      BUILD SHARED EMPLOYEE DATA
-      Every page in the HR system will use this.
-    =====================================================*/
-
-    function normalizeEmployee(emp){
-
         return {
-
-            employeeId:
-                emp.employeeId ||
-                emp.localId,
-
-            name:
-                emp.name || "",
-
-            email:
-                emp.contact ||
-                emp.email ||
-                "",
-
-            department:
-                emp.department ||
-                emp.dept ||
-                "General",
-
-            position:
-                emp.position ||
-                emp.role ||
-                "Employee",
-
-            baseSalary:
-                Number(
-                    emp.baseSalary ||
-                    emp.salary ||
-                    (emp.payroll ? emp.payroll.finalSalary : 25000)
-                ),
-
-            payroll:
-                emp.payroll || {
-
-                    hoursWorked:160,
-
-                    leaveDeductions:0,
-
-                    finalSalary:
-                        Number(
-                            emp.baseSalary ||
-                            emp.salary ||
-                            25000
-                        )
-
-                },
-
-            attendance:
-                emp.attendance || [],
-
-            leaveRequests:
-                emp.leaveRequests || []
-
-        };
-
-    }
-
-    const employees =
-        typeof HRStorage !== "undefined"
-            ? HRStorage.buildEmployees(
-                employeeData.employees,
-                normalizeEmployee
-            )
-            : employeeData.employees.map(normalizeEmployee);
-
-    /*=====================================================
-      PAYROLL RECORDS
-    =====================================================*/
-
-    function buildEmployeeRecords() {
-
-    function withPayrollDefaults(emp){
-
-        // If employee came from the Employees page "Add employee" form
-        // (or is otherwise missing payroll data), create sensible
-        // defaults so payroll never crashes on a missing field.
-        if (!emp.payroll) {
-            emp.payroll = {
-                hoursWorked: 160,
-                leaveDeductions: 0,
-                finalSalary: emp.salary || emp.baseSalary || 0
-            };
-        }
-
-        return emp;
-
-    }
-
-    const rawEmployees =
-        (typeof HRStorage !== "undefined")
-            ? HRStorage.buildEmployees(employeeData.employees, withPayrollDefaults)
-            : employeeData.employees;
-
-    // Belt-and-braces: whatever HRStorage.buildEmployees() did internally,
-    // guarantee every employee has payroll data before we read from it.
-    // This covers employees merged in from localStorage that may bypass
-    // the normalize callback above.
-    const employees = rawEmployees.map(withPayrollDefaults);
-
-    return employees.map(function(emp){
-
-        const payroll = emp.payroll;
-
-        const hoursWorked = payroll.hoursWorked || 160;
-        const leaveDeductions = payroll.leaveDeductions || 0;
-        const finalSalary = payroll.finalSalary || emp.baseSalary || emp.salary || 0;
-
-        const payableHours = hoursWorked - leaveDeductions;
-
-        const hourlyRate =
-            payableHours > 0
-                ? finalSalary / payableHours
-                : 0;
-
-        const deductionAmount =
-            (emp.baseSalary || finalSalary) - finalSalary;
-
-        const initials = emp.name
-            .split(" ")
-            .map(function(n){ return n[0]; })
-            .join("")
-            .toUpperCase();
-
-        return {
-            id: emp.employeeId || emp.localId,
-            name: emp.name,
-            role: emp.position || emp.role,
+            id: p.payroll_id,
+            employeeId: p.employee_id,
+            name: p.employee_name,
+            role: p.position,
             initials: initials,
-            baseSalary: emp.baseSalary || emp.salary || finalSalary,
+            baseSalary: baseSalary,
             hourlyRate: hourlyRate,
             deductionAmount: deductionAmount,
             netPay: finalSalary,
             hoursWorked: hoursWorked,
             leaveDeductions: leaveDeductions,
-            payableHours: payableHours
+            payableHours: payableHours,
+            payPeriod: p.pay_period
         };
+    }
 
-    });
+    function loadPayrollRecords() {
+        tableBody.innerHTML = '<tr><td colspan="7">Loading payroll\u2026</td></tr>';
 
-}
+        return apiFetch('/payroll')
+            .then(function(result) {
+                return (result.data || []).map(buildRecordFromApi);
+            })
+            .catch(function(err) {
+                tableBody.innerHTML = '<tr><td colspan="7">Couldn\u2019t load payroll: ' + err.message + '</td></tr>';
+                showToast('Failed to load payroll from the server');
+                return [];
+            });
+    }
 
     /*=====================================================
       LIVE DATE
@@ -255,8 +158,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
     }
+
   function renderRows(records) {
     tableBody.innerHTML = '';
+
+    if (!records.length) {
+      tableBody.innerHTML = '<tr><td colspan="7">No payroll records found.</td></tr>';
+      return;
+    }
+
     records.forEach(rec => {
       const tr = document.createElement('tr');
       tr.className = 'payroll-row';
@@ -467,11 +377,51 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Calls the backend's bulk-generate endpoint (POST /api/payroll/generate),
+  // which creates one payroll record per active employee for the given pay
+  // period, skipping anyone who already has one. This is what actually gets
+  // a newly-added employee onto this page — until a record is generated for
+  // them, they have no payroll row to show.
+  if (generatePayrollBtn) {
+    generatePayrollBtn.addEventListener('click', () => {
+      const now = new Date();
+      const payPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+      generatePayrollBtn.disabled = true;
+      apiFetch('/payroll/generate', {
+        method: 'POST',
+        body: JSON.stringify({ payPeriod })
+      })
+        .then(result => {
+          const count = result.count || 0;
+          showToast(count > 0
+            ? `Generated ${count} payroll record(s) for ${payPeriod}.`
+            : `Everyone already has a payroll record for ${payPeriod}.`);
+          return loadPayrollRecords();
+        })
+        .then(records => {
+          renderRows(records);
+          attachRowHandlers();
+          updatePayrollCalculations();
+        })
+        .catch(err => {
+          showToast('Failed to generate payroll: ' + err.message);
+        })
+        .finally(() => {
+          generatePayrollBtn.disabled = false;
+        });
+    });
+  }
+
   if (recalcBtn) {
     recalcBtn.addEventListener('click', () => {
       updateLiveDate();
-      updatePayrollCalculations();
-      showToast('Calculations updated from active base structures.');
+      loadPayrollRecords().then(records => {
+        renderRows(records);
+        attachRowHandlers();
+        updatePayrollCalculations();
+        showToast('Payroll reloaded from the server.');
+      });
     });
   }
 
@@ -524,13 +474,11 @@ function initialisePayroll() {
 
     updateLiveDate();
 
-    const records = buildEmployeeRecords();
-
-    renderRows(records);
-
-    attachRowHandlers();
-
-    updatePayrollCalculations();
+    loadPayrollRecords().then(records => {
+        renderRows(records);
+        attachRowHandlers();
+        updatePayrollCalculations();
+    });
 
 }
 
@@ -550,6 +498,7 @@ if(logoutBtn){
         if(confirmLogout){
 
             localStorage.removeItem("loggedInUser");
+            localStorage.removeItem("authToken");
 
             window.location.href = "index.html";
 

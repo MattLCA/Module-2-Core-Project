@@ -1,67 +1,312 @@
-/**
- * Notification data-access layer. Notifications are per-employee and
- * role-agnostic — HR and worker accounts are both rows in `employees`,
- * so the same table/queries serve both. req.user.employeeId (set by
- * the auth middleware from the JWT) scopes every query.
- */
-import pool from '../config/db.js';
+// ============================================================
+// ModernTech Notification Model
+// ============================================================
+
+import pool from "../config/db.js";
+
+
+// ============================================================
+// GET ALL NOTIFICATIONS FOR ONE EMPLOYEE
+// ============================================================
 
 async function findAllForEmployee(employeeId) {
-  const [rows] = await pool.query(
-    `SELECT notification_id, notification_type, title, message, status, is_read, created_at, read_at
-     FROM notifications
-     WHERE employee_id = ?
-     ORDER BY created_at DESC`,
-    [employeeId]
-  );
-  return rows;
+
+    const [rows] = await pool.query(
+        `
+        SELECT
+
+            notification_id AS notificationId,
+
+            employee_id AS employeeId,
+
+            notification_type AS notificationType,
+
+            title,
+
+            message,
+
+            status,
+
+            is_read AS isRead,
+
+            created_at AS createdAt,
+
+            read_at AS readAt
+
+        FROM notifications
+
+        WHERE employee_id = ?
+
+        ORDER BY created_at DESC
+        `,
+        [employeeId]
+    );
+
+    return rows;
 }
+
+
+// ============================================================
+// GET ONLY UNREAD NOTIFICATIONS
+// ============================================================
+
+async function findUnreadForEmployee(employeeId) {
+
+    const [rows] = await pool.query(
+        `
+        SELECT
+
+            notification_id AS notificationId,
+
+            employee_id AS employeeId,
+
+            notification_type AS notificationType,
+
+            title,
+
+            message,
+
+            status,
+
+            is_read AS isRead,
+
+            created_at AS createdAt,
+
+            read_at AS readAt
+
+        FROM notifications
+
+        WHERE employee_id = ?
+
+        AND is_read = 0
+
+        ORDER BY created_at DESC
+        `,
+        [employeeId]
+    );
+
+    return rows;
+}
+
+
+// ============================================================
+// GET UNREAD COUNT
+// ============================================================
 
 async function getUnreadCount(employeeId) {
-  const [rows] = await pool.query(
-    `SELECT COUNT(*) AS count FROM notifications WHERE employee_id = ? AND is_read = 0`,
-    [employeeId]
-  );
-  return rows[0].count;
+
+    const [rows] = await pool.query(
+        `
+        SELECT COUNT(*) AS count
+
+        FROM notifications
+
+        WHERE employee_id = ?
+
+        AND is_read = 0
+        `,
+        [employeeId]
+    );
+
+    return Number(rows[0]?.count || 0);
 }
 
-async function markAsRead(notificationId, employeeId) {
-  const [result] = await pool.query(
-    `UPDATE notifications
-     SET is_read = 1, status = 'Read', read_at = NOW()
-     WHERE notification_id = ? AND employee_id = ?`,
-    [notificationId, employeeId]
-  );
-  return result.affectedRows > 0;
+
+// ============================================================
+// GET ONE NOTIFICATION
+// ============================================================
+
+async function findById(
+    notificationId,
+    employeeId
+) {
+
+    const [rows] = await pool.query(
+        `
+        SELECT
+
+            notification_id AS notificationId,
+
+            employee_id AS employeeId,
+
+            notification_type AS notificationType,
+
+            title,
+
+            message,
+
+            status,
+
+            is_read AS isRead,
+
+            created_at AS createdAt,
+
+            read_at AS readAt
+
+        FROM notifications
+
+        WHERE notification_id = ?
+
+        AND employee_id = ?
+
+        LIMIT 1
+        `,
+        [
+            notificationId,
+            employeeId
+        ]
+    );
+
+    return rows[0] || null;
 }
+
+
+// ============================================================
+// MARK ONE NOTIFICATION AS READ
+// ============================================================
+
+async function markAsRead(
+    notificationId,
+    employeeId
+) {
+
+    const [result] = await pool.query(
+        `
+        UPDATE notifications
+
+        SET
+            is_read = 1,
+            status = 'Read',
+            read_at = NOW()
+
+        WHERE notification_id = ?
+
+        AND employee_id = ?
+
+        AND is_read = 0
+        `,
+        [
+            notificationId,
+            employeeId
+        ]
+    );
+
+    return result.affectedRows > 0;
+}
+
+
+// ============================================================
+// MARK ALL NOTIFICATIONS AS READ
+// ============================================================
 
 async function markAllAsRead(employeeId) {
-  await pool.query(
-    `UPDATE notifications
-     SET is_read = 1, status = 'Read', read_at = NOW()
-     WHERE employee_id = ? AND is_read = 0`,
-    [employeeId]
-  );
+
+    const [result] = await pool.query(
+        `
+        UPDATE notifications
+
+        SET
+            is_read = 1,
+            status = 'Read',
+            read_at = NOW()
+
+        WHERE employee_id = ?
+
+        AND is_read = 0
+        `,
+        [employeeId]
+    );
+
+    return result.affectedRows;
 }
 
-// Used when a worker submits a leave request — inserts one notification
-// per HR employee so it shows up in their notification list/badge.
-async function notifyAllHr({ notificationType, title, message }) {
-  const [hrEmployees] = await pool.query(
-    `SELECT e.employee_id
-     FROM employees e
-     JOIN roles r ON r.role_id = e.role_id
-     WHERE r.role_name = 'hr' AND e.is_active = 1`
-  );
 
-  if (!hrEmployees.length) return;
+// ============================================================
+// CREATE NOTIFICATION
+// ============================================================
+//
+// This is the function HR/leave/payroll controllers can use
+// when they need to notify a worker.
+//
+// Example:
+//
+// await create({
+//     employeeId: 1,
+//     notificationType: "leave",
+//     title: "Leave Request Approved",
+//     message: "Your annual leave request was approved.",
+//     status: "New"
+// });
+//
+// ============================================================
 
-  const values = hrEmployees.map((e) => [e.employee_id, notificationType, title, message]);
-  await pool.query(
-    `INSERT INTO notifications (employee_id, notification_type, title, message)
-     VALUES ?`,
-    [values]
-  );
+async function create({
+    employeeId,
+    notificationType = "general",
+    title = null,
+    message,
+    status = "New"
+}) {
+
+    if (
+        !employeeId ||
+        !message
+    ) {
+
+        throw new Error(
+            "employeeId and message are required to create a notification."
+        );
+
+    }
+
+
+    const [result] = await pool.query(
+        `
+        INSERT INTO notifications (
+
+            employee_id,
+
+            notification_type,
+
+            title,
+
+            message,
+
+            status,
+
+            is_read
+
+        )
+
+        VALUES (?, ?, ?, ?, ?, 0)
+        `,
+        [
+            employeeId,
+            notificationType,
+            title,
+            message,
+            status
+        ]
+    );
+
+
+    return findById(
+        result.insertId,
+        employeeId
+    );
 }
 
-export { findAllForEmployee, getUnreadCount, markAsRead, markAllAsRead, notifyAllHr };
+
+// ============================================================
+// EXPORTS
+// ============================================================
+
+export {
+    findAllForEmployee,
+    findUnreadForEmployee,
+    getUnreadCount,
+    findById,
+    markAsRead,
+    markAllAsRead,
+    create
+};
