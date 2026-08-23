@@ -9,18 +9,18 @@ import profileRoutes from "./profileRoutes.js";
 import attendanceRoutes from "./attendanceRoutes.js";
 import leaveRoutes from "./leaveRoutes.js";
 import payslipRoutes from "./payslipRoutes.js";
-import notificationRoutes from "./notificationRoutes.js";
+
+// IMPORTANT:
+// Use the shared notification router.
+// Do NOT maintain a second worker notification system.
+import notificationRoutes from "../notificationRoutes.js";
 
 
-const router =
-    express.Router();
+const router = express.Router();
 
 
 // ============================================================
 // DASHBOARD
-// ============================================================
-//
-// GET /api/worker/dashboard
 // ============================================================
 
 router.use(
@@ -32,9 +32,6 @@ router.use(
 // ============================================================
 // PROFILE
 // ============================================================
-//
-// GET /api/worker/profile
-// ============================================================
 
 router.use(
     "/profile",
@@ -44,12 +41,6 @@ router.use(
 
 // ============================================================
 // ATTENDANCE
-// ============================================================
-//
-// GET  /api/worker/attendance/clock-status
-// POST /api/worker/attendance/clock-in
-// PUT  /api/worker/attendance/clock-out
-// GET  /api/worker/attendance/history
 // ============================================================
 
 router.use(
@@ -61,12 +52,6 @@ router.use(
 // ============================================================
 // LEAVE
 // ============================================================
-//
-// GET  /api/worker/leave/types
-// GET  /api/worker/leave/balances
-// GET  /api/worker/leave/requests
-// POST /api/worker/leave/requests
-// ============================================================
 
 router.use(
     "/leave",
@@ -76,11 +61,6 @@ router.use(
 
 // ============================================================
 // PAYSLIPS
-// ============================================================
-//
-// GET /api/worker/payslips
-// GET /api/worker/payslips/:id
-// GET /api/worker/payslips/:id/download
 // ============================================================
 
 router.use(
@@ -93,12 +73,17 @@ router.use(
 // NOTIFICATIONS
 // ============================================================
 //
-// GET   /api/worker/notifications
-// GET   /api/worker/notifications/unread
-// GET   /api/worker/notifications/unread-count
-// GET   /api/worker/notifications/:id
-// PATCH /api/worker/notifications/:id/read
-// PATCH /api/worker/notifications/read-all
+// This uses the shared notification router.
+//
+// Therefore BOTH of these work:
+//
+// /api/notifications
+//
+// /api/worker/notifications
+//
+// They use the same database table, authentication,
+// controller and model.
+//
 // ============================================================
 
 router.use(

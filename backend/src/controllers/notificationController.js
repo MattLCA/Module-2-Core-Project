@@ -7,13 +7,7 @@ import * as notificationModel
 
 
 // ============================================================
-// GET ALL NOTIFICATIONS
-// ============================================================
-//
-// GET /api/notifications
-//
-// Only returns notifications belonging to the logged-in user.
-//
+// GET ALL
 // ============================================================
 
 async function list(
@@ -27,13 +21,11 @@ async function list(
         const employeeId =
             req.user.employeeId;
 
-
         const notifications =
             await notificationModel
                 .findAllForEmployee(
                     employeeId
                 );
-
 
         return res.status(200).json({
             data: notifications
@@ -49,11 +41,7 @@ async function list(
 
 
 // ============================================================
-// GET UNREAD NOTIFICATIONS
-// ============================================================
-//
-// GET /api/notifications/unread
-//
+// GET UNREAD
 // ============================================================
 
 async function unread(
@@ -67,13 +55,11 @@ async function unread(
         const employeeId =
             req.user.employeeId;
 
-
         const notifications =
             await notificationModel
                 .findUnreadForEmployee(
                     employeeId
                 );
-
 
         return res.status(200).json({
             data: notifications
@@ -91,10 +77,6 @@ async function unread(
 // ============================================================
 // GET UNREAD COUNT
 // ============================================================
-//
-// GET /api/notifications/unread-count
-//
-// ============================================================
 
 async function unreadCount(
     req,
@@ -107,13 +89,11 @@ async function unreadCount(
         const employeeId =
             req.user.employeeId;
 
-
         const count =
             await notificationModel
                 .getUnreadCount(
                     employeeId
                 );
-
 
         return res.status(200).json({
             data: {
@@ -131,11 +111,7 @@ async function unreadCount(
 
 
 // ============================================================
-// GET ONE NOTIFICATION
-// ============================================================
-//
-// GET /api/notifications/:id
-//
+// GET ONE
 // ============================================================
 
 async function getOne(
@@ -149,14 +125,12 @@ async function getOne(
         const employeeId =
             req.user.employeeId;
 
-
         const notification =
             await notificationModel
                 .findById(
                     req.params.id,
                     employeeId
                 );
-
 
         if (!notification) {
 
@@ -166,7 +140,6 @@ async function getOne(
             });
 
         }
-
 
         return res.status(200).json({
             data: notification
@@ -184,10 +157,6 @@ async function getOne(
 // ============================================================
 // MARK ONE AS READ
 // ============================================================
-//
-// PATCH /api/notifications/:id/read
-//
-// ============================================================
 
 async function markOneRead(
     req,
@@ -200,17 +169,12 @@ async function markOneRead(
         const employeeId =
             req.user.employeeId;
 
-
-        // First make sure the notification
-        // actually belongs to this employee.
-
         const notification =
             await notificationModel
                 .findById(
                     req.params.id,
                     employeeId
                 );
-
 
         if (!notification) {
 
@@ -221,14 +185,12 @@ async function markOneRead(
 
         }
 
-
         const updated =
             await notificationModel
                 .markAsRead(
                     req.params.id,
                     employeeId
                 );
-
 
         return res.status(200).json({
 
@@ -251,10 +213,6 @@ async function markOneRead(
 // ============================================================
 // MARK ALL AS READ
 // ============================================================
-//
-// PATCH /api/notifications/read-all
-//
-// ============================================================
 
 async function markAllRead(
     req,
@@ -267,13 +225,11 @@ async function markAllRead(
         const employeeId =
             req.user.employeeId;
 
-
         const updatedCount =
             await notificationModel
                 .markAllAsRead(
                     employeeId
                 );
-
 
         return res.status(200).json({
 

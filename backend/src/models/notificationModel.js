@@ -14,29 +14,17 @@ async function findAllForEmployee(employeeId) {
     const [rows] = await pool.query(
         `
         SELECT
-
             notification_id AS notificationId,
-
             employee_id AS employeeId,
-
             notification_type AS notificationType,
-
             title,
-
             message,
-
             status,
-
             is_read AS isRead,
-
             created_at AS createdAt,
-
             read_at AS readAt
-
         FROM notifications
-
         WHERE employee_id = ?
-
         ORDER BY created_at DESC
         `,
         [employeeId]
@@ -47,7 +35,7 @@ async function findAllForEmployee(employeeId) {
 
 
 // ============================================================
-// GET ONLY UNREAD NOTIFICATIONS
+// GET UNREAD NOTIFICATIONS
 // ============================================================
 
 async function findUnreadForEmployee(employeeId) {
@@ -55,31 +43,18 @@ async function findUnreadForEmployee(employeeId) {
     const [rows] = await pool.query(
         `
         SELECT
-
             notification_id AS notificationId,
-
             employee_id AS employeeId,
-
             notification_type AS notificationType,
-
             title,
-
             message,
-
             status,
-
             is_read AS isRead,
-
             created_at AS createdAt,
-
             read_at AS readAt
-
         FROM notifications
-
         WHERE employee_id = ?
-
-        AND is_read = 0
-
+          AND is_read = 0
         ORDER BY created_at DESC
         `,
         [employeeId]
@@ -98,17 +73,16 @@ async function getUnreadCount(employeeId) {
     const [rows] = await pool.query(
         `
         SELECT COUNT(*) AS count
-
         FROM notifications
-
         WHERE employee_id = ?
-
-        AND is_read = 0
+          AND is_read = 0
         `,
         [employeeId]
     );
 
-    return Number(rows[0]?.count || 0);
+    return Number(
+        rows[0]?.count || 0
+    );
 }
 
 
@@ -124,31 +98,18 @@ async function findById(
     const [rows] = await pool.query(
         `
         SELECT
-
             notification_id AS notificationId,
-
             employee_id AS employeeId,
-
             notification_type AS notificationType,
-
             title,
-
             message,
-
             status,
-
             is_read AS isRead,
-
             created_at AS createdAt,
-
             read_at AS readAt
-
         FROM notifications
-
         WHERE notification_id = ?
-
-        AND employee_id = ?
-
+          AND employee_id = ?
         LIMIT 1
         `,
         [
@@ -162,7 +123,7 @@ async function findById(
 
 
 // ============================================================
-// MARK ONE NOTIFICATION AS READ
+// MARK ONE AS READ
 // ============================================================
 
 async function markAsRead(
@@ -180,10 +141,8 @@ async function markAsRead(
             read_at = NOW()
 
         WHERE notification_id = ?
-
-        AND employee_id = ?
-
-        AND is_read = 0
+          AND employee_id = ?
+          AND is_read = 0
         `,
         [
             notificationId,
@@ -196,7 +155,7 @@ async function markAsRead(
 
 
 // ============================================================
-// MARK ALL NOTIFICATIONS AS READ
+// MARK ALL AS READ
 // ============================================================
 
 async function markAllAsRead(employeeId) {
@@ -211,8 +170,7 @@ async function markAllAsRead(employeeId) {
             read_at = NOW()
 
         WHERE employee_id = ?
-
-        AND is_read = 0
+          AND is_read = 0
         `,
         [employeeId]
     );
@@ -222,22 +180,7 @@ async function markAllAsRead(employeeId) {
 
 
 // ============================================================
-// CREATE NOTIFICATION
-// ============================================================
-//
-// This is the function HR/leave/payroll controllers can use
-// when they need to notify a worker.
-//
-// Example:
-//
-// await create({
-//     employeeId: 1,
-//     notificationType: "leave",
-//     title: "Leave Request Approved",
-//     message: "Your annual leave request was approved.",
-//     status: "New"
-// });
-//
+// CREATE ONE NOTIFICATION
 // ============================================================
 
 async function create({
@@ -254,31 +197,32 @@ async function create({
     ) {
 
         throw new Error(
-            "employeeId and message are required to create a notification."
+            "employeeId and message are required."
         );
 
     }
 
-
     const [result] = await pool.query(
         `
-        INSERT INTO notifications (
-
+        INSERT INTO notifications
+        (
             employee_id,
-
             notification_type,
-
             title,
-
             message,
-
             status,
-
             is_read
-
         )
 
-        VALUES (?, ?, ?, ?, ?, 0)
+        VALUES
+        (
+            ?,
+            ?,
+            ?,
+            ?,
+            ?,
+            0
+        )
         `,
         [
             employeeId,
@@ -289,11 +233,110 @@ async function create({
         ]
     );
 
-
     return findById(
         result.insertId,
         employeeId
     );
+}
+
+
+// ============================================================
+// CREATE NOTIFICATION FOR ALL USERS WITH A ROLE
+// ============================================================
+//
+// Example:
+//
+// await createForRole({
+//     roleName: "hr",
+//     notificationType: "leave",
+//     title: "New Leave Request",
+//     message: "A worker has submitted a leave request."
+// });
+//
+// This means you do NOT have to hardcode Lungile's employee ID.
+//
+// ============================================================
+
+async function createForRole({
+    roleName,
+    notificationType = "general",
+    title = null,
+    message,
+    status = "New"
+}) {
+
+    if (
+        !roleName ||
+        !message
+    ) {
+
+        throw new Error(
+            "roleName and message are required."
+        );
+
+    }
+
+
+    const [employees] = await pool.query(
+        `
+        SELECT
+            e.employee_id AS employeeId
+
+        FROM employees e
+
+        INNER JOIN roles r
+            ON e.role_id = r.role_id
+
+        WHERE r.role_name = ?
+
+          AND e.is_active = 1
+        `,
+        [roleName]
+    );
+
+
+    if (
+        employees.length === 0
+    ) {
+
+        return [];
+
+    }
+
+
+    const notifications = [];
+
+
+    for (
+        const employee
+        of employees
+    ) {
+
+        const notification =
+            await create({
+
+                employeeId:
+                    employee.employeeId,
+
+                notificationType,
+
+                title,
+
+                message,
+
+                status
+
+            });
+
+
+        notifications.push(
+            notification
+        );
+
+    }
+
+
+    return notifications;
 }
 
 
@@ -308,5 +351,6 @@ export {
     findById,
     markAsRead,
     markAllAsRead,
-    create
+    create,
+    createForRole
 };

@@ -1,79 +1,245 @@
 import db from "../../config/db.js";
 
+// ============================================================
+// GET ALL LEAVE REQUESTS FOR HR
+// ============================================================
+
 class LeaveModel {
-  /**
-   * Pulls matching rows from the employee_leave_requests database view.
-   */
+
   static async findAll(status = null) {
+
     let query = `
-      SELECT 
-        leave_request_id AS requestId,
-        employee_id AS employeeId,
-        name AS employeeFullName,
-        leave_type_name AS leaveType,
-        start_date AS startDate,
-        end_date AS endDate,
-        total_days AS duration,
-        reason,
-        status AS leaveStatus,
-        submitted_date AS submittedDate
-      FROM employee_leave_requests
+      SELECT
+
+        lr.leave_request_id AS requestId,
+
+        lr.employee_id AS employeeId,
+
+        e.employee_code AS employeeCode,
+
+        e.name AS employeeFullName,
+
+        d.department_name AS department,
+
+        lt.leave_type_name AS leaveType,
+
+        lr.start_date AS startDate,
+
+        lr.end_date AS endDate,
+
+        lr.total_days AS duration,
+
+        lr.reason,
+
+        lr.status AS leaveStatus,
+
+        lr.submitted_date AS submittedDate,
+
+        lr.reviewed_by AS reviewedBy,
+
+        reviewer.name AS reviewerName
+
+      FROM leave_requests lr
+
+      INNER JOIN employees e
+        ON lr.employee_id = e.employee_id
+
+      INNER JOIN departments d
+        ON e.department_id = d.department_id
+
+      INNER JOIN leave_types lt
+        ON lr.leave_type_id = lt.leave_type_id
+
+      LEFT JOIN employees reviewer
+        ON lr.reviewed_by = reviewer.employee_id
     `;
+
     const params = [];
+
     if (status) {
-      query += ` WHERE status = ?`;
+      query += `
+        WHERE lr.status = ?
+      `;
+
       params.push(status);
     }
-    query += ` ORDER BY submitted_date DESC`;
 
-    const [rows] = await db.execute(query, params);
+    query += `
+      ORDER BY
+        lr.created_at DESC,
+        lr.leave_request_id DESC
+    `;
+
+    const [rows] = await db.execute(
+      query,
+      params
+    );
+
+    console.log(
+      `[HR Leave Model] Returned ${rows.length} leave request(s).`
+    );
+
+    console.table(rows);
+
     return rows;
   }
 
-  /**
-   * Confirms request record validation before passing data variables.
-   */
+
+  // ==========================================================
+  // GET ONE LEAVE REQUEST
+  // ==========================================================
+
   static async findById(id) {
+
     const [rows] = await db.execute(
-      "SELECT * FROM leave_requests WHERE leave_request_id = ?",
-      [id],
+      `
+      SELECT
+
+        lr.leave_request_id AS requestId,
+
+        lr.employee_id AS employeeId,
+
+        e.employee_code AS employeeCode,
+
+        e.name AS employeeFullName,
+
+        d.department_name AS department,
+
+        lt.leave_type_name AS leaveType,
+
+        lr.start_date AS startDate,
+
+        lr.end_date AS endDate,
+
+        lr.total_days AS duration,
+
+        lr.reason,
+
+        lr.status AS leaveStatus,
+
+        lr.submitted_date AS submittedDate,
+
+        lr.reviewed_by AS reviewedBy,
+
+        reviewer.name AS reviewerName
+
+      FROM leave_requests lr
+
+      INNER JOIN employees e
+        ON lr.employee_id = e.employee_id
+
+      INNER JOIN departments d
+        ON e.department_id = d.department_id
+
+      INNER JOIN leave_types lt
+        ON lr.leave_type_id = lt.leave_type_id
+
+      LEFT JOIN employees reviewer
+        ON lr.reviewed_by = reviewer.employee_id
+
+      WHERE lr.leave_request_id = ?
+
+      LIMIT 1
+      `,
+      [id]
     );
-    return rows.length > 0 ? rows[0] : null;
+
+    return rows[0] || null;
   }
 
-  /**
-   * Appends an employee time off request entry safely using a parameterized query.
-   */
+
+  // ==========================================================
+  // CREATE LEAVE REQUEST
+  // ==========================================================
+
   static async create(data) {
-    const { employeeId, leaveTypeId, startDate, endDate, totalDays, reason } =
-      data;
-    const query = `
-      INSERT INTO leave_requests (employee_id, leave_type_id, start_date, end_date, total_days, reason, status, submitted_date)
-      VALUES (?, ?, ?, ?, ?, ?, 'Pending', CURRENT_DATE)
-    `;
-    const [result] = await db.execute(query, [
+
+    const {
       employeeId,
       leaveTypeId,
       startDate,
       endDate,
       totalDays,
-      reason || "",
-    ]);
+      reason
+    } = data;
+
+    const query = `
+      INSERT INTO leave_requests
+      (
+        employee_id,
+        leave_type_id,
+        start_date,
+        end_date,
+        total_days,
+        reason,
+        status,
+        submitted_date
+      )
+
+      VALUES
+      (
+        ?,
+        ?,
+        ?,
+        ?,
+        ?,
+        ?,
+        'Pending',
+        CURRENT_DATE
+      )
+    `;
+
+    const [result] =
+      await db.execute(
+        query,
+        [
+          employeeId,
+          leaveTypeId,
+          startDate,
+          endDate,
+          totalDays,
+          reason || null
+        ]
+      );
+
     return result;
   }
 
-  /**
-   * Updates an application status state matching an enum constraint configuration block.
-   */
-  static async updateStatus(id, status, reviewerId) {
+
+  // ==========================================================
+  // UPDATE LEAVE STATUS
+  // ==========================================================
+
+  static async updateStatus(
+    id,
+    status,
+    reviewerId
+  ) {
+
     const query = `
-      UPDATE leave_requests 
-      SET status = ?, reviewed_by = ? 
+      UPDATE leave_requests
+
+      SET
+        status = ?,
+        reviewed_by = ?
+
       WHERE leave_request_id = ?
     `;
-    const [result] = await db.execute(query, [status, reviewerId, id]);
+
+    const [result] =
+      await db.execute(
+        query,
+        [
+          status,
+          reviewerId || null,
+          id
+        ]
+      );
+
     return result;
   }
+
 }
+
 
 export default LeaveModel;
