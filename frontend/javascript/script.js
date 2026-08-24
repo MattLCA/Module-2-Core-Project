@@ -27,6 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
     highlightCurrentPage();
     initializeToastButtons();
     initializeStoredEmployee();
+    initializeNotificationBadge();
 
 });
 
@@ -76,6 +77,94 @@ function initializeSidebar() {
             });
 
         });
+
+}
+
+
+// ============================================================
+// NOTIFICATION BADGE (GLOBAL, SHOWN ON EVERY PAGE)
+// ============================================================
+//
+// The Notifications page keeps this same badge in sync itself
+// (it recalculates the exact count from the full notification
+// list whenever notifications load or get marked as read), so
+// this only needs to run on the other pages.
+// ============================================================
+
+async function initializeNotificationBadge() {
+
+    const badge =
+        document.getElementById("notificationBadge");
+
+    if (!badge) {
+        return;
+    }
+
+    const currentPage =
+        window.location.pathname
+            .split("/")
+            .pop();
+
+    if (currentPage === "worker-notifications.html") {
+        return;
+    }
+
+    if (typeof getUnreadWorkerNotificationCount !== "function") {
+        return;
+    }
+
+    try {
+
+        const response =
+            await getUnreadWorkerNotificationCount();
+
+        const data =
+            getResponseData(response) || {};
+
+        updateGlobalNotificationBadge(data.count);
+
+    } catch (error) {
+
+        console.error(
+            "Could not load notification count:",
+            error
+        );
+
+    }
+
+}
+
+
+// ============================================================
+// UPDATE NOTIFICATION BADGE
+// ============================================================
+
+function updateGlobalNotificationBadge(count) {
+
+    const badge =
+        document.getElementById("notificationBadge");
+
+    if (!badge) {
+        return;
+    }
+
+    const unread =
+        Number(count);
+
+    if (!Number.isFinite(unread) || unread <= 0) {
+
+        badge.hidden = true;
+
+        badge.textContent = "0";
+
+        return;
+
+    }
+
+    badge.hidden = false;
+
+    badge.textContent =
+        unread > 99 ? "99+" : String(unread);
 
 }
 
@@ -762,3 +851,9 @@ window.getResponseData =
 
 window.initializeStoredEmployee =
     initializeStoredEmployee;
+
+window.initializeNotificationBadge =
+    initializeNotificationBadge;
+
+window.updateGlobalNotificationBadge =
+    updateGlobalNotificationBadge;
