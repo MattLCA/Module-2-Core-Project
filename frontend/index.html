@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>ModernTech HR | Login</title>
+
+
+    <!-- Google Fonts -->
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+
+    <!-- Tabler Icons -->
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+
+
+    <!-- Login Styles -->
+
+    <link rel="stylesheet" href="styles1.css">
+
+</head>
+
+
+<body class="page-login">
+
+
+    <div class="login-container">
+
+
+        <!-- ========================================================
+         LEFT BRAND SECTION
+    ========================================================= -->
+
+        <section class="brand-section">
+
+            <div class="brand">
+
+                <svg width="45" height="45" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg">
+
+                    <rect width="34" height="34" rx="9" fill="#ffffff" />
+
+                    <path d="M7 25 L7 9.5 L17 17.5 L27 9.5 L27 25" fill="none" stroke="#27187e" stroke-width="3.2"
+                        stroke-linecap="round" stroke-linejoin="round" />
+
+                    <path d="M25 0 L34 0 L34 9 A9 9 0 0 1 25 0Z" fill="#ff8600" />
+
+                </svg>
+
+
+                <div>
+
+                    <h2>
+                        ModernTech
+                    </h2>
+
+                    <p>
+                        HR Workspace
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="brand-content">
+
+                <h1>
+
+                    Manage your workforce
+
+                    <span>
+                        smarter.
+                    </span>
+
+                </h1>
+
+
+                <p>
+
+                    A modern HR platform designed to simplify
+                    employee management, payroll, attendance,
+                    leave, and performance.
+
+                </p>
+
+
+                <div class="features">
+
+                    <div>
+
+                        <i class="ti ti-users" aria-hidden="true"></i>
+
+                        <span>
+                            Employee Management
+                        </span>
+
+                    </div>
+
+
+                    <div>
+
+                        <i class="ti ti-calendar-check" aria-hidden="true"></i>
+
+                        <span>
+                            Attendance Tracking
+                        </span>
+
+                    </div>
+
+
+                    <div>
+
+                        <i class="ti ti-cash" aria-hidden="true"></i>
+
+                        <span>
+                            Payroll Management
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ========================================================
+         LOGIN SECTION
+    ========================================================= -->
+
+        <section class="login-section">
+
+
+            <div class="login-card">
+
+
+                <div class="login-header">
+
+                    <h1>
+                        Welcome back
+                    </h1>
+
+                    <p>
+                        Sign in to access your ModernTech portal
+                    </p>
+
+                </div>
+
+
+                <!-- =================================================
+                 LOGIN FORM
+            ================================================== -->
+
+                <form id="loginForm">
+
+
+                    <!-- =================================================
+                     ROLE
+                ================================================== -->
+
+                    <div class="input-group">
+
+                        <label>
+                            Login As
+                        </label>
+
+
+                        <div class="role-selector">
+
+
+                            <label class="role-option">
+
+                                <input type="radio" name="role" value="HR Manager" checked>
+
+                                <span>
+
+                                    <i class="ti ti-briefcase" aria-hidden="true"></i>
+
+                                    HR
+
+                                </span>
+
+                            </label>
+
+
+                            <label class="role-option">
+
+                                <input type="radio" name="role" value="Employee">
+
+                                <span>
+
+                                    <i class="ti ti-user" aria-hidden="true"></i>
+
+                                    Employee
+
+                                </span>
+
+                            </label>
+
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- =================================================
+                     EMAIL / EMPLOYEE ID
+                ================================================== -->
+
+                    <div class="input-group" id="loginIdentifierGroup">
+
+                        <label id="loginIdentifierLabel" for="loginIdentifier">
+                            Email Address
+                        </label>
+
+
+                        <div class="input-box">
+
+                            <i class="ti ti-mail" id="loginIdentifierIcon" aria-hidden="true"></i>
+
+
+                            <input type="email" id="loginIdentifier" placeholder="Enter your email address"
+                                autocomplete="username" required>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- =================================================
+                     PASSWORD
+                ================================================== -->
+
+                    <div class="input-group">
+
+                        <label for="password">
+                            Password
+                        </label>
+
+
+                        <div class="input-box">
+
+                            <i class="ti ti-lock" aria-hidden="true"></i>
+
+
+                            <input type="password" id="password" placeholder="Enter your password"
+                                autocomplete="current-password" required>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- =================================================
+                     LOGIN OPTIONS
+                ================================================== -->
+
+                    <div class="login-options">
+
+                        <label class="remember">
+
+                            <input type="checkbox" id="rememberMe">
+
+                            <span>
+                                Remember me
+                            </span>
+
+                        </label>
+
+
+                        <a href="#" id="forgotPasswordLink">
+                            Forgot password?
+                        </a>
+
+                    </div>
+
+
+                    <!-- =================================================
+                     LOGIN BUTTON
+                ================================================== -->
+
+                    <button type="submit" class="login-btn">
+
+                        <span>
+                            Sign in
+                        </span>
+
+                        <i class="ti ti-arrow-right" aria-hidden="true"></i>
+
+                    </button>
+
+
+                </form>
+
+
+                <div class="footer-text">
+
+                    © 2026 ModernTech HR Platform
+
+                </div>
+
+
+            </div>
+
+        </section>
+
+
+    </div>
+
+
+    <script src="login.js"></script>
+
+</body>
+
+</html>
