@@ -507,8 +507,9 @@ if(logoutBtn){
 
         if(confirmLogout){
 
-            localStorage.removeItem("loggedInUser");
-            localStorage.removeItem("authToken");
+            localStorage.removeItem("hrToken");
+            localStorage.removeItem("hrEmployee");
+            localStorage.removeItem("hrRole");
 
             window.location.href = "index.html";
 

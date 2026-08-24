@@ -1,11 +1,10 @@
-const loggedInUser =
-JSON.parse(localStorage.getItem("loggedInUser"));
-
-if(!loggedInUser){
+if (!getHrToken()) {
 
     window.location.href = "index.html";
 
 }
+
+const loggedInUser = getHrEmployee();
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -499,8 +498,9 @@ if(logoutBtn){
 
         if(confirmLogout){
 
-            localStorage.removeItem("loggedInUser");
-            localStorage.removeItem("authToken");
+            localStorage.removeItem("hrToken");
+            localStorage.removeItem("hrEmployee");
+            localStorage.removeItem("hrRole");
 
             window.location.href = "index.html";
 

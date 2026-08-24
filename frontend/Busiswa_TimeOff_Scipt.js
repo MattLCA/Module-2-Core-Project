@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // --------------------------------------------------------
 
   function getToken() {
-    return localStorage.getItem("authToken") || localStorage.getItem("token");
+    return localStorage.getItem("hrToken");
   }
 
   async function apiRequest(endpoint, options = {}) {
@@ -39,8 +39,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     if (response.status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("authToken");
+      localStorage.removeItem("hrToken");
+      localStorage.removeItem("hrEmployee");
+      localStorage.removeItem("hrRole");
       window.location.href = "index.html";
       return null;
     }
@@ -260,7 +261,9 @@ if (logoutBtn) {
     const confirmLogout = confirm("Are you sure you want to log out?");
 
     if (confirmLogout) {
-      localStorage.removeItem("loggedInUser");
+      localStorage.removeItem("hrToken");
+      localStorage.removeItem("hrEmployee");
+      localStorage.removeItem("hrRole");
       window.location.href = "index.html";
     }
   });

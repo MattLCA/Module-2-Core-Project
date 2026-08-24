@@ -13,10 +13,10 @@
   };
 
   // Maps a raw employee record from GET /api/employees into the shape
-  // this page renders. Note: the list endpoint doesn't currently include
-  // leave status, so every fetched employee shows as "Active" here —
-  // "onboarding"/"leave" badges would need either a richer endpoint or a
-  // second call to leave data, which isn't wired up yet.
+  // this page renders. "On leave" reflects whether HR has an Approved
+  // leave request on file for this employee that covers today's date
+  // (see on_leave_today in the employee list query). "Onboarding" isn't
+  // tracked by the backend yet, so it never appears here.
   function mapEmployee(e){
     var yearMatch = (e.employment_history || '').match(/\d{4}/);
 
@@ -28,7 +28,7 @@
       dept: e.department,
       role: e.position,
       start: yearMatch ? yearMatch[0] + '-01-01' : '2020-01-01',
-      status: 'active',
+      status: e.on_leave_today ? 'leave' : 'active',
       salary: e.base_salary
     };
   }
@@ -541,8 +541,9 @@ if(logoutBtn){
 
         if(confirmLogout){
 
-            localStorage.removeItem("loggedInUser");
-            localStorage.removeItem("authToken");
+            localStorage.removeItem("hrToken");
+            localStorage.removeItem("hrEmployee");
+            localStorage.removeItem("hrRole");
 
             window.location.href = "index.html";
 

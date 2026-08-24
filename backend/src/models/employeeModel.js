@@ -35,7 +35,15 @@ const EMPLOYEE_SELECT = `
         e.is_active,
 
         e.created_at,
-        e.updated_at
+        e.updated_at,
+
+        EXISTS (
+            SELECT 1
+            FROM leave_requests lr
+            WHERE lr.employee_id = e.employee_id
+              AND lr.status = 'Approved'
+              AND CURDATE() BETWEEN lr.start_date AND lr.end_date
+        ) AS on_leave_today
 
     FROM employees e
 

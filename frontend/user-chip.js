@@ -2,13 +2,17 @@
 // greeting heading using the real logged-in user, instead of hardcoded
 // placeholder names left over from the design mockups.
 //
-// Include this AFTER api.js and AFTER the page has already parsed
-// loggedInUser from localStorage (or it will parse its own copy).
+// Include this AFTER api.js. login.js never sets "loggedInUser" — HR
+// sessions are saved under "hrEmployee" and worker sessions under
+// "workerProfile", so this checks both and uses whichever is present.
 
 (function () {
 
-    const loggedInUser =
-        JSON.parse(localStorage.getItem("loggedInUser") || "null");
+    const stored =
+        localStorage.getItem("hrEmployee") ||
+        localStorage.getItem("workerProfile");
+
+    const loggedInUser = stored ? JSON.parse(stored) : null;
 
     if (!loggedInUser) return;
 
